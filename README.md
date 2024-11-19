@@ -1,4 +1,4 @@
-# 🎵 Colab Music AI Toolkit 🎧
+# 🎵 Yapay zeka Colablarım 🎧
 
 ## 📁 Repository İçeriği
 Bu repository, müzik yapay zekası ve ses işleme için Google Colab not defterlerini ve yardımcı betikleri içerir.
