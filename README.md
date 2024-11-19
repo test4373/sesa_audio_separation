@@ -10,7 +10,7 @@ Bu repository, müzik yapay zekası ve ses işleme için Google Colab not defter
 
 ## 🚀 Colab Notebook'ları
 ### 1. Müzik Kaynak Ayrıştırma
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/test4373/My-Colab/blob/main/Music_Source_Separation_(Turkish).ipynb)
+🇹🇷 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/test4373/My-Colab/blob/main/Music_Source_Separation_(Turkish).ipynb)
 
 **Özellikler:**
 - Türkçe arayüz
