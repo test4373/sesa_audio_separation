@@ -315,7 +315,6 @@ def process_audio(input_audio, model, chunk_size, overlap, flac_file, use_tta, p
 
     # Delete existing files
     clear_directory(INPUT_DIR)
-    clear_directory(OUTPUT_DIR)
 
     # Clear model name
     clean_model = extract_model_name(model)
@@ -568,19 +567,18 @@ def process_audio(input_audio, model, chunk_size, overlap, flac_file, use_tta, p
         cmd_parts.append("--use_tta")
 
      # Run the command
-    try:
+    try:        # Run the subprocess as before...
         process = subprocess.Popen(
-        cmd_parts,
-        cwd=BASE_PATH,  # I used the BASE_PATH variable
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        bufsize=1,
-        universal_newlines=True
-    )
+            cmd_parts,
+            cwd=BASE_PATH,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+            universal_newlines=True
+        )
 
-
-        # Read outputs
+        # Read and print outputs
         for line in process.stdout:
             print(line.strip())
 
@@ -589,29 +587,84 @@ def process_audio(input_audio, model, chunk_size, overlap, flac_file, use_tta, p
 
         process.wait()
 
-
         # Find output files
         output_files = os.listdir(output_folder)
 
-        # Find four different stem files
-        vocal_file = next((os.path.join(output_folder, f) for f in output_files if 'vocals' in f.lower()), None)
-        drum_file = next((os.path.join(output_folder, f) for f in output_files if 'drum' in f.lower()), None)
-        bass_file = next((os.path.join(output_folder, f) for f in output_files if 'bass' in f.lower()), None)
-        other_file = next((os.path.join(output_folder, f) for f in output_files if 'other' in f.lower()), None)
-        instrumental_file = next((os.path.join(output_folder, f) for f in output_files if 'instrumental' in f.lower()), None)
-        effects_file = next((os.path.join(output_folder, f) for f in output_files if 'effects' in f.lower()), None)
-        speech_file = next((os.path.join(output_folder, f) for f in output_files if 'speech' in f.lower()), None)
-        music_file = next((os.path.join(output_folder, f) for f in output_files if 'music' in f.lower()), None)
-        dry_file = next((os.path.join(output_folder, f) for f in output_files if 'dry' in f.lower()), None)
+        # Function to copy files with model name
+        def copy_file_with_model(original_file, stem_type):
+            if original_file:
+                base_name = os.path.basename(original_file)
+                # Create new filename with model name and stem type
+                new_filename = f"{os.path.splitext(base_name)[0]}_{clean_model}_{stem_type}{os.path.splitext(base_name)[1]}"
+                new_filepath = os.path.join(output_folder, new_filename)
+                
+                # Copy the file instead of renaming
+                shutil.copy2(original_file, new_filepath)
+                return new_filepath
+            return None
 
-        # Return five values in each case
-        return vocal_file or None, instrumental_file or None, drum_file or None, bass_file or None, other_file or None, effects_file or None, speech_file or None, music_file or None, dry_file or None  # Tüm stem dosyalarını döndürün
+        # Find and copy stem files
+        vocal_file = copy_file_with_model(
+            next((os.path.join(output_folder, f) for f in output_files if 'vocals' in f.lower()), None),
+            'vocals'
+        )
+        
+        instrumental_file = copy_file_with_model(
+            next((os.path.join(output_folder, f) for f in output_files if 'instrumental' in f.lower()), None),
+            'instrumental'
+        )
+        
+        drum_file = copy_file_with_model(
+            next((os.path.join(output_folder, f) for f in output_files if 'drum' in f.lower()), None),
+            'drum'
+        )
+        
+        bass_file = copy_file_with_model(
+            next((os.path.join(output_folder, f) for f in output_files if 'bass' in f.lower()), None),
+            'bass'
+        )
+        
+        other_file = copy_file_with_model(
+            next((os.path.join(output_folder, f) for f in output_files if 'other' in f.lower()), None),
+            'other'
+        )
+        
+        effects_file = copy_file_with_model(
+            next((os.path.join(output_folder, f) for f in output_files if 'effects' in f.lower()), None),
+            'effects'
+        )
+        
+        speech_file = copy_file_with_model(
+            next((os.path.join(output_folder, f) for f in output_files if 'speech' in f.lower()), None),
+            'speech'
+        )
+        
+        music_file = copy_file_with_model(
+            next((os.path.join(output_folder, f) for f in output_files if 'music' in f.lower()), None),
+            'music'
+        )
+        
+        dry_file = copy_file_with_model(
+            next((os.path.join(output_folder, f) for f in output_files if 'dry' in f.lower()), None),
+            'dry'
+        )
+
+        # Return copied files
+        return (
+            vocal_file,
+            instrumental_file,
+            drum_file,
+            bass_file,
+            other_file,
+            effects_file,
+            speech_file,
+            music_file,
+            dry_file
+        )
 
     except Exception as e:
         print(f"An error occurred: {e}")
-        return None, None, None, None, None, None, None, None, None  # Return None on error
-
-
+        return None, None, None, None, None, None, None, None, None
 def create_interface():
     # Let's define the model options in advance
     model_choices = {
