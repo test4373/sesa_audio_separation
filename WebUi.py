@@ -313,6 +313,10 @@ def process_audio(input_audio, model, chunk_size, overlap, flac_file, use_tta, p
     create_directory(INPUT_DIR)
     create_directory(OUTPUT_DIR)
 
+    # Sadece ilk başlangıçta önceki dosyaları temizle
+    if len(os.listdir(OUTPUT_DIR)) > 0:
+        clear_directory(OUTPUT_DIR)
+
     # Delete existing files
     clear_directory(INPUT_DIR)
 
