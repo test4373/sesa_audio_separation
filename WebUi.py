@@ -247,7 +247,10 @@ def save_uploaded_file(uploaded_file, is_input=False):
         target_directory = INPUT_DIR if is_input else OUTPUT_DIR
 
         # Create destination file path
-        target_path = os.path.join(target_directory, file_name)
+        base, ext = os.path.splitext(file_name)
+        timestamp = datetime.now().strftime("%H-%M-%S")
+        unique_filename = f"{base}_{timestamp}{ext}"
+        target_path = os.path.join(target_directory, unique_filename)
 
         # Save File
         if hasattr(uploaded_file, 'read'):
@@ -258,7 +261,7 @@ def save_uploaded_file(uploaded_file, is_input=False):
             # If it is already a file path
             shutil.copy(uploaded_file, target_path)
 
-        print(f"{file_name} saved successfully: {target_path}")
+        print(f"{unique_filename} saved successfully: {target_path}")
         return target_path
     except Exception as e:
         print(f"Error saving file: {e}")
@@ -594,11 +597,12 @@ def process_audio(input_audio, model, chunk_size, overlap, flac_file, use_tta, p
         def copy_file_with_model(original_file, stem_type):
             if original_file:
                 base_name = os.path.basename(original_file)
-                # Create new filename with model name and stem type
-                new_filename = f"{os.path.splitext(base_name)[0]}_{clean_model}_{stem_type}{os.path.splitext(base_name)[1]}"
+                timestamp = datetime.now().strftime("%H-%M-%S")
+                # Create new filename with model name, stem type, and timestamp
+                new_filename = f"{os.path.splitext(base_name)[0]}_{clean_model}_{stem_type}_{timestamp}{os.path.splitext(base_name)[1]}"
                 new_filepath = os.path.join(output_folder, new_filename)
-                
-                # Copy the file instead of renaming
+            
+                # Copy the file 
                 shutil.copy2(original_file, new_filepath)
                 return new_filepath
             return None
