@@ -337,7 +337,7 @@ def process_audio(input_audio, model, chunk_size, overlap, flac_file, use_tta, p
 
     # define input_folder and output_folder
     input_folder = INPUT_DIR
-    output_folder = OUTPUT_DIR
+    output_folder = "/content/drive/MyDrive/output"
 
     # Model selection and specify relevant parameters
     model_type, config_path, start_check_point = "", "", ""
@@ -602,7 +602,7 @@ def process_audio(input_audio, model, chunk_size, overlap, flac_file, use_tta, p
                 new_filename = f"{os.path.splitext(base_name)[0]}_{clean_model}_{stem_type}_{timestamp}{os.path.splitext(base_name)[1]}"
                 new_filepath = os.path.join(output_folder, new_filename)
             
-                # Copy the file 
+                # Dosyayı doğrudan çıktı klasörüne kopyala
                 shutil.copy2(original_file, new_filepath)
                 return new_filepath
             return None
