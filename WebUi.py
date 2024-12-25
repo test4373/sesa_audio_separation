@@ -863,6 +863,22 @@ def create_interface():
                 with gr.Column():
                     # Refresh butonu ekledik
                     refresh_btn = gr.Button("🔄 Refresh Audio Files")
+
+                    # Ensemble algoritması seçimi
+                    ensemble_type = gr.Dropdown(
+                        label="Ensemble Algorithm",
+                        choices=[
+                            'avg_wave', 
+                            'median_wave', 
+                            'min_wave', 
+                            'max_wave', 
+                            'avg_fft', 
+                            'median_fft', 
+                            'min_fft', 
+                            'max_fft'
+                        ],
+                        value='avg_wave'
+                    )
                     
                     # Dosya seçimi (10 adet dropdown)
                     file_dropdowns = []
@@ -890,35 +906,20 @@ def create_interface():
                         outputs=file_dropdowns
                     )
                     
-                    # Ensemble algoritması seçimi
-                    ensemble_type = gr.Dropdown(
-                        label="Ensemble Algorithm",
-                        choices=[
-                            'avg_wave', 
-                            'median_wave', 
-                            'min_wave', 
-                            'max_wave', 
-                            'avg_fft', 
-                            'median_fft', 
-                            'min_fft', 
-                            'max_fft'
-                        ],
-                        value='avg_wave'
-                    )
-                    
                     # Ağırlık girişi
                     weights_input = gr.Textbox(
                         label="Weights (comma-separated, optional)", 
                         placeholder="e.g., 1.0, 1.2, 0.8"
                     )
                     
-                    # İşlem butonu
-                    ensemble_process_btn = gr.Button("Ensemble Audio")
                 
                 with gr.Column():
                     # Çıktı alanları
                     ensemble_output_audio = gr.Audio(label="Ensembled Audio")
                     ensemble_status = gr.Textbox(label="Status")
+
+                    # İşlem butonu
+                    ensemble_process_btn = gr.Button("Ensemble Audio")
         
                 def ensemble_audio_fn(file_1, file_2, file_3, file_4, file_5, 
                                       file_6, file_7, file_8, file_9, file_10, 
