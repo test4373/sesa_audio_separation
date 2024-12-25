@@ -684,9 +684,9 @@ def create_interface():
                         label="Overlap",
                         info="It's usually between 5 and 2. Change it if you want something different.",
                         minimum=1,
-                        maximum=10,
+                        maximum=50,
                         step=1,
-                        value=3
+                        value=4
                     )
 
                     model_category.change(
