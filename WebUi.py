@@ -664,11 +664,69 @@ def create_interface():
             value=models[0] if models else None
         )
 
+
+    def ensemble_files(args):
+        """
+        Ensemble audio files using the external script
+        
+        Args:
+            args (list): Command-line arguments for ensemble script
+        """
+        try:
+            # Ensemble script'inin yolu
+            script_path = "/content/Music-Source-Separation-Training/ensemble.py"
+            
+            # Komut satırı argümanlarını hazırlama
+            full_command = ["python", script_path] + args
+            
+            # Subprocess ile çalıştırma
+            result = subprocess.run(
+                full_command, 
+                capture_output=True, 
+                text=True, 
+                check=True
+            )
+            
+            print("Ensemble successful:")
+            print(result.stdout)
+            return result.stdout
+        
+        except subprocess.CalledProcessError as e:
+            print(f"Ensemble error: {e}")
+            print(f"Error output: {e.stderr}")
+            raise
+        except Exception as e:
+            print(f"Unexpected error during ensemble: {e}")
+            raise
+
+    def refresh_audio_files(directory):
+        """
+        Belirtilen dizindeki ses dosyalarını yeniden listeler
+        
+        Args:
+            directory (str): Taranacak dizin yolu
+        
+        Returns:
+            list: Bulunan ses dosyalarının listesi
+        """
+        try:
+            audio_extensions = ['.wav', '.mp3', '.flac', '.ogg']
+            audio_files = [
+                f for f in os.listdir(directory) 
+                if os.path.isfile(os.path.join(directory, f)) 
+                and os.path.splitext(f)[1].lower() in audio_extensions
+            ]
+            return sorted(audio_files)  # Alfabetik sıralama
+        except Exception as e:
+            print(f"Audio file listing error: {e}")
+            return []
+
     with gr.Blocks() as demo:
         gr.Markdown("# 🎵 Music Source Separation Tool")
 
         with gr.Tabs():
-            with gr.Tab("Audio Seperation"):
+            # Mevcut Audio Separation Tab'ı
+            with gr.Tab("Audio Separation"):
                 with gr.Row():
                     with gr.Column(scale=1):
                         input_audio = gr.File(label="Select Audio File", type="filepath")
@@ -681,13 +739,13 @@ def create_interface():
                         model_dropdown = gr.Dropdown(label="Select Model")
 
                         overlap = gr.Slider(
-                        label="Overlap",
-                        info="It's usually between 5 and 2. Change it if you want something different.",
-                        minimum=1,
-                        maximum=50,
-                        step=1,
-                        value=4
-                    )
+                            label="Overlap",
+                            info="It's usually between 5 and 2. Change it if you want something different.",
+                            minimum=1,
+                            maximum=50,
+                            step=1,
+                            value=4
+                        )
 
                     model_category.change(
                         fn=update_models,
@@ -713,7 +771,6 @@ def create_interface():
                             info="Test Time Augmentation:It improves the prediction performance of the model. It also increases the processing time."
                         )
 
-                        # Extract Instrumental Checkbox
                         extract_instrumental = gr.Checkbox(
                             label="Extract Instrumental",
                             info="If you turn it off, it will give 1 of vocal or instrumental.",
@@ -737,10 +794,10 @@ def create_interface():
                             drum_audio = gr.Audio(label="Drum")
                             bass_audio = gr.Audio(label="Bass")
                             other_audio = gr.Audio(label="Other")
-                            effects_audio = gr.Audio(label="effects")
-                            speech_audio = gr.Audio(label="speech")
-                            music_audio = gr.Audio(label="music")
-                            dry_audio = gr.Audio(label="dry")
+                            effects_audio = gr.Audio(label="Effects")
+                            speech_audio = gr.Audio(label="Speech")
+                            music_audio = gr.Audio(label="Music")
+                            dry_audio = gr.Audio(label="Dry")
 
                 input_audio.upload(
                     fn=lambda x: x,
@@ -766,7 +823,9 @@ def create_interface():
                         dry_audio
                     ]
                 )
-            with gr.Tab("Audio, File download"):
+
+            # Mevcut Download Tab'ı
+            with gr.Tab("Audio, File Download"):
                 gr.Markdown("## 🔗 Audio File Download")
 
                 with gr.Row():
@@ -779,13 +838,13 @@ def create_interface():
 
                     with gr.Column():
                         gr.Markdown("### 🌐 Direct URL Download")
-                        direct_url_input = gr.Textbox(label="Direkt URL")
+                        direct_url_input = gr.Textbox(label="Direct URL")
                         direct_download_btn = gr.Button("Download")
                         direct_download_status = gr.Textbox(label="Status")
                         direct_download_output = gr.File(label="Downloaded File")
 
                 drive_download_btn.click(
-                    fn =download_callback,
+                    fn=download_callback,
                     inputs=[drive_url_input, gr.State('drive')],
                     outputs=[drive_download_output, drive_download_status, input_audio, original_audio]
                 )
@@ -795,27 +854,161 @@ def create_interface():
                     inputs=[direct_url_input, gr.State('direct')],
                     outputs=[direct_download_output, direct_download_status, input_audio, original_audio]
                 )
-         # Other tabs can be added here
+
+            # Yeni Ensemble Tab'ı
+            with gr.Tab("Audio Ensemble"):
+               gr.Markdown("# 🎵 Audio Ensemble Tool")
+            
+            with gr.Row():
+                with gr.Column():
+                    # Refresh butonu ekledik
+                    refresh_btn = gr.Button("🔄 Refresh Audio Files")
+                    
+                    # Dosya seçimi (10 adet dropdown)
+                    file_dropdowns = []
+                    drive_audio_files = refresh_audio_files('/content/drive/MyDrive/output')
+                    
+                    for i in range(10):
+                        file_dropdown = gr.Dropdown(
+                            label=f"Audio File {i+1}", 
+                            choices=['None'] + drive_audio_files,
+                            value='None'
+                        )
+                        file_dropdowns.append(file_dropdown)
+                    
+                    # Refresh butonu için fonksiyon
+                    def update_audio_dropdowns():
+                        updated_files = refresh_audio_files('/content/drive/MyDrive/output')
+                        return [
+                            gr.Dropdown(choices=['None'] + updated_files, value='None') 
+                            for _ in range(10)
+                        ]
+                    
+                    # Refresh butonuna event ekleme
+                    refresh_btn.click(
+                        fn=update_audio_dropdowns,
+                        outputs=file_dropdowns
+                    )
+                    
+                    # Ensemble algoritması seçimi
+                    ensemble_type = gr.Dropdown(
+                        label="Ensemble Algorithm",
+                        choices=[
+                            'avg_wave', 
+                            'median_wave', 
+                            'min_wave', 
+                            'max_wave', 
+                            'avg_fft', 
+                            'median_fft', 
+                            'min_fft', 
+                            'max_fft'
+                        ],
+                        value='avg_wave'
+                    )
+                    
+                    # Ağırlık girişi
+                    weights_input = gr.Textbox(
+                        label="Weights (comma-separated, optional)", 
+                        placeholder="e.g., 1.0, 1.2, 0.8"
+                    )
+                    
+                    # İşlem butonu
+                    ensemble_process_btn = gr.Button("Ensemble Audio")
+                
+                with gr.Column():
+                    # Çıktı alanları
+                    ensemble_output_audio = gr.Audio(label="Ensembled Audio")
+                    ensemble_status = gr.Textbox(label="Status")
+        
+                def ensemble_audio_fn(file_1, file_2, file_3, file_4, file_5, 
+                                      file_6, file_7, file_8, file_9, file_10, 
+                                      ensemble_type, weights_input):
+                    try:
+                        # Seçilen dosyaları filtrele
+                        file_dropdowns = [
+                            file_1, file_2, file_3, file_4, file_5, 
+                            file_6, file_7, file_8, file_9, file_10
+                        ]
+                        
+                        files = [
+                            os.path.join('/content/drive/MyDrive/output', f) 
+                            for f in file_dropdowns 
+                            if f != 'None'
+                        ]
+                        
+                        if len(files) < 2:
+                            return None, "Select at least 2 files for ensemble"
+                        
+                        # Weights işleme
+                        if weights_input and weights_input.strip():
+                            weights = [float(w.strip()) for w in weights_input.split(',')]
+                            if len(weights) != len(files):
+                                return None, "Weights must match number of selected files"
+                        else:
+                            weights = None
+                        
+                        # Geçici dosya yolu oluşturma
+                        output_path = "/tmp/ensembled_audio.wav"
+                        
+                        # Argümanları hazırlama
+                        ensemble_args = [
+                            "--files"] + files + [
+                            "--type", ensemble_type,
+                            "--output", output_path
+                        ]
+                        
+                        # Weights eklenirse argümanlara ekle
+                        if weights:
+                            ensemble_args.extend(["--weights"] + [str(w) for w in weights])
+                        
+                        # Ensemble fonksiyonunu çağırma
+                        ensemble_files(ensemble_args)
+                        
+                        return output_path, "Ensemble successful!"
+                    
+                    except Exception as e:
+                        return None, f"Error: {str(e)}"
+                
+                ensemble_process_btn.click(
+                    fn=ensemble_audio_fn,
+                    inputs=file_dropdowns + [ensemble_type, weights_input],
+                    outputs=[ensemble_output_audio, ensemble_status]
+                )
 
     return demo
 
-
 def launch_with_share():
-    port = generate_random_port()
-    demo = create_interface()
-    share_link = demo.launch(
-        share=True,
-        server_port=port,
-        server_name='0.0.0.0',
-        inline=False,
-        allowed_paths=['/content/drive/MyDrive/output']
-    )
     try:
+        port = generate_random_port()
+        demo = create_interface()
+        
+        share_link = demo.launch(
+            share=True,
+            server_port=port,
+            server_name='0.0.0.0',
+            inline=False,
+            allowed_paths=[
+                '/content', 
+                '/content/drive/MyDrive/output', 
+                '/tmp'
+            ]
+        )
+        
+        print(f"🌐 Gradio Share Link: {share_link}")
+        print(f"🔌 Local Server Port: {port}")
+        
         while True:
             time.sleep(1)
 
     except KeyboardInterrupt:
-        print("Loop stopped.")
+        print("🛑 Server stopped by user.")
+    except Exception as e:
+        print(f"❌ Error during server launch: {e}")
+    finally:
+        try:
+            demo.close()
+        except:
+            pass
 
 if __name__ == "__main__":
     launch_with_share()
