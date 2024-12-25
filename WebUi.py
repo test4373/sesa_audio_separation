@@ -502,6 +502,30 @@ def process_audio(input_audio, model, chunk_size, overlap, flac_file, use_tta, p
             download_file('https://huggingface.co/jarredou/aufr33_MelBand_Denoise/resolve/main/model_mel_band_roformer_denoise.yaml')
             conf_edit(config_path, chunk_size, overlap)
 
+    elif clean_model == 'kimmel_unwa_ft (by unwa)':
+            model_type = 'mel_band_roformer'
+            config_path = 'ckpts/config_kimmel_unwa_ft.yaml'
+            start_check_point = 'ckpts/kimmel_unwa_ft.ckpt'
+            download_file('https://huggingface.co/pcunwa/Kim-Mel-Band-Roformer-FT/resolve/main/kimmel_unwa_ft.ckpt')
+            download_file('https://huggingface.co/pcunwa/Mel-Band-Roformer-Inst/resolve/main/config_melbandroformer_inst.yaml')
+            conf_edit(config_path, chunk_size, overlap)
+
+    elif clean_model == 'inst_v1e (by unwa)':
+            model_type = 'mel_band_roformer'
+            config_path = 'ckpts/config_melbandroformer_inst.yaml'
+            start_check_point = 'ckpts/inst_v1e.ckpt'
+            download_file('https://huggingface.co/pcunwa/Mel-Band-Roformer-Inst/resolve/main/inst_v1e.ckpt')
+            download_file('https://huggingface.co/pcunwa/Mel-Band-Roformer-Inst/resolve/main/config_melbandroformer_inst.yaml')
+            conf_edit(config_path, chunk_size, overlap)
+
+    elif clean_model == 'bleed_suppressor_v1 (by unwa)':
+            model_type = 'mel_band_roformer'
+            config_path = 'ckpts/config_bleed_suppressor_v1.yaml'
+            start_check_point = 'ckpts/bleed_suppressor_v1.ckpt'
+            download_file('https://shared.multimedia.workers.dev/download/1/other/bleed_suppressor_v1.ckpt')
+            download_file('https://shared.multimedia.workers.dev/download/1/other/config_bleed_suppressor_v1.yaml')
+            conf_edit(config_path, chunk_size, overlap)
+
 
     # Other model options will be added here...
     # (All the elif blocks you gave in the previous code will go here)
@@ -604,11 +628,13 @@ def create_interface():
             'VOCALS-VitLarge23 (by ZFTurbo) - Transformer-based model'
         ],
         "Instrumental Separation": [
-            '✅ INST-VOC-Mel-Roformer a.k.a. duality v2 (by unwa) - Latest version instrumental separation',
-            '✅ INST-VOC-Mel-Roformer a.k.a. duality (by unwa) - Previous version',
+            'INST-VOC-Mel-Roformer a.k.a. duality v2 (by unwa) - Latest version instrumental separation',
+            'INST-VOC-Mel-Roformer a.k.a. duality (by unwa) - Previous version',
             'INST-Separator MDX23C (by aufr33) - Alternative instrumental separation',
             '✅ INST-Mel-Roformer v2 (by unwa) - Most recent instrumental separation model',
-            '✅ INST-Mel-Roformer v1 (by unwa) - Old instrumental separation model'
+            '✅ inst_v1e (by unwa)',
+            '✅ INST-Mel-Roformer v1 (by unwa) - Old instrumental separation model',
+            'kimmel_unwa_ft (by unwa)'
         ],
         "Karaoke & Accompaniment": [
             '✅ KARAOKE-MelBand-Roformer (by aufr33 & viperx) - Advanced karaoke separation'
@@ -625,7 +651,8 @@ def create_interface():
         "Multi-Stem & Other Models": [
             '🎬 4STEMS-SCNet_MUSDB18 (by starrytong) - Multi-stem separation',
             '🎼 CINEMATIC-BandIt_Plus (by kwatcharasupat) - Cinematic music analysis',
-            'OTHER-BS-Roformer_1053 (by viperx) - Other special models'
+            'OTHER-BS-Roformer_1053 (by viperx) - Other special models',
+            'bleed_suppressor_v1 (by unwa) - dont use it if you dont know what youre doing'
         ],
     }
 
