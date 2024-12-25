@@ -30,3 +30,4 @@ torchseg
 yt_dlp
 rotary_embedding_torch
 noisereduce
+loralib
