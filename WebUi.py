@@ -921,116 +921,116 @@ def create_interface():
                         refresh_btn = gr.Button("🔄 Refresh Audio Files")
 
                     
-                    ensemble_type = gr.Dropdown(
-                        label="Ensemble Algorithm",
-                        choices=[
-                            'avg_wave',
-                            'median_wave',
-                            'min_wave',
-                            'max_wave',
-                            'avg_fft',
-                            'median_fft',
-                            'min_fft',
-                            'max_fft'
-                        ],
-                        value='avg_wave'
-                    )
-                    
-                    
-                    file_dropdowns = []
-                    drive_audio_files = refresh_audio_files('/content/drive/MyDrive/output')
-                    
-                    for i in range(10):
-                        file_dropdown = gr.Dropdown(
-                            label=f"Audio File {i+1}",
-                            choices=['None'] + drive_audio_files,
-                            value='None'
+                        ensemble_type = gr.Dropdown(
+                            label="Ensemble Algorithm",
+                            choices=[
+                                'avg_wave',
+                                'median_wave',
+                                'min_wave',
+                                'max_wave',
+                                'avg_fft',
+                                'median_fft',
+                                'min_fft',
+                                'max_fft'
+                            ],
+                            value='avg_wave'
                         )
-                        file_dropdowns.append(file_dropdown)
+                        
+                        
+                        file_dropdowns = []
+                        drive_audio_files = refresh_audio_files('/content/drive/MyDrive/output')
+                        
+                        for i in range(10):
+                            file_dropdown = gr.Dropdown(
+                                label=f"Audio File {i+1}",
+                                choices=['None'] + drive_audio_files,
+                                value='None'
+                            )
+                            file_dropdowns.append(file_dropdown)
+                        
+                        
+                        def update_audio_dropdowns():
+                            updated_files = refresh_audio_files('/content/drive/MyDrive/output')
+                            return [
+                                gr.Dropdown(choices=['None'] + updated_files, value='None')
+                                for _ in range(10)
+                            ]
+                        
+                        
+                        refresh_btn.click(
+                            fn=update_audio_dropdowns,
+                            outputs=file_dropdowns
+                        )
+                        
+                        
+                        weights_input = gr.Textbox(
+                            label="Weights (comma-separated, optional)",
+                            placeholder="e.g., 1.0, 1.2, 0.8"
+                        )
+                        
                     
-                    
-                    def update_audio_dropdowns():
-                        updated_files = refresh_audio_files('/content/drive/MyDrive/output')
-                        return [
-                            gr.Dropdown(choices=['None'] + updated_files, value='None')
-                            for _ in range(10)
-                        ]
-                    
-                    
-                    refresh_btn.click(
-                        fn=update_audio_dropdowns,
-                        outputs=file_dropdowns
-                    )
-                    
-                    
-                    weights_input = gr.Textbox(
-                        label="Weights (comma-separated, optional)",
-                        placeholder="e.g., 1.0, 1.2, 0.8"
-                    )
-                    
-                
-                with gr.Column():
-                    
-                    ensemble_output_audio = gr.Audio(label="Ensembled Audio")
-                    ensemble_status = gr.Textbox(label="Status")
+                    with gr.Column():
+                        
+                        ensemble_output_audio = gr.Audio(label="Ensembled Audio")
+                        ensemble_status = gr.Textbox(label="Status")
 
+                        
+                        ensemble_process_btn = gr.Button("Ensemble Audio")
+            
+                    def ensemble_audio_fn(file_1, file_2, file_3, file_4, file_5, 
+                                          file_6, file_7, file_8, file_9, file_10, 
+                                          ensemble_type, weights_input):
+                        try:
+                            
+                            file_dropdowns = [
+                                file_1, file_2, file_3, file_4, file_5,
+                                file_6, file_7, file_8, file_9, file_10
+                            ]
+                            
+                            files = [
+                                os.path.join('/content/drive/MyDrive/output', f)
+                                for f in file_dropdowns 
+                                if f != 'None'
+                            ]
+                            
+                            if len(files) < 2:
+                                return None, "Select at least 2 files for ensemble"
+                            
+                            
+                            if weights_input and weights_input.strip():
+                                weights = [float(w.strip()) for w in weights_input.split(',')]
+                                if len(weights) != len(files):
+                                    return None, "Weights must match number of selected files"
+                            else:
+                                weights = None
+                            
+                            
+                            output_path = "/tmp/ensembled_audio.wav"
+                            
+                            
+                            ensemble_args = [
+                                "--files"] + files + [
+                                "--type", ensemble_type,
+                                "--output", output_path
+                            ]
+                            
+                            
+                            if weights:
+                                ensemble_args.extend(["--weights"] + [str(w) for w in weights])
+                            
+                            
+                            ensemble_files(ensemble_args)
+                            
+                            return output_path, "Ensemble successful!"
+                        
+                        except Exception as e:
+                            return None, f"Error: {str(e)}"
                     
-                    ensemble_process_btn = gr.Button("Ensemble Audio")
-        
-                def ensemble_audio_fn(file_1, file_2, file_3, file_4, file_5, 
-                                      file_6, file_7, file_8, file_9, file_10, 
-                                      ensemble_type, weights_input):
-                    try:
-                        
-                        file_dropdowns = [
-                            file_1, file_2, file_3, file_4, file_5,
-                            file_6, file_7, file_8, file_9, file_10
-                        ]
-                        
-                        files = [
-                            os.path.join('/content/drive/MyDrive/output', f)
-                            for f in file_dropdowns 
-                            if f != 'None'
-                        ]
-                        
-                        if len(files) < 2:
-                            return None, "Select at least 2 files for ensemble"
-                        
-                        
-                        if weights_input and weights_input.strip():
-                            weights = [float(w.strip()) for w in weights_input.split(',')]
-                            if len(weights) != len(files):
-                                return None, "Weights must match number of selected files"
-                        else:
-                            weights = None
-                        
-                        
-                        output_path = "/tmp/ensembled_audio.wav"
-                        
-                        
-                        ensemble_args = [
-                            "--files"] + files + [
-                            "--type", ensemble_type,
-                            "--output", output_path
-                        ]
-                        
-                        
-                        if weights:
-                            ensemble_args.extend(["--weights"] + [str(w) for w in weights])
-                        
-                        
-                        ensemble_files(ensemble_args)
-                        
-                        return output_path, "Ensemble successful!"
-                    
-                    except Exception as e:
-                        return None, f"Error: {str(e)}"
-                
-                ensemble_process_btn.click(
-                    fn=ensemble_audio_fn,
-                    inputs=file_dropdowns + [ensemble_type, weights_input],
-                    outputs=[ensemble_output_audio, ensemble_status]
-                )
+                    ensemble_process_btn.click(
+                        fn=ensemble_audio_fn,
+                        inputs=file_dropdowns + [ensemble_type, weights_input],
+                        outputs=[ensemble_output_audio, ensemble_status]
+                    )
 
     return demo
 
