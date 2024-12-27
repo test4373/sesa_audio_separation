@@ -24,6 +24,59 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
+def get_clean_model_name(model_type):
+    """
+    webui.py'daki tüm model isimlerini içerir
+    """
+    model_mapping = {
+        'mdx23c': {
+            'VOCALS-InstVocHQ': 'VOCALS-InstVocHQ',
+            'DRUMSEP-MDX23C_DrumSep_6stem': 'DRUMSEP-MDX23C_DrumSep_6stem (by aufr33 & jarredou)',
+            'DE-REVERB-MDX23C': 'DE-REVERB-MDX23C (by aufr33 & jarredou)'
+        },
+        'mel_band_roformer': {
+            'VOCALS-MelBand-Roformer': 'VOCALS-MelBand-Roformer (by KimberleyJSN)',
+            'VOCALS-Mel-Roformer big beta 4': 'VOCALS-Mel-Roformer big beta 4 (by unwa)',
+            'big beta 5': 'big beta 5 (by unwa)',
+            'INST-VOC-Mel-Roformer': 'INST-VOC-Mel-Roformer a.k.a. duality (by unwa)',
+            'INST-VOC-Mel-Roformer v2': 'INST-VOC-Mel-Roformer a.k.a. duality v2 (by unwa)',
+            'INST-Mel-Roformer v1': 'INST-Mel-Roformer v1 (by unwa)',
+            'INST-Mel-Roformer v2': 'INST-Mel-Roformer v2 (by unwa)',
+            'KARAOKE-MelBand-Roformer': 'KARAOKE-MelBand-Roformer (by aufr33 & viperx)',
+            'CROWD-REMOVAL': 'CROWD-REMOVAL-MelBand-Roformer (by aufr33)',
+            'DENOISE-MelBand-Roformer-1': 'DENOISE-MelBand-Roformer-1 (by aufr33)',
+            'DENOISE-MelBand-Roformer-2': 'DENOISE-MelBand-Roformer-2 (by aufr33)',
+            'kimmel_unwa_ft': 'kimmel_unwa_ft (by unwa)',
+            'inst_v1e': 'inst_v1e (by unwa)',
+            'bleed_suppressor_v1': 'bleed_suppressor_v1 (by unwa)'
+        },
+        'bs_roformer': {
+            'VOCALS-BS-Roformer_1297': 'VOCALS-BS-Roformer_1297 (by viperx)',
+            'VOCALS-BS-Roformer_1296': 'VOCALS-BS-Roformer_1296 (by viperx)',
+            'VOCALS-BS-RoformerLargev1': 'VOCALS-BS-RoformerLargev1 (by unwa)',
+            'OTHER-BS-Roformer_1053': 'OTHER-BS-Roformer_1053 (by viperx)'
+        },
+        'segm_models': {
+            'VOCALS-VitLarge23': 'VOCALS-VitLarge23 (by ZFTurbo)'
+        },
+        'bandit': {
+            'CINEMATIC-BandIt_Plus': 'CINEMATIC-BandIt_Plus (by kwatcharasupat)'
+        },
+        'scnet': {
+            '4STEMS-SCNet_MUSDB18': '4STEMS-SCNet_MUSDB18 (by starrytong)'
+        }
+    }
+
+    # Her kategoride model tipini ara
+    for category, models in model_mapping.items():
+        for key, value in models.items():
+            if model_type == key or model_type in value:
+                return value
+    
+    # Eğer bulunamazsa varsayılan olarak model_type'ı kullan
+    return model_type
+
+
 def shorten_filename(filename, max_length=30):
     """
     Shortens a filename to a specified maximum length
@@ -96,24 +149,30 @@ def run_folder(model, args, config, device, verbose: bool = False):
         # Dosya adını kısaltma
         shortened_filename = shorten_filename(os.path.basename(path))
 
-        current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # Model ismini al
+       full_model_name = get_clean_model_name(args.model_type)
 
-        instrument_progress = tqdm(instruments, desc="Processing", leave=False)
-        for instr in instrument_progress:
-            estimates = waveforms_orig[instr]
-            if 'normalize' in config.inference:
-                if config.inference['normalize'] is True:
-                    estimates = denormalize_audio(estimates, norm_params)
+       current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-            codec = 'flac' if getattr(args, 'flac_file', False) else 'wav'
-            subtype = 'PCM_16' if args.flac_file and args.pcm_type == 'PCM_16' else 'FLOAT'
+       instrument_progress = tqdm(instruments, desc="Processing", leave=False)
+       for instr in instrument_progress:
+           estimates = waveforms_orig[instr]
+           if 'normalize' in config.inference:
+               if config.inference['normalize'] is True:
+                estimates = denormalize_audio(estimates, norm_params)
 
-            # Model adı, kısaltılmış dosya adı, enstrüman ve zaman bilgisini içeren dosya ismi
+           codec = 'flac' if getattr(args, 'flac_file', False) else 'wav'
+           subtype = 'PCM_16' if args.flac_file and args.pcm_type == 'PCM_16' else 'FLOAT'
+
+            # Dosya adını kısalt
+            shortened_filename = shorten_filename(os.path.basename(path))
+
+            # Yeni dosya adı formatı
             output_filename = f"{full_model_name}_{shortened_filename}_{instr}_{current_time}.{codec}"
             output_path = os.path.join(args.store_dir, output_filename)
-            
+        
             sf.write(output_path, estimates.T, sr, subtype=subtype)
-            
+        
             instrument_progress.set_postfix(instrument=instr)
 
         # Ana progress barı güncelle
