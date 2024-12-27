@@ -70,10 +70,24 @@ def run_folder(model, args, config, device, verbose: bool = False):
                 instruments.append('instrumental')
 
         file_name = os.path.splitext(os.path.basename(path))[0]
+        def shorten_filename(filename, max_length=30):
+            """
+            Dosya adını belirli bir uzunlukta kısaltır
+            """
+            base, ext = os.path.splitext(filename)
+            if len(base) <= max_length:
+                return filename
+    
+            # İlk 15 karakter ve son 10 karakteri al
+            shortened = base[:15] + "..." + base[-10:] + ext
+            return shortened
+
         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        # İşlem süresi için nested progress bar
-        instrument_progress = tqdm(instruments, desc=f"Processing {file_name}", leave=False)
+        # Model ismini clean_model değişkeninden al
+        full_model_name = clean_model
+
+        instrument_progress = tqdm(instruments, desc="Processing", leave=False)
         for instr in instrument_progress:
             estimates = waveforms_orig[instr]
             if 'normalize' in config.inference:
@@ -81,19 +95,22 @@ def run_folder(model, args, config, device, verbose: bool = False):
                     estimates = denormalize_audio(estimates, norm_params)
 
             codec = 'flac' if getattr(args, 'flac_file', False) else 'wav'
-            subtype = 'PCM_16' if args.flac_file and args.pcm_type == 'PCM_16' else 'FLOAT'
+            ubtype = 'PCM_16' if args.flac_file and args.pcm_type == 'PCM_16' else 'FLOAT'
 
-            output_filename = f"{args.model_type}_{file_name}_{instr}_{current_time}.{codec}"
+            # Orijinal dosya adını kısalt
+            shortened_filename = shorten_filename(os.path.basename(path))
+
+            # Model adı, kısaltılmış dosya adı, enstrüman ve zaman bilgisini içeren dosya ismi
+            output_filename = f"{full_model_name}_{shortened_filename}_{instr}_{current_time}.{codec}"
             output_path = os.path.join(args.store_dir, output_filename)
-            
+    
             sf.write(output_path, estimates.T, sr, subtype=subtype)
-            
-            # Her enstrüman için progress bar güncelle
+    
             instrument_progress.set_postfix(instrument=instr)
-
-        # Ana progress barı güncelle
-        progress_bar.update(1)
-        progress_bar.set_postfix(current_file=file_name)
+    
+            # Ana progress barı güncelle
+            progress_bar.update(1)
+            progress_bar.set_postfix(current_file=file_name)
 
     # Progress barı kapat
     progress_bar.close()
