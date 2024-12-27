@@ -42,6 +42,24 @@ from urllib.parse import urlparse
 os.makedirs('/content/Music-Source-Separation-Training/input', exist_ok=True)
 os.makedirs('/content/Music-Source-Separation-Training/output', exist_ok=True)
 
+def shorten_filename(filename, max_length=30):
+    """
+    Shortens a filename to a specified maximum length
+    
+    Args:
+        filename (str): The filename to be shortened
+        max_length (int): Maximum allowed length for the filename
+    
+    Returns:
+        str: Shortened filename
+    """
+    base, ext = os.path.splitext(filename)
+    if len(base) <= max_length:
+        return filename
+    
+    # Take first 15 and last 10 characters
+    shortened = base[:15] + "..." + base[-10:] + ext
+    return shortened
 
 def update_progress(progress=gr.Progress()):
     def track_progress(percent):
