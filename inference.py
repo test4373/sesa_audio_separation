@@ -154,15 +154,15 @@ def run_folder(model, args, config, device, verbose: bool = False):
 
         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-       instrument_progress = tqdm(instruments, desc="Processing", leave=False)
-       for instr in instrument_progress:
-           estimates = waveforms_orig[instr]
-           if 'normalize' in config.inference:
-               if config.inference['normalize'] is True:
-                estimates = denormalize_audio(estimates, norm_params)
+        instrument_progress = tqdm(instruments, desc="Processing", leave=False)
+        for instr in instrument_progress:
+            estimates = waveforms_orig[instr]
+            if 'normalize' in config.inference:
+                if config.inference['normalize'] is True:
+                    estimates = denormalize_audio(estimates, norm_params)
 
-           codec = 'flac' if getattr(args, 'flac_file', False) else 'wav'
-           subtype = 'PCM_16' if args.flac_file and args.pcm_type == 'PCM_16' else 'FLOAT'
+            codec = 'flac' if getattr(args, 'flac_file', False) else 'wav'
+            subtype = 'PCM_16' if args.flac_file and args.pcm_type == 'PCM_16' else 'FLOAT'
 
             # Dosya adını kısalt
             shortened_filename = shorten_filename(os.path.basename(path))
@@ -175,9 +175,9 @@ def run_folder(model, args, config, device, verbose: bool = False):
         
             instrument_progress.set_postfix(instrument=instr)
 
-        # Ana progress barı güncelle
-        progress_bar.update(1)
-        progress_bar.set_postfix(current_file=shortened_filename)
+            # Ana progress barı güncelle
+            progress_bar.update(1)
+            progress_bar.set_postfix(current_file=shortened_filename)
 
     # Progress barı kapat
     progress_bar.close()
