@@ -70,22 +70,7 @@ def run_folder(model, args, config, device, verbose: bool = False):
                 instruments.append('instrumental')
 
         file_name = os.path.splitext(os.path.basename(path))[0]
-        def shorten_filename(filename, max_length=30):
-            """
-            Dosya adını belirli bir uzunlukta kısaltır
-            """
-            base, ext = os.path.splitext(filename)
-            if len(base) <= max_length:
-                return filename
-    
-            # İlk 15 karakter ve son 10 karakteri al
-            shortened = base[:15] + "..." + base[-10:] + ext
-            return shortened
-
         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-        # Model ismini clean_model değişkeninden al
-        full_model_name = clean_model
 
         instrument_progress = tqdm(instruments, desc="Processing", leave=False)
         for instr in instrument_progress:
