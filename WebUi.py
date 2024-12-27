@@ -527,7 +527,7 @@ def process_audio(input_audio, model, chunk_size, overlap, flac_file, use_tta, p
             config_path = 'ckpts/config_kimmel_unwa_ft.yaml'
             start_check_point = 'ckpts/kimmel_unwa_ft.ckpt'
             download_file('https://huggingface.co/pcunwa/Kim-Mel-Band-Roformer-FT/resolve/main/kimmel_unwa_ft.ckpt')
-            download_file('https://huggingface.co/pcunwa/Mel-Band-Roformer-Inst/resolve/main/config_melbandroformer_inst.yaml')
+            download_file('https://huggingface.co/pcunwa/Kim-Mel-Band-Roformer-FT/resolve/main/config_kimmel_unwa_ft.yaml')
             conf_edit(config_path, chunk_size, overlap)
 
     elif clean_model == 'inst_v1e (by unwa)':
