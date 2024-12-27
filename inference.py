@@ -150,9 +150,9 @@ def run_folder(model, args, config, device, verbose: bool = False):
         shortened_filename = shorten_filename(os.path.basename(path))
 
         # Model ismini al
-       full_model_name = get_clean_model_name(args.model_type)
+        full_model_name = get_clean_model_name(args.model_type)
 
-       current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+        current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
        instrument_progress = tqdm(instruments, desc="Processing", leave=False)
        for instr in instrument_progress:
