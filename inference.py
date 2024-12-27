@@ -62,6 +62,10 @@ def run_folder(model, args, config, device, verbose: bool = False):
 
     # Toplam dosya sayısı için tqdm
     progress_bar = tqdm(mixture_paths, desc="Total Progress", total=len(mixture_paths))
+    
+    # Model adını burada tanımla
+    full_model_name = args.model_type  # veya config içinden alabilirsiniz
+
 
     for path in progress_bar:
         try:
@@ -89,6 +93,9 @@ def run_folder(model, args, config, device, verbose: bool = False):
                 instruments.append('instrumental')
 
         file_name = os.path.splitext(os.path.basename(path))[0]
+        # Dosya adını kısaltma
+        shortened_filename = shorten_filename(os.path.basename(path))
+
         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         instrument_progress = tqdm(instruments, desc="Processing", leave=False)
@@ -99,22 +106,19 @@ def run_folder(model, args, config, device, verbose: bool = False):
                     estimates = denormalize_audio(estimates, norm_params)
 
             codec = 'flac' if getattr(args, 'flac_file', False) else 'wav'
-            ubtype = 'PCM_16' if args.flac_file and args.pcm_type == 'PCM_16' else 'FLOAT'
-
-            # Orijinal dosya adını kısalt
-            shortened_filename = shorten_filename(os.path.basename(path))
+            subtype = 'PCM_16' if args.flac_file and args.pcm_type == 'PCM_16' else 'FLOAT'
 
             # Model adı, kısaltılmış dosya adı, enstrüman ve zaman bilgisini içeren dosya ismi
             output_filename = f"{full_model_name}_{shortened_filename}_{instr}_{current_time}.{codec}"
             output_path = os.path.join(args.store_dir, output_filename)
-    
+            
             sf.write(output_path, estimates.T, sr, subtype=subtype)
-    
+            
             instrument_progress.set_postfix(instrument=instr)
-    
-            # Ana progress barı güncelle
-            progress_bar.update(1)
-            progress_bar.set_postfix(current_file=file_name)
+
+        # Ana progress barı güncelle
+        progress_bar.update(1)
+        progress_bar.set_postfix(current_file=shortened_filename)
 
     # Progress barı kapat
     progress_bar.close()
