@@ -630,7 +630,7 @@ def process_audio(input_audio, model, chunk_size, overlap, flac_file, use_tta, p
 
     # Add optional parameters
     if extract_instrumental:
-         cmd_parts.append("--extract_instrumental")
+        cmd_parts.append("--extract_instrumental")
 
     # FLAC and PCM settings
     if flac_file:
