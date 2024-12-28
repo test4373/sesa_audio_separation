@@ -38,6 +38,7 @@ from google.oauth2.credentials import Credentials
 import tempfile
 import requests
 from urllib.parse import urlparse
+from urllib.parse import quote
 
 os.makedirs('/content/Music-Source-Separation-Training/input', exist_ok=True)
 os.makedirs('/content/Music-Source-Separation-Training/output', exist_ok=True)
