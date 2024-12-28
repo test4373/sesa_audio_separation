@@ -407,7 +407,7 @@ def process_audio(input_audio, model, chunk_size, overlap, flac_file, use_tta, p
             download_file('https://huggingface.co/pcunwa/Mel-Band-Roformer-big/raw/main/config_melbandroformer_big_beta4.yaml')
             conf_edit(config_path, chunk_size, overlap)
 
-    elif clean_model == 'big beta 5 (by unwa)':
+    elif clean_model == 'VOCALS-Melband-Roformer BigBeta5e (by unwa)':
             model_type = 'mel_band_roformer'
             config_path = 'ckpts/big_beta5e.yaml'
             start_check_point = 'ckpts/big_beta5e.ckpt'
@@ -522,7 +522,7 @@ def process_audio(input_audio, model, chunk_size, overlap, flac_file, use_tta, p
             download_file('https://huggingface.co/jarredou/aufr33_MelBand_Denoise/resolve/main/model_mel_band_roformer_denoise.yaml')
             conf_edit(config_path, chunk_size, overlap)
 
-    elif clean_model == 'kimmel_unwa_ft (by unwa)':
+    elif clean_model == 'VOCALS-MelBand-Roformer Kim FT (by Unwa)':
             model_type = 'mel_band_roformer'
             config_path = 'ckpts/config_kimmel_unwa_ft.yaml'
             start_check_point = 'ckpts/kimmel_unwa_ft.ckpt'
@@ -545,6 +545,62 @@ def process_audio(input_audio, model, chunk_size, overlap, flac_file, use_tta, p
             download_file('https://shared.multimedia.workers.dev/download/1/other/bleed_suppressor_v1.ckpt')
             download_file('https://shared.multimedia.workers.dev/download/1/other/config_bleed_suppressor_v1.yaml')
             conf_edit(config_path, chunk_size, overlap)
+
+    elif clean_model == 'VOCALS-MelBand-Roformer (by Becruily)':
+            model_type = 'mel_band_roformer'
+            config_path = 'ckpts/config_instrumental_becruily.yaml'
+            start_check_point = 'ckpts/mel_band_roformer_vocals_becruily.ckpt'
+            download_file('https://huggingface.co/becruily/mel-band-roformer-vocals/resolve/main/config_vocals_becruily.yaml')
+            download_file('https://huggingface.co/becruily/mel-band-roformer-vocals/resolve/main/mel_band_roformer_vocals_becruily.ckpt')
+            conf_edit(config_path, chunk_size, overlap)
+    
+    elif clean_model == 'INST-MelBand-Roformer (by Becruily)':
+            model_type = 'mel_band_roformer'
+            config_path = 'ckpts/config_instrumental_becruily.yaml'
+            start_check_point = 'ckpts/mel_band_roformer_instrumental_becruily.ckpt'
+            download_file('https://huggingface.co/becruily/mel-band-roformer-instrumental/resolve/main/config_instrumental_becruily.yaml')
+            download_file('https://huggingface.co/becruily/mel-band-roformer-instrumental/resolve/main/mel_band_roformer_instrumental_becruily.ckpt')
+            conf_edit(config_path, chunk_size, overlap)
+
+    elif clean_model == '4STEMS-SCNet_XL_MUSDB18 (by ZFTurbo)':
+            model_type = 'scnet'
+            config_path = 'ckpts/config_musdb18_scnet_xl.yaml'
+            start_check_point = 'ckpts/model_scnet_ep_54_sdr_9.8051.ckpt'
+            download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.13/config_musdb18_scnet_xl.yaml')
+            download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.13/model_scnet_ep_54_sdr_9.8051.ckpt')
+
+    elif clean_model == '4STEMS-SCNet_Large (by starrytong)':
+            model_type = 'scnet'
+            config_path = 'ckpts/config_musdb18_scnet_large_starrytong.yaml'
+            start_check_point = 'ckpts/SCNet-large_starrytong_fixed.ckpt'
+            download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.9/config_musdb18_scnet_large_starrytong.yaml')
+            download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.9/SCNet-large_starrytong_fixed.ckpt')
+
+    elif clean_model == '4STEMS-BS-Roformer_MUSDB18 (by ZFTurbo)':
+           model_type = 'bs_roformer'
+           config_path = 'ckpts/config_bs_roformer_384_8_2_485100.yaml'
+           start_check_point = 'ckpts/model_bs_roformer_ep_17_sdr_9.6568.ckpt'
+           download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.12/config_bs_roformer_384_8_2_485100.yaml')
+           download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.12/model_bs_roformer_ep_17_sdr_9.6568.ckpt')
+
+    elif clean_model == 'DE-REVERB-MelBand-Roformer aggr./v2/19.1729 (by anvuew)':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/dereverb_mel_band_roformer_anvuew.yaml'
+          start_check_point = 'ckpts/dereverb_mel_band_roformer_anvuew_sdr_19.1729.ckpt'
+          download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_anvuew_sdr_19.1729.ckpt')
+          download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_anvuew.yaml')
+
+    elif clean_model == 'DE-REVERB-Echo-MelBand-Roformer (by Sucial)':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/config_dereverb-echo_mel_band_roformer.yaml'
+          start_check_point = 'ckpts/dereverb-echo_mel_band_roformer_sdr_10.0169.ckpt'
+          download_file('https://huggingface.co/Sucial/Dereverb-Echo_Mel_Band_Roformer/resolve/main/dereverb-echo_mel_band_roformer_sdr_10.0169.ckpt')
+          download_file('https://huggingface.co/Sucial/Dereverb-Echo_Mel_Band_Roformer/resolve/main/config_dereverb-echo_mel_band_roformer.yaml')
+
+
+
+
+       
 
 
     # Other model options will be added here...
@@ -642,17 +698,19 @@ def process_audio(input_audio, model, chunk_size, overlap, flac_file, use_tta, p
 def create_interface():
     # Let's define the model options in advance
     model_choices = {
-        "New Additions": [
-            'big beta 5 (by unwa)'
-
-        ],
         "Vocal Separation": [
             'VOCALS-BS-Roformer_1297 (by viperx)',
             '✅ VOCALS-Mel-Roformer big beta 4 (by unwa) - Melspectrogram based high performance',
             '✅ VOCALS-BS-RoformerLargev1 (by unwa) - Comprehensive model',
             'VOCALS-InstVocHQ - General purpose model',
             'VOCALS-MelBand-Roformer (by KimberleyJSN) - Alternative model',
-            'VOCALS-VitLarge23 (by ZFTurbo) - Transformer-based model'
+            'VOCALS-VitLarge23 (by ZFTurbo) - Transformer-based model',
+            'VOCALS-MelBand-Roformer Kim FT (by Unwa)',
+            'VOCALS-BS-Roformer_1297 (by viperx)',
+            'VOCALS-BS-Roformer_1296 (by viperx)',
+            'VOCALS-MelBand-Roformer Kim FT (by Unwa)',
+            'VOCALS-MelBand-Roformer (by Becruily)',
+            'VOCALS-Melband-Roformer BigBeta5e (by unwa)'
         ],
         "Instrumental Separation": [
             'INST-VOC-Mel-Roformer a.k.a. duality v2 (by unwa) - Latest version instrumental separation',
@@ -661,7 +719,7 @@ def create_interface():
             '✅ INST-Mel-Roformer v2 (by unwa) - Most recent instrumental separation model',
             '✅ inst_v1e (by unwa)',
             '✅ INST-Mel-Roformer v1 (by unwa) - Old instrumental separation model',
-            'kimmel_unwa_ft (by unwa)'
+            'INST-MelBand-Roformer (by Becruily)'
         ],
         "Karaoke & Accompaniment": [
             '✅ KARAOKE-MelBand-Roformer (by aufr33 & viperx) - Advanced karaoke separation'
@@ -669,6 +727,8 @@ def create_interface():
         "Noise & Effect Removal": [
             '👥 CROWD-REMOVAL-MelBand-Roformer (by aufr33) - Crowd noise removal',
             '🏛️ DE-REVERB-MDX23C (by aufr33 & jarredou) - Reverb reduction',
+            '🏛️ DE-REVERB-MelBand-Roformer aggr./v2/19.1729 (by anvuew)',
+            '🗣️ DE-REVERB-Echo-MelBand-Roformer (by Sucial)',
             '🔇 DENOISE-MelBand-Roformer-1 (by aufr33) - Basic noise reduction',
             '🔉 DENOISE-MelBand-Roformer-2 (by aufr33) - Advanced noise reduction'
         ],
@@ -679,7 +739,10 @@ def create_interface():
             '🎬 4STEMS-SCNet_MUSDB18 (by starrytong) - Multi-stem separation',
             '🎼 CINEMATIC-BandIt_Plus (by kwatcharasupat) - Cinematic music analysis',
             'OTHER-BS-Roformer_1053 (by viperx) - Other special models',
-            'bleed_suppressor_v1 (by unwa) - dont use it if you dont know what youre doing'
+            'bleed_suppressor_v1 (by unwa) - dont use it if you dont know what youre doing',
+            '4STEMS-SCNet_XL_MUSDB18 (by ZFTurbo)',
+            '4STEMS-SCNet_Large (by starrytong)',
+            '4STEMS-BS-Roformer_MUSDB18 (by ZFTurbo)'
         ],
     }
 
