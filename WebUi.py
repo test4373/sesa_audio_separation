@@ -294,7 +294,7 @@ def extract_model_name(full_model_string):
         cleaned = cleaned.split(' - ')[0]
 
     # Remove emoji prefixes
-    emoji_prefixes = ['✅ ', '👥 ', '🏛️ ', '🔇 ', '🔉 ', '🎬 ', '🎼 ']
+    emoji_prefixes = ['✅ ', '👥 ', '🗣️ ', '🏛️ ', '🔇 ', '🔉 ', '🎬 ', '🎼 ']
     for prefix in emoji_prefixes:
         if cleaned.startswith(prefix):
             cleaned = cleaned[len(prefix):]
