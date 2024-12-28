@@ -323,7 +323,7 @@ def create_directory(directory):
     else:
         print(f"{directory} directory already exists.")
 
-def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tta, extract_instrumental):
+def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tta, extract_instrumental, *args, **kwargs):
     # Create input and output directories
     create_directory(INPUT_DIR)
     create_directory(OUTPUT_DIR)
@@ -894,7 +894,7 @@ def create_interface():
                                 'flac PCM_16', 
                                 'flac PCM_24'
                             ],
-                            value='flac PCM_24'
+                            value='wav FLOAT'
                         )
 
                         process_btn = gr.Button("Process Audio")
