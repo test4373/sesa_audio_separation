@@ -658,19 +658,49 @@ def process_audio(input_audio, model, chunk_size, overlap, flac_file, use_tta, p
 
         process.wait()
 
-        # Find output files
+        # Dosyaları yeniden adlandırma fonksiyonu
+        def rename_files_with_model(folder):
+            files = os.listdir(folder)
+            for filename in files:
+                # Dosyanın tam yolu
+                file_path = os.path.join(folder, filename)
+                
+                # Dosya adının parçaları
+                base, ext = os.path.splitext(filename)
+                
+                # Eğer zaten model adı varsa tekrar ekleme
+                if clean_model not in base:
+                    # Yeni dosya adı (model adını sonuna ekle)
+                    # .wav'ın tekrarlanmasını önle
+                    if base.endswith('.wav'):
+                        base = base[:-4]
+                    
+                    new_filename = f"{base}_{clean_model}{ext}"
+                    new_file_path = os.path.join(folder, new_filename)
+                    
+                    # Dosyayı yeniden adlandır
+                    os.rename(file_path, new_file_path)
+            
+        # Dosyaları yeniden adlandır
+        rename_files_with_model(output_folder)
+
+        # Güncellenmiş dosya listesini al
         output_files = os.listdir(output_folder)
 
         # Find specific stem files
-        vocal_file = next((os.path.join(output_folder, f) for f in output_files if 'vocals' in f.lower()), None)
-        instrumental_file = next((os.path.join(output_folder, f) for f in output_files if 'instrumental' in f.lower()), None)
-        drum_file = next((os.path.join(output_folder, f) for f in output_files if 'drum' in f.lower()), None)
-        bass_file = next((os.path.join(output_folder, f) for f in output_files if 'bass' in f.lower()), None)
-        other_file = next((os.path.join(output_folder, f) for f in output_files if 'other' in f.lower()), None)
-        effects_file = next((os.path.join(output_folder, f) for f in output_files if 'effects' in f.lower()), None)
-        speech_file = next((os.path.join(output_folder, f) for f in output_files if 'speech' in f.lower()), None)
-        music_file = next((os.path.join(output_folder, f) for f in output_files if 'music' in f.lower()), None)
-        dry_file = next((os.path.join(output_folder, f) for f in output_files if 'dry' in f.lower()), None)
+        def find_file(keyword):
+            return next((os.path.join(output_folder, f) for f in output_files 
+                         if keyword in f.lower() and clean_model in f), None)
+
+        vocal_file = find_file('vocals')
+        instrumental_file = find_file('instrumental')
+        drum_file = find_file('drum')
+        bass_file = find_file('bass')
+        other_file = find_file('other')
+        effects_file = find_file('effects')
+        speech_file = find_file('speech')
+        music_file = find_file('music')
+        dry_file = find_file('dry')
 
         # Return found files
         return (
