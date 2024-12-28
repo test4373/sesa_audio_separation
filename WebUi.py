@@ -172,46 +172,25 @@ def download_progress_hook(d):
 # Define the global variable at the top
 INPUT_DIR = "/content/Music-Source-Separation-Training/input"
 
-def download_file(url, directory='ckpts'):
-    """
-    Downloads file from specified URL
+def download_file(url):
+    # Encode the URL to handle spaces and special characters
+    encoded_url = quote(url, safe=':/')
 
-    Args:
-        url (str): URL of the file to download
-        directory (str, optional): Directory to save the downloaded file. Default 'ckpts'
+    path = 'ckpts'
+    os.makedirs(path, exist_ok=True)
+    filename = os.path.basename(encoded_url)
+    file_path = os.path.join(path, filename)
 
-    Returns:
-        str: Full path to the downloaded file
-    """
-    # Create index
-    os.makedirs(directory, exist_ok=True)
-
-    # Extract filename from URL
-    filename = os.path.basename(url)
-    filepath = os.path.join(directory, filename)
-
-    # Download if the file already exists
-    if os.path.exists(filepath):
-        print(f"{filename} Already exists.")
-        return filepath
+    if os.path.exists(file_path):
+        print(f"File '{filename}' already exists at '{path}'.")
+        return
 
     try:
-        # Download process
-        response = requests.get(url, stream=True)
-        response.raise_for_status()  # HTTP hata kontrolü
-
-        # Save File
-        with open(filepath, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
-
-        print(f"{filename} downloaded successfully.")
-        return filepath
-
+        response = torch.hub.download_url_to_file(encoded_url, file_path)
+        print(f"File '{filename}' downloaded successfully")
     except Exception as e:
-        print(f"{filename} failed to download: {e}")
-        return None
-
+        print(f"Error downloading file '{filename}' from '{url}': {e}")
+        
         clear_memory()
 
 
