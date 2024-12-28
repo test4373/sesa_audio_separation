@@ -247,36 +247,72 @@ def conf_edit(config_path, chunk_size, overlap):
 
 
 def save_uploaded_file(uploaded_file, is_input=False):
-    """Saves the uploaded file in the specified directory."""
+    """
+    Saves the uploaded file in the specified directory, 
+    removing existing timestamps and multiple extensions
+    """
     try:
-        # Get file name safely
+        # Media file extensions
+        media_extensions = ['.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a']
+        
+        # Timestamp patterns
+        timestamp_patterns = [
+            r'_\d{8}_\d{6}_\d{6}$',  # _20231215_123456_123456
+            r'_\d{14}$',              # _20231215123456
+            r'_\d{10}$',              # _1702658400
+        ]
+        
+        # Safely get the filename
         if hasattr(uploaded_file, 'name'):
-            file_name = os.path.basename(uploaded_file.name)
+            original_filename = os.path.basename(uploaded_file.name)
         else:
-            file_name = os.path.basename(str(uploaded_file))
-
-        # Specify input directory
+            original_filename = os.path.basename(str(uploaded_file))
+        
+        # Remove timestamps and multiple extensions from filename
+        base_filename = original_filename
+        
+        # Clear timestamps
+        for pattern in timestamp_patterns:
+            base_filename = re.sub(pattern, '', base_filename)
+        
+        # Clear multiple extensions
+        for ext in media_extensions:
+            base_filename = base_filename.replace(ext, '')
+        
+        # Determine file extension
+        file_ext = next((ext for ext in media_extensions if original_filename.lower().endswith(ext)), '.wav')
+        
+        # Create clean filename
+        clean_filename = base_filename.strip('_- ') + file_ext
+        
+        # Determine target directory
         target_directory = INPUT_DIR if is_input else OUTPUT_DIR
-
-        # Create destination file path
-        base, ext = os.path.splitext(file_name)
-        timestamp = datetime.now().strftime("%H-%M-%S")
-        unique_filename = f"{base}_{timestamp}{ext}"
-        target_path = os.path.join(target_directory, unique_filename)
-
-        # Save File
+        
+        # Create full target path
+        target_path = os.path.join(target_directory, clean_filename)
+        
+        # If a file with the same name exists, create a unique name
+        counter = 1
+        original_target_path = target_path
+        while os.path.exists(target_path):
+            base, ext = os.path.splitext(original_target_path)
+            target_path = f"{base}_{counter}{ext}"
+            counter += 1
+        
+        # Save the file
         if hasattr(uploaded_file, 'read'):
             # Gradio file object
             with open(target_path, "wb") as f:
                 f.write(uploaded_file.read())
         else:
-            # If it is already a file path
+            # If it's already a file path
             shutil.copy(uploaded_file, target_path)
-
-        print(f"{unique_filename} saved successfully: {target_path}")
+        
+        print(f"File successfully saved: {os.path.basename(target_path)}")
         return target_path
+    
     except Exception as e:
-        print(f"Error saving file: {e}")
+        print(f"File saving error: {e}")
         return None
 
         clear_memory()
@@ -338,16 +374,16 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
     # File control
     if input_audio is None:
         print("File not uploaded")
-        return None, None, None, None, None, None, None, None, None
+        return [None] * 9
 
     # Save file
     dest_path = save_uploaded_file(input_audio, is_input=True)
 
     if not dest_path:
         print("Failed to save file")
-        return None, None, None, None, None, None, None, None, None
+        return [None] * 9
 
-    # Export format'ı parse et
+    # Export format parsing
     if export_format == 'wav FLOAT':
         flac_file = False
         pcm_type = 'FLOAT'
@@ -357,9 +393,9 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
         pcm_type = export_format.split(' ')[1]
         file_ext = 'flac'
 
-    # define input_folder and output_folder
+    # Define input_folder and output_folder
     input_folder = INPUT_DIR
-    output_folder = "/content/drive/MyDrive/output"
+    output_folder = OUTPUT_DIR
 
     # Model selection and specify relevant parameters
     model_type, config_path, start_check_point = "", "", ""
@@ -629,7 +665,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
     if extract_instrumental:
         cmd_parts.append("--extract_instrumental")
 
-    # FLAC ve PCM ayarları
+    # FLAC and PCM settings
     if flac_file:
         cmd_parts.append("--flac_file")
         cmd_parts.extend(["--pcm_type", pcm_type])
@@ -639,8 +675,102 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
     if use_tta:
         cmd_parts.append("--use_tta")
 
-     # Run the command
+    # Run command and process files
+    return run_command_and_process_files(cmd_parts, BASE_PATH, output_folder, clean_model)
+
+def clean_model_name(model):
+    """
+    Clean and standardize model names for filename
+    """
+    # Mapping of complex model names to simpler, filename-friendly versions
+    model_name_mapping = {
+        'VOCALS-InstVocHQ': 'InstVocHQ',
+        'VOCALS-MelBand-Roformer (by KimberleyJSN)': 'KimberleyJSN',
+        'VOCALS-BS-Roformer_1297 (by viperx)': 'Viperx1297',
+        'VOCALS-BS-Roformer_1296 (by viperx)': 'Viperx1296',
+        'VOCALS-BS-RoformerLargev1 (by unwa)': 'UnwaLargeV1',
+        'VOCALS-Mel-Roformer big beta 4 (by unwa)': 'UnwaBigBeta4',
+        'VOCALS-Melband-Roformer BigBeta5e (by unwa)': 'UnwaBigBeta5e',
+        'INST-Mel-Roformer v1 (by unwa)': 'UnwaInstV1',
+        'INST-Mel-Roformer v2 (by unwa)': 'UnwaInstV2',
+        'INST-VOC-Mel-Roformer a.k.a. duality (by unwa)': 'UnwaDualityV1',
+        'INST-VOC-Mel-Roformer a.k.a. duality v2 (by unwa)': 'UnwaDualityV2',
+        'KARAOKE-MelBand-Roformer (by aufr33 & viperx)': 'KaraokeRoformer',
+        'VOCALS-VitLarge23 (by ZFTurbo)': 'VitLarge23',
+        'VOCALS-MelBand-Roformer (by Becruily)': 'BecruilyVocals',
+        'INST-MelBand-Roformer (by Becruily)': 'BecruilyInst',
+        # Add more mappings as needed
+    }
+
+    # Use mapping if exists, otherwise clean the model name
+    if model in model_name_mapping:
+        return model_name_mapping[model]
+    
+    # General cleaning if not in mapping
+    cleaned = re.sub(r'\s*\(.*?\)', '', model)  # Remove parenthetical info
+    cleaned = cleaned.replace('-', '_')
+    cleaned = ''.join(char for char in cleaned if char.isalnum() or char == '_')
+    
+    return cleaned
+
+def shorten_filename(filename, max_length=30):
+    """
+    Shortens a filename to a specified maximum length
+    
+    Args:
+        filename (str): The filename to be shortened
+        max_length (int): Maximum allowed length for the filename
+    
+    Returns:
+        str: Shortened filename
+    """
+    base, ext = os.path.splitext(filename)
+    if len(base) <= max_length:
+        return filename
+    
+    # Take first 15 and last 10 characters
+    shortened = base[:15] + "..." + base[-10:] + ext
+    return shortened
+
+def clean_filename(filename):
+    """
+    Temizlenmiş dosya adını döndürür
+    """
+    # Zaman damgası ve gereksiz etiketleri temizleme desenleri
+    cleanup_patterns = [
+        r'_\d{8}_\d{6}_\d{6}$',  # _20231215_123456_123456
+        r'_\d{14}$',              # _20231215123456
+        r'_\d{10}$',              # _1702658400
+        r'_\d+$'                  # Herhangi bir sayı
+    ]
+    
+    # Dosya adını ve uzantısını ayır
+    base, ext = os.path.splitext(filename)
+    
+    # Zaman damgalarını temizle
+    for pattern in cleanup_patterns:
+        base = re.sub(pattern, '', base)
+    
+    # Dosya türü etiketlerini temizle
+    file_types = ['vocals', 'instrumental', 'drum', 'bass', 'other', 'effects', 'speech', 'music', 'dry']
+    for type_keyword in file_types:
+        base = base.replace(f'_{type_keyword}', '')
+    
+    # Dosya türünü tespit et
+    detected_type = None
+    for type_keyword in file_types:
+        if type_keyword in base.lower():
+            detected_type = type_keyword
+            break
+    
+    # Zaman damgaları ve gereksiz etiketlerden temizlenmiş base
+    clean_base = base.strip('_- ')
+    
+    return clean_base, detected_type, ext
+
+def run_command_and_process_files(cmd_parts, BASE_PATH, output_folder, clean_model):
     try:
+        # Run subprocess
         process = subprocess.Popen(
             cmd_parts,
             cwd=BASE_PATH,
@@ -651,7 +781,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
             universal_newlines=True
         )
 
-        # Read and print outputs
+        # Print outputs in real-time
         for line in process.stdout:
             print(line.strip())
 
@@ -660,44 +790,86 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
 
         process.wait()
 
+        # Clean the model name for filename
+        filename_model = clean_model_name(clean_model)
 
+        # Get updated file list
+        output_files = os.listdir(output_folder)
 
-        def rename_files_with_model(folder, clean_model):
-            files = os.listdir(folder)
-            for filename in files:
+        # File renaming function
+        def rename_files_with_model(folder, filename_model):
+            # Dictionary to track first occurrence of each file type
+            processed_types = {}
+
+            # Sort files to ensure consistent processing
+            for filename in sorted(output_files):
                 # Full path of the file
                 file_path = os.path.join(folder, filename)
 
-                # Split the filename into base and extension
+                # Skip if not a media file
+                if not any(filename.lower().endswith(ext) for ext in ['.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a']):
+                    continue
+
+                # Dosya adını ve uzantısını ayır
                 base, ext = os.path.splitext(filename)
+                
+                # Zaman damgası ve gereksiz etiketleri temizleme desenleri
+                cleanup_patterns = [
+                    r'_\d{8}_\d{6}_\d{6}$',  # _20231215_123456_123456
+                    r'_\d{14}$',              # _20231215123456
+                    r'_\d{10}$',              # _1702658400
+                    r'_\d+$'                  # Herhangi bir sayı
+                ]
+                
+                # Zaman damgalarını temizle
+                for pattern in cleanup_patterns:
+                    base = re.sub(pattern, '', base)
+                
+                # Dosya türü etiketlerini tespit et
+                file_types = ['vocals', 'instrumental', 'drum', 'bass', 'other', 'effects', 'speech', 'music', 'dry']
+                detected_type = None
+                
+                for type_keyword in file_types:
+                    if type_keyword in base.lower():
+                        detected_type = type_keyword
+                        break
+                
+                # Dosya türü etiketlerini temizle
+                for type_keyword in file_types:
+                    base = base.replace(f'_{type_keyword}', '')
+                
+                # Temiz base adı
+                clean_base = base.strip('_- ')
 
-                # Dosya adında model adı YOKSA ve zaten model adını içermiyorsa yeniden adlandır
-                if clean_model.lower() not in base.lower():
-                    # Prevent duplication of .wav
-                    if base.endswith('.wav'):
-                        base = base[:-4]
+                # If file type is found
+                if detected_type:
+                    # If this is the first file of this type, rename it
+                    if detected_type not in processed_types:
+                        # Yeni dosya adını oluştur
+                        new_filename = f"{clean_base}_{detected_type}_{filename_model}{ext}"
+                        new_file_path = os.path.join(folder, new_filename)
+                        
+                        # Rename the file
+                        os.rename(file_path, new_file_path)
+                        processed_types[detected_type] = new_file_path
 
-                    # Create the new filename by appending the model name
-                    new_filename = f"{base}_{clean_model}{ext}"
-                    new_file_path = os.path.join(folder, new_filename)
+        # Rename files
+        rename_files_with_model(output_folder, filename_model)
 
-                    # Rename the file
-                    os.rename(file_path, new_file_path)
-
-        # Call the function with the output folder and the current model name
-        rename_files_with_model(output_folder, clean_model)
-
-        # Get the updated list of files
+        # Get updated file list after renaming
         output_files = os.listdir(output_folder)
 
-        # Find specific stem files
+        # File finding function
         def find_file(keyword):
+            # Find files with the keyword
             matching_files = [
                 os.path.join(output_folder, f) for f in output_files 
-                if keyword in f.lower() and clean_model.lower() in f.lower()
+                if keyword in f.lower()
             ]
+            
             return matching_files[0] if matching_files else None
 
+        # Find different types of files
         vocal_file = find_file('vocals')
         instrumental_file = find_file('instrumental')
         drum_file = find_file('drum')
@@ -710,15 +882,15 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
 
         # Return found files
         return (
-            vocal_file,
-            instrumental_file,
-            drum_file,
-            bass_file,
-            other_file,
-            effects_file,
-            speech_file,
-            music_file,
-            dry_file
+            vocal_file or None,
+            instrumental_file or None,
+            drum_file or None,
+            bass_file or None,
+            other_file or None,
+            effects_file or None,
+            speech_file or None,
+            music_file or None,
+            dry_file or None
         )
 
     except Exception as e:
