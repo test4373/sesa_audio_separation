@@ -24,16 +24,6 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-    # Her kategoride model tipini ara
-    for category, models in model_mapping.items():
-        for key, value in models.items():
-            if model_type == key or model_type in value:
-                return value
-    
-    # Eğer bulunamazsa varsayılan olarak model_type'ı kullan
-    return model_type
-
-
 def shorten_filename(filename, max_length=30):
     """
     Shortens a filename to a specified maximum length
