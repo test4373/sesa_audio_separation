@@ -608,6 +608,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
             start_check_point = 'ckpts/model_scnet_ep_54_sdr_9.8051.ckpt'
             download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.13/config_musdb18_scnet_xl.yaml')
             download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.13/model_scnet_ep_54_sdr_9.8051.ckpt')
+            conf_edit(config_path, chunk_size, overlap) 
 
     elif clean_model == '4STEMS-SCNet_Large (by starrytong)':
             model_type = 'scnet'
@@ -615,6 +616,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
             start_check_point = 'ckpts/SCNet-large_starrytong_fixed.ckpt'
             download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.9/config_musdb18_scnet_large_starrytong.yaml')
             download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.9/SCNet-large_starrytong_fixed.ckpt')
+            conf_edit(config_path, chunk_size, overlap)
 
     elif clean_model == '4STEMS-BS-Roformer_MUSDB18 (by ZFTurbo)':
            model_type = 'bs_roformer'
@@ -622,6 +624,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
            start_check_point = 'ckpts/model_bs_roformer_ep_17_sdr_9.6568.ckpt'
            download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.12/config_bs_roformer_384_8_2_485100.yaml')
            download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.12/model_bs_roformer_ep_17_sdr_9.6568.ckpt')
+           conf_edit(config_path, chunk_size, overlap)
 
     elif clean_model == 'DE-REVERB-MelBand-Roformer aggr./v2/19.1729 (by anvuew)':
           model_type = 'mel_band_roformer'
@@ -629,13 +632,15 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
           start_check_point = 'ckpts/dereverb_mel_band_roformer_anvuew_sdr_19.1729.ckpt'
           download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_anvuew_sdr_19.1729.ckpt')
           download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_anvuew.yaml')
-
+          conf_edit(config_path, chunk_size, overlap)
+          
     elif clean_model == 'DE-REVERB-Echo-MelBand-Roformer (by Sucial)':
           model_type = 'mel_band_roformer'
           config_path = 'ckpts/config_dereverb-echo_mel_band_roformer.yaml'
           start_check_point = 'ckpts/dereverb-echo_mel_band_roformer_sdr_10.0169.ckpt'
           download_file('https://huggingface.co/Sucial/Dereverb-Echo_Mel_Band_Roformer/resolve/main/dereverb-echo_mel_band_roformer_sdr_10.0169.ckpt')
           download_file('https://huggingface.co/Sucial/Dereverb-Echo_Mel_Band_Roformer/resolve/main/config_dereverb-echo_mel_band_roformer.yaml')
+          conf_edit(config_path, chunk_size, overlap)
 
 
 
