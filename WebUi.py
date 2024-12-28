@@ -876,11 +876,6 @@ def create_interface():
                             value=352800
                         )
 
-                        flac_file = gr.Checkbox(
-                            label="FLAC File",
-                            info="Open it if you want flac output (beta)"
-                        )
-
                         use_tta = gr.Checkbox(
                             label="Use TTA",
                             info="Test Time Augmentation:It improves the prediction performance of the model. It also increases the processing time."
