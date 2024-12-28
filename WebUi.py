@@ -323,7 +323,7 @@ def create_directory(directory):
     else:
         print(f"{directory} directory already exists.")
 
-def process_audio(input_audio, model, chunk_size, overlap, export_format, flac_file, use_tta, pcm_type, extract_instrumental, pcm_type=None, flac_file=None):
+def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tta, extract_instrumental):
     # Create input and output directories
     create_directory(INPUT_DIR)
     create_directory(OUTPUT_DIR)
@@ -346,6 +346,16 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, flac_f
     if not dest_path:
         print("Failed to save file")
         return None, None, None, None, None, None, None, None, None
+
+    # Export format'ı parse et
+    if export_format == 'wav FLOAT':
+        flac_file = False
+        pcm_type = 'FLOAT'
+        file_ext = 'wav'
+    else:
+        flac_file = True
+        pcm_type = export_format.split(' ')[1]
+        file_ext = 'flac'
 
     # define input_folder and output_folder
     input_folder = INPUT_DIR
@@ -606,33 +616,20 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, flac_f
         return None, None, None, None, None, None, None, None, None
 
 
-    # Expand export format options
-    export_format = 'flac PCM_24' #@param ['wav FLOAT', 'flac PCM_16', 'flac PCM_24']
-
-    if export_format == 'wav FLOAT':
-        flac_file = False
-        pcm_type = 'FLOAT'
-        file_ext = 'wav'
-    else:
-        flac_file = True
-        pcm_type = export_format.split(' ')[1]
-        file_ext = 'flac'
-
-    # Prepare inference.py command
     cmd_parts = [
         "python", "inference.py",
         "--model_type", model_type,
         "--config_path", config_path,
         "--start_check_point", start_check_point,
-        "--input_folder", input_folder,
-        "--store_dir", output_folder
+        "--input_folder", INPUT_DIR,
+        "--store_dir", OUTPUT_DIR
     ]
 
     # Add optional parameters
     if extract_instrumental:
         cmd_parts.append("--extract_instrumental")
 
-    # FLAC and PCM settings
+    # FLAC ve PCM ayarları
     if flac_file:
         cmd_parts.append("--flac_file")
         cmd_parts.extend(["--pcm_type", pcm_type])
@@ -641,9 +638,6 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, flac_f
 
     if use_tta:
         cmd_parts.append("--use_tta")
-
-    # Execute the command
-    subprocess.run(cmd_parts)
 
      # Run the command
     try:
