@@ -76,9 +76,17 @@ def run_folder(model, args, config, device, verbose: bool = False):
     instruments = prefer_target_instrument(config)[:]
     os.makedirs(args.store_dir, exist_ok=True)
 
-    # Tek bir progress bar
-    for idx, path in enumerate(tqdm(mixture_paths, desc="Processing", unit="%", bar_format='{l_bar}{bar}'), 1):
+    # Dosya sayısını ve progress için değişkenler
+    total_files = len(mixture_paths)
+    current_file = 0
+
+    # Progress tracking
+    for path in mixture_paths:
         try:
+            # Dosya işleme başlangıcı
+            current_file += 1
+            print(f"Processing file {current_file}/{total_files}")
+            
             mix, sr = librosa.load(path, sr=sample_rate, mono=False)
         except Exception as e:
             print(f'Cannot read track: {path}')
@@ -124,6 +132,10 @@ def run_folder(model, args, config, device, verbose: bool = False):
             output_path = os.path.join(args.store_dir, output_filename)
         
             sf.write(output_path, estimates.T, sr, subtype=subtype)
+
+        # Progress yüzdesi hesaplama
+        progress_percent = int((current_file / total_files) * 100)
+        print(f"Progress: {progress_percent}%")
 
     print(f"Elapsed time: {time.time() - start_time:.2f} seconds.")
 
