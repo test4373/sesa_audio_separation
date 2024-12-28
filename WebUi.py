@@ -606,7 +606,19 @@ def process_audio(input_audio, model, chunk_size, overlap, flac_file, use_tta, p
         return None, None, None, None, None, None, None, None, None
 
 
-    # Prepare command parameters
+    # Expand export format options
+    export_format = 'flac PCM_24' #@param ['wav FLOAT', 'flac PCM_16', 'flac PCM_24']
+
+    if export_format == 'wav FLOAT':
+        flac_file = False
+        pcm_type = 'FLOAT'
+        file_ext = 'wav'
+    else:
+        flac_file = True
+        pcm_type = export_format.split(' ')[1]
+        file_ext = 'flac'
+
+    # Prepare inference.py command
     cmd_parts = [
         "python", "inference.py",
         "--model_type", model_type,
@@ -614,28 +626,24 @@ def process_audio(input_audio, model, chunk_size, overlap, flac_file, use_tta, p
         "--start_check_point", start_check_point,
         "--input_folder", input_folder,
         "--store_dir", output_folder
-    ]
+     ]
 
-    # Add optional parameters
-    if extract_instrumental:
-        cmd_parts.append("--extract_instrumental")
+     # Add optional parameters
+     if extract_instrumental:
+         cmd_parts.append("--extract_instrumental")
 
-    # Check if the flac_file option is on
-    if flac_file:
-        cmd_parts.append("--flac_file")
+     # FLAC and PCM settings
+     if flac_file:
+         cmd_parts.append("--flac_file")
+         cmd_parts.extend(["--pcm_type", pcm_type])
+     elif pcm_type != 'FLOAT':
+         cmd_parts.extend(["--pcm_type", pcm_type])
 
-        # Add the selected pcm_type when flac_file is open
-        if pcm_type and pcm_type.strip() in ["PCM_16", "PCM_24"]:
-            cmd_parts.extend(["--pcm_type", pcm_type])  # value from drop-down list
-        else:
-            print(f"Invalid pcm_type: {pcm_type}. Defaulting to 'PCM_24'.")
-            cmd_parts.extend(["--pcm_type", "PCM_24"])  # default value
-    else:
-        # Add default pcm_type when flac_file is off
-        cmd_parts.extend(["--pcm_type", "PCM_24"])  # default value
+     if use_tta:
+         cmd_parts.append("--use_tta")
 
-    if use_tta:
-        cmd_parts.append("--use_tta")
+     # Execute the command
+     subprocess.run(cmd_parts)
 
      # Run the command
     try:
@@ -854,10 +862,10 @@ def create_interface():
                         overlap = gr.Slider(
                             label="Overlap",
                             info="It's usually between 5 and 2. Change it if you want something different.",
-                            minimum=1,
+                            minimum=2,
                             maximum=50,
                             step=1,
-                            value=4
+                            value=2
                         )
 
                     model_category.change(
@@ -890,12 +898,14 @@ def create_interface():
                             value=False
                         )
 
-                        pcm_type = gr.Dropdown(
-                            label="PCM Type",
+                        export_format = gr.Dropdown(
+                            label="Export Format",
                             choices=[
-                                'PCM_16',
-                                'PCM_24'
-                            ]
+                                'wav FLOAT',
+                                'flac PCM_16', 
+                                'flac PCM_24'
+                            ],
+                            value='flac PCM_24'
                         )
 
                         process_btn = gr.Button("Process Audio")
