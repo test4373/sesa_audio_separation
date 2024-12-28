@@ -626,24 +626,24 @@ def process_audio(input_audio, model, chunk_size, overlap, flac_file, use_tta, p
         "--start_check_point", start_check_point,
         "--input_folder", input_folder,
         "--store_dir", output_folder
-     ]
+    ]
 
-     # Add optional parameters
-     if extract_instrumental:
+    # Add optional parameters
+    if extract_instrumental:
          cmd_parts.append("--extract_instrumental")
 
-     # FLAC and PCM settings
-     if flac_file:
-         cmd_parts.append("--flac_file")
-         cmd_parts.extend(["--pcm_type", pcm_type])
-     elif pcm_type != 'FLOAT':
-         cmd_parts.extend(["--pcm_type", pcm_type])
+    # FLAC and PCM settings
+    if flac_file:
+        cmd_parts.append("--flac_file")
+        cmd_parts.extend(["--pcm_type", pcm_type])
+    elif pcm_type != 'FLOAT':
+        cmd_parts.extend(["--pcm_type", pcm_type])
 
-     if use_tta:
-         cmd_parts.append("--use_tta")
+    if use_tta:
+        cmd_parts.append("--use_tta")
 
-     # Execute the command
-     subprocess.run(cmd_parts)
+    # Execute the command
+    subprocess.run(cmd_parts)
 
      # Run the command
     try:
