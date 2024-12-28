@@ -24,49 +24,6 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-def get_clean_model_name(model_type):
-    """
-    webui.py'daki tüm model isimlerini içerir
-    """
-    model_mapping = {
-        'mdx23c': {
-            'VOCALS-InstVocHQ': 'VOCALS-InstVocHQ',
-            'DRUMSEP-MDX23C_DrumSep_6stem': 'DRUMSEP-MDX23C_DrumSep_6stem (by aufr33 & jarredou)',
-            'DE-REVERB-MDX23C': 'DE-REVERB-MDX23C (by aufr33 & jarredou)'
-        },
-        'mel_band_roformer': {
-            'VOCALS-MelBand-Roformer': 'VOCALS-MelBand-Roformer (by KimberleyJSN)',
-            'VOCALS-Mel-Roformer big beta 4': 'VOCALS-Mel-Roformer big beta 4 (by unwa)',
-            'big beta 5': 'big beta 5 (by unwa)',
-            'INST-VOC-Mel-Roformer': 'INST-VOC-Mel-Roformer a.k.a. duality (by unwa)',
-            'INST-VOC-Mel-Roformer v2': 'INST-VOC-Mel-Roformer a.k.a. duality v2 (by unwa)',
-            'INST-Mel-Roformer v1': 'INST-Mel-Roformer v1 (by unwa)',
-            'INST-Mel-Roformer v2': 'INST-Mel-Roformer v2 (by unwa)',
-            'KARAOKE-MelBand-Roformer': 'KARAOKE-MelBand-Roformer (by aufr33 & viperx)',
-            'CROWD-REMOVAL': 'CROWD-REMOVAL-MelBand-Roformer (by aufr33)',
-            'DENOISE-MelBand-Roformer-1': 'DENOISE-MelBand-Roformer-1 (by aufr33)',
-            'DENOISE-MelBand-Roformer-2': 'DENOISE-MelBand-Roformer-2 (by aufr33)',
-            'kimmel_unwa_ft': 'kimmel_unwa_ft (by unwa)',
-            'inst_v1e': 'inst_v1e (by unwa)',
-            'bleed_suppressor_v1': 'bleed_suppressor_v1 (by unwa)'
-        },
-        'bs_roformer': {
-            'VOCALS-BS-Roformer_1297': 'VOCALS-BS-Roformer_1297 (by viperx)',
-            'VOCALS-BS-Roformer_1296': 'VOCALS-BS-Roformer_1296 (by viperx)',
-            'VOCALS-BS-RoformerLargev1': 'VOCALS-BS-RoformerLargev1 (by unwa)',
-            'OTHER-BS-Roformer_1053': 'OTHER-BS-Roformer_1053 (by viperx)'
-        },
-        'segm_models': {
-            'VOCALS-VitLarge23': 'VOCALS-VitLarge23 (by ZFTurbo)'
-        },
-        'bandit': {
-            'CINEMATIC-BandIt_Plus': 'CINEMATIC-BandIt_Plus (by kwatcharasupat)'
-        },
-        'scnet': {
-            '4STEMS-SCNet_MUSDB18': '4STEMS-SCNet_MUSDB18 (by starrytong)'
-        }
-    }
-
     # Her kategoride model tipini ara
     for category, models in model_mapping.items():
         for key, value in models.items():
@@ -108,25 +65,13 @@ def run_folder(model, args, config, device, verbose: bool = False):
     instruments = prefer_target_instrument(config)[:]
     os.makedirs(args.store_dir, exist_ok=True)
 
-    if args.disable_detailed_pbar:
-        detailed_pbar = False
-    else:
-        detailed_pbar = True
-
-    # Toplam dosya sayısı için tqdm
-    progress_bar = tqdm(mixture_paths, desc="Total Progress", total=len(mixture_paths))
-    
-    # Model adını burada tanımla
-    full_model_name = args.model_type  # veya config içinden alabilirsiniz
-
-
-    for path in progress_bar:
+    # Tek bir progress bar
+    for idx, path in enumerate(tqdm(mixture_paths, desc="Processing", unit="%", bar_format='{l_bar}{bar}'), 1):
         try:
             mix, sr = librosa.load(path, sr=sample_rate, mono=False)
         except Exception as e:
-            print(f'Cannot read track: {format(path)}')
+            print(f'Cannot read track: {path}')
             print(f'Error message: {str(e)}')
-            progress_bar.update(1)  # Hata olsa bile progress barı ilerlet
             continue
 
         mix_orig = mix.copy()
@@ -134,7 +79,7 @@ def run_folder(model, args, config, device, verbose: bool = False):
             if config.inference['normalize'] is True:
                 mix, norm_params = normalize_audio(mix)
 
-        waveforms_orig = demix(config, model, mix, device, model_type=args.model_type, pbar=detailed_pbar)
+        waveforms_orig = demix(config, model, mix, device, model_type=args.model_type)
 
         if args.use_tta:
             waveforms_orig = apply_tta(config, model, mix, waveforms_orig, device, args.model_type)
@@ -145,17 +90,9 @@ def run_folder(model, args, config, device, verbose: bool = False):
             if 'instrumental' not in instruments:
                 instruments.append('instrumental')
 
-        file_name = os.path.splitext(os.path.basename(path))[0]
-        # Dosya adını kısaltma
-        shortened_filename = shorten_filename(os.path.basename(path))
-
-        # Model ismini al
-        full_model_name = get_clean_model_name(args.model_type)
-
         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        instrument_progress = tqdm(instruments, desc="Processing", leave=False)
-        for instr in instrument_progress:
+        for instr in instruments:
             estimates = waveforms_orig[instr]
             if 'normalize' in config.inference:
                 if config.inference['normalize'] is True:
@@ -164,23 +101,11 @@ def run_folder(model, args, config, device, verbose: bool = False):
             codec = 'flac' if getattr(args, 'flac_file', False) else 'wav'
             subtype = 'PCM_16' if args.flac_file and args.pcm_type == 'PCM_16' else 'FLOAT'
 
-            # Dosya adını kısalt
             shortened_filename = shorten_filename(os.path.basename(path))
-
-            # Yeni dosya adı formatı
-            output_filename = f"{full_model_name}_{shortened_filename}_{instr}_{current_time}.{codec}"
+            output_filename = f"{shortened_filename}_{instr}_{current_time}.{codec}"
             output_path = os.path.join(args.store_dir, output_filename)
         
             sf.write(output_path, estimates.T, sr, subtype=subtype)
-        
-            instrument_progress.set_postfix(instrument=instr)
-
-            # Ana progress barı güncelle
-            progress_bar.update(1)
-            progress_bar.set_postfix(current_file=shortened_filename)
-
-    # Progress barı kapat
-    progress_bar.close()
 
     print(f"Elapsed time: {time.time() - start_time:.2f} seconds.")
 
