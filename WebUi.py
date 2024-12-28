@@ -323,7 +323,7 @@ def create_directory(directory):
     else:
         print(f"{directory} directory already exists.")
 
-def process_audio(input_audio, model, chunk_size, overlap, flac_file, use_tta, pcm_type, extract_instrumental):
+def process_audio(input_audio, model, chunk_size, overlap, export_format, flac_file, use_tta, pcm_type, extract_instrumental):
     # Create input and output directories
     create_directory(INPUT_DIR)
     create_directory(OUTPUT_DIR)
@@ -931,8 +931,13 @@ def create_interface():
                 process_btn.click(
                     fn=process_audio,
                     inputs=[
-                        input_audio, model_dropdown, chunk_size, overlap,
-                        flac_file, use_tta, export_format, pcm_type, extract_instrumental
+                        input_audio, 
+                        model_dropdown, 
+                        chunk_size, 
+                        overlap,
+                        export_format,
+                        use_tta, 
+                        extract_instrumental
                     ],
                     outputs=[
                         vocals_audio,
