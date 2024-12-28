@@ -932,7 +932,7 @@ def create_interface():
                     fn=process_audio,
                     inputs=[
                         input_audio, model_dropdown, chunk_size, overlap,
-                        flac_file, use_tta, pcm_type, extract_instrumental
+                        flac_file, use_tta, export_format, pcm_type, extract_instrumental
                     ],
                     outputs=[
                         vocals_audio,
