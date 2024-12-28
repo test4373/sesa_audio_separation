@@ -660,39 +660,43 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
 
         process.wait()
 
-        # Dosyaları yeniden adlandırma fonksiyonu
-        def rename_files_with_model(folder):
+
+
+        def rename_files_with_model(folder, clean_model):
             files = os.listdir(folder)
             for filename in files:
-                # Dosyanın tam yolu
+                # Full path of the file
                 file_path = os.path.join(folder, filename)
-                
-                # Dosya adının parçaları
+
+                # Split the filename into base and extension
                 base, ext = os.path.splitext(filename)
-                
-                # Eğer zaten model adı varsa tekrar ekleme
-                if clean_model not in base:
-                    # Yeni dosya adı (model adını sonuna ekle)
-                    # .wav'ın tekrarlanmasını önle
+
+                # Dosya adında model adı YOKSA ve zaten model adını içermiyorsa yeniden adlandır
+                if clean_model.lower() not in base.lower():
+                    # Prevent duplication of .wav
                     if base.endswith('.wav'):
                         base = base[:-4]
-                    
+
+                    # Create the new filename by appending the model name
                     new_filename = f"{base}_{clean_model}{ext}"
                     new_file_path = os.path.join(folder, new_filename)
-                    
-                    # Dosyayı yeniden adlandır
-                    os.rename(file_path, new_file_path)
-            
-        # Dosyaları yeniden adlandır
-        rename_files_with_model(output_folder)
 
-        # Güncellenmiş dosya listesini al
+                    # Rename the file
+                    os.rename(file_path, new_file_path)
+
+        # Call the function with the output folder and the current model name
+        rename_files_with_model(output_folder, clean_model)
+
+        # Get the updated list of files
         output_files = os.listdir(output_folder)
 
         # Find specific stem files
         def find_file(keyword):
-            return next((os.path.join(output_folder, f) for f in output_files 
-                         if keyword in f.lower() and clean_model in f), None)
+            matching_files = [
+                os.path.join(output_folder, f) for f in output_files 
+                if keyword in f.lower() and clean_model.lower() in f.lower()
+            ]
+            return matching_files[0] if matching_files else None
 
         vocal_file = find_file('vocals')
         instrumental_file = find_file('instrumental')
@@ -719,7 +723,9 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
 
     except Exception as e:
         print(f"An error occurred: {e}")
-        return None, None, None, None, None, None, None, None, None
+        return (None,) * 9
+
+       
 
 def create_interface():
     # Let's define the model options in advance
@@ -891,7 +897,7 @@ def create_interface():
                             label="Export Format",
                             choices=[
                                 'wav FLOAT',
-                                'flac PCM_16', 
+                                'flac PCM_16',
                                 'flac PCM_24'
                             ],
                             value='wav FLOAT'
@@ -920,12 +926,12 @@ def create_interface():
                 process_btn.click(
                     fn=process_audio,
                     inputs=[
-                        input_audio, 
-                        model_dropdown, 
-                        chunk_size, 
+                        input_audio,
+                        model_dropdown,
+                        chunk_size,
                         overlap,
                         export_format,
-                        use_tta, 
+                        use_tta,
                         extract_instrumental,
                         gr.State(None),
                         gr.State(None)
