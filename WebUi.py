@@ -43,6 +43,23 @@ from urllib.parse import quote
 os.makedirs('/content/Music-Source-Separation-Training/input', exist_ok=True)
 os.makedirs('/content/Music-Source-Separation-Training/output', exist_ok=True)
 
+def clear_old_output():
+    old_output_folder = os.path.join(BASE_PATH, 'old_output')
+    
+    # Eğer klasör yoksa, hiçbir şey yapma
+    if not os.path.exists(old_output_folder):
+        print("Old output folder does not exist.")
+        return
+    
+    # Klasördeki tüm dosyaları sil
+    for filename in os.listdir(old_output_folder):
+        file_path = os.path.join(old_output_folder, filename)
+        if os.path.isfile(file_path):
+            os.remove(file_path)
+            print(f"Deleted: {file_path}")
+    
+    print("All files in old_output have been deleted.")
+
 def shorten_filename(filename, max_length=30):
     """
     Shortens a filename to a specified maximum length
@@ -317,6 +334,19 @@ def save_uploaded_file(uploaded_file, is_input=False):
 
         clear_memory()
 
+def move_old_files(output_folder):
+    old_output_folder = os.path.join(BASE_PATH, 'old_output')
+    os.makedirs(old_output_folder, exist_ok=True)
+
+    # Eski dosyaları taşı ve adlarının sonuna "old" ekle
+    for filename in os.listdir(output_folder):
+        file_path = os.path.join(output_folder, filename)
+        if os.path.isfile(file_path):
+            # Yeni dosya adını oluştur
+            new_filename = f"{os.path.splitext(filename)[0]}_old{os.path.splitext(filename)[1]}"
+            new_file_path = os.path.join(old_output_folder, new_filename)
+            shutil.move(file_path, new_file_path)        
+
 def extract_model_name(full_model_string):
     """
     Function to clear model name
@@ -341,6 +371,7 @@ def extract_model_name(full_model_string):
 BASE_PATH = '/content/Music-Source-Separation-Training'
 INPUT_DIR = os.path.join(BASE_PATH, 'input')
 OUTPUT_DIR = '/content/drive/MyDrive/output'
+OLD_OUTPUT_DIR = '/content/drive/MyDrive/old_output'
 
 def clear_directory(directory):
     """Deletes all files in the given directory."""
@@ -363,6 +394,10 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
     # Create input and output directories
     create_directory(INPUT_DIR)
     create_directory(OUTPUT_DIR)
+    create_directory(OLD_OUTPUT_DIR)
+
+    # Eski dosyaları taşı
+    move_old_files(OUTPUT_DIR)
 
     # Delete existing files
     clear_directory(INPUT_DIR)
@@ -642,8 +677,83 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
           download_file('https://huggingface.co/Sucial/Dereverb-Echo_Mel_Band_Roformer/resolve/main/config_dereverb-echo_mel_band_roformer.yaml')
           conf_edit(config_path, chunk_size, overlap)
 
+    elif clean_model == 'dereverb_mel_band_roformer_less_aggressive_anvuew':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/dereverb_mel_band_roformer_anvuew.yaml'
+          start_check_point = 'ckpts/dereverb_mel_band_roformer_less_aggressive_anvuew_sdr_18.8050.ckpt'
+          download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_anvuew.yaml')
+          download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_less_aggressive_anvuew_sdr_18.8050.ckpt')
+          conf_edit(config_path, chunk_size, overlap)
+
+    elif clean_model == 'dereverb_mel_band_roformer_anvuew':
+          model_type = 'mel_band_roformer'
+          config_path = 'dereverb_mel_band_roformer_anvuew.yaml'
+          start_check_point = 'ckpts/dereverb_mel_band_roformer_anvuew_sdr_19.1729.ckpt'
+          download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_anvuew.yaml')
+          download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_anvuew_sdr_19.1729.ckpt')
+          conf_edit(config_path, chunk_size, overlap)  
 
 
+    elif clean_model == 'inst_gabox':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/inst_gabox.yaml'
+          start_check_point = 'ckpts/inst_gabox.ckpt'
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.ckpt')
+          conf_edit(config_path, chunk_size, overlap)
+
+    elif clean_model == 'inst_gaboxBV1':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/inst_gabox.yaml'
+          start_check_point = 'ckpts/inst_gaboxBv1.ckpt'
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gaboxBv1.ckpt')
+          conf_edit(config_path, chunk_size, overlap)
+
+
+    elif clean_model == 'inst_gaboxBV2':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/inst_gabox.yaml'
+          start_check_point = 'ckpts/inst_gaboxBv2.ckpt'
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gaboxBv2.ckpt')
+          conf_edit(config_path, chunk_size, overlap)     
+
+
+    elif clean_model == 'inst_gaboxBFV1':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/inst_gabox.yaml'
+          start_check_point = 'ckpts/gaboxFv1.ckpt'
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gaboxFv1.ckpt')
+          conf_edit(config_path, chunk_size, overlap)
+
+
+    elif clean_model == 'inst_gaboxFV2':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/inst_gabox.yaml'
+          start_check_point = 'ckpts/inst_gaboxFv2.ckpt'
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gaboxFv2.ckpt')
+          conf_edit(config_path, chunk_size, overlap)
+
+    
+    elif model == 'VOCALS-Male Female-BS-RoFormer Male Female Beta 7_2889 (by aufr33)':
+          model_type = 'bs_roformer'
+          config_path = 'ckpts/config_chorus_male_female_bs_roformer.yaml'
+          start_check_point = 'ckpts/bs_roformer_male_female_by_aufr33_sdr_7.2889.ckpt'
+          download_file('https://huggingface.co/RareSirMix/AIModelRehosting/resolve/main/bs_roformer_male_female_by_aufr33_sdr_7.2889.ckpt')
+          download_file('https://huggingface.co/Sucial/Chorus_Male_Female_BS_Roformer/resolve/main/config_chorus_male_female_bs_roformer.yaml')
+          conf_edit(config_path, chunk_size, overlap)
+
+
+    elif model == 'VOCALS-MelBand-Roformer Kim FT 2 (by Unwa)':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/config_kimmel_unwa_ft.yaml'
+          start_check_point = 'ckpts/kimmel_unwa_ft.ckpt'
+          download_file('https://huggingface.co/pcunwa/Kim-Mel-Band-Roformer-FT/resolve/main/config_kimmel_unwa_ft.yaml')
+          download_file('https://huggingface.co/pcunwa/Kim-Mel-Band-Roformer-FT/resolve/main/kimmel_unwa_ft2.ckpt')
+          conf_edit(config_path, chunk_size, overlap)      
 
        
 
@@ -691,8 +801,8 @@ def clean_model_name(model):
     model_name_mapping = {
         'VOCALS-InstVocHQ': 'InstVocHQ',
         'VOCALS-MelBand-Roformer (by KimberleyJSN)': 'KimberleyJSN',
-        'VOCALS-BS-Roformer_1297 (by viperx)': 'Viperx1297',
-        'VOCALS-BS-Roformer_1296 (by viperx)': 'Viperx1296',
+        'VOCALS-BS-Roformer_1297 (by viperx)': 'VOCALS_BS_Roformer1297',
+        'VOCALS-BS-Roformer_1296 (by viperx)': 'VOCALS-BS-Roformer_1296',
         'VOCALS-BS-RoformerLargev1 (by unwa)': 'UnwaLargeV1',
         'VOCALS-Mel-Roformer big beta 4 (by unwa)': 'UnwaBigBeta4',
         'VOCALS-Melband-Roformer BigBeta5e (by unwa)': 'UnwaBigBeta5e',
@@ -700,10 +810,38 @@ def clean_model_name(model):
         'INST-Mel-Roformer v2 (by unwa)': 'UnwaInstV2',
         'INST-VOC-Mel-Roformer a.k.a. duality (by unwa)': 'UnwaDualityV1',
         'INST-VOC-Mel-Roformer a.k.a. duality v2 (by unwa)': 'UnwaDualityV2',
-        'KARAOKE-MelBand-Roformer (by aufr33 & viperx)': 'KaraokeRoformer',
+        'KARAOKE-MelBand-Roformer (by aufr33 & viperx)': 'KaraokeMelBandRoformer',
         'VOCALS-VitLarge23 (by ZFTurbo)': 'VitLarge23',
         'VOCALS-MelBand-Roformer (by Becruily)': 'BecruilyVocals',
         'INST-MelBand-Roformer (by Becruily)': 'BecruilyInst',
+        'VOCALS-MelBand-Roformer Kim FT (by Unwa)': 'KimFT',
+        'INST-MelBand-Roformer Kim FT (by Unwa)': 'KimFTInst',
+        'OTHER-BS-Roformer_1053 (by viperx)': 'OtherViperx1053',
+        'CROWD-REMOVAL-MelBand-Roformer (by aufr33)': 'CrowdRemovalRoformer',
+        'CINEMATIC-BandIt_Plus (by kwatcharasupat)': 'CinematicBandItPlus',
+        'DRUMSEP-MDX23C_DrumSep_6stem (by aufr33 & jarredou)': 'DrumSepMDX23C',
+        '4STEMS-SCNet_MUSDB18 (by starrytong)': 'FourStemsSCNet',
+        'DE-REVERB-MDX23C (by aufr33 & jarredou)': 'DeReverbMDX23C',
+        'DENOISE-MelBand-Roformer-1 (by aufr33)': 'DenoiseMelBand1',
+        'DENOISE-MelBand-Roformer-2 (by aufr33)': 'DenoiseMelBand2',
+        'INST-MelBand-Roformer (by Becruily)': 'BecruilyInst',
+        '4STEMS-SCNet_XL_MUSDB18 (by ZFTurbo)': 'FourStemsSCNetXL',
+        '4STEMS-SCNet_Large (by starrytong)': 'FourStemsSCNetLarge',
+        '4STEMS-BS-Roformer_MUSDB18 (by ZFTurbo)': 'FourStemsBSRoformer',
+        'DE-REVERB-MelBand-Roformer aggr./v2/19.1729 (by anvuew)': 'DeReverbMelBandAggr',
+        'DE-REVERB-Echo-MelBand-Roformer (by Sucial)': 'DeReverbEchoMelBand',
+        'bleed_suppressor_v1 (by unwa)': 'BleedSuppressorV1',
+        'inst_v1e (by unwa)': 'InstV1E',
+        'inst_gabox': 'InstGabox',
+        'inst_gaboxBV1': 'InstGaboxBV1',
+        'inst_gaboxBV2': 'InstGaboxBV2',
+        'inst_gaboxBFV1': 'InstGaboxBFV1',
+        'inst_gaboxFV2': 'InstGaboxFV2',
+        'dereverb_mel_band_roformer_less_aggressive_anvuew': 'DereverbMelBandRoformerLessAggressive',
+        'dereverb_mel_band_roformer_anvuew': 'DereverbMelBandRoformer',
+        'VOCALS-Male Female-BS-RoFormer Male Female Beta 7_2889 (by aufr33)': 'MaleFemale-BS-RoFormer(by aufr33)',
+        'VOCALS-MelBand-Roformer (by Becruily)': 'Vocals-MelBand-Roformer(by Becruily)',
+        'VOCALS-MelBand-Roformer Kim FT 2 (by Unwa)' : 'Vocals-MelBand-Roformer-KİM-FT-2(by Unwa)',
         # Add more mappings as needed
     }
 
@@ -807,7 +945,7 @@ def run_command_and_process_files(cmd_parts, BASE_PATH, output_folder, clean_mod
             processed_types = {}
 
             # Sort files to ensure consistent processing
-            for filename in sorted(output_files):
+            for filename in sorted(os.listdir(folder)):
                 # Full path of the file
                 file_path = os.path.join(folder, filename)
 
@@ -817,19 +955,7 @@ def run_command_and_process_files(cmd_parts, BASE_PATH, output_folder, clean_mod
 
                 # Dosya adını ve uzantısını ayır
                 base, ext = os.path.splitext(filename)
-                
-                # Zaman damgası ve gereksiz etiketleri temizleme desenleri
-                cleanup_patterns = [
-                    r'_\d{8}_\d{6}_\d{6}$',  # _20231215_123456_123456
-                    r'_\d{14}$',              # _20231215123456
-                    r'_\d{10}$',              # _1702658400
-                    r'_\d+$'                  # Herhangi bir sayı
-                ]
-                
-                # Zaman damgalarını temizle
-                for pattern in cleanup_patterns:
-                    base = re.sub(pattern, '', base)
-                
+
                 # Dosya türü etiketlerini tespit et
                 file_types = ['vocals', 'instrumental', 'drum', 'bass', 'other', 'effects', 'speech', 'music', 'dry']
                 detected_type = None
@@ -838,25 +964,21 @@ def run_command_and_process_files(cmd_parts, BASE_PATH, output_folder, clean_mod
                     if type_keyword in base.lower():
                         detected_type = type_keyword
                         break
-                
-                # Dosya türü etiketlerini temizle
-                for type_keyword in file_types:
-                    base = base.replace(f'_{type_keyword}', '')
-                
+
                 # Temiz base adı
                 clean_base = base.strip('_- ')
 
-                # If file type is found
+                # Yeni dosya adını oluştur
                 if detected_type:
-                    # If this is the first file of this type, rename it
-                    if detected_type not in processed_types:
-                        # Yeni dosya adını oluştur
-                        new_filename = f"{clean_base}_{detected_type}_{filename_model}{ext}"
-                        new_file_path = os.path.join(folder, new_filename)
-                        
-                        # Rename the file
-                        os.rename(file_path, new_file_path)
-                        processed_types[detected_type] = new_file_path
+                    new_filename = f"{clean_base}.{detected_type}_{filename_model}{ext}"
+                else:
+                    new_filename = f"{clean_base}_{filename_model}{ext}"
+
+                new_file_path = os.path.join(folder, new_filename)
+
+                # Rename the file
+                os.rename(file_path, new_file_path)
+                processed_types[detected_type] = new_file_path
 
         # Rename files
         rename_files_with_model(output_folder, filename_model)
@@ -919,7 +1041,9 @@ def create_interface():
             'VOCALS-BS-Roformer_1296 (by viperx)',
             'VOCALS-MelBand-Roformer Kim FT (by Unwa)',
             'VOCALS-MelBand-Roformer (by Becruily)',
-            'VOCALS-Melband-Roformer BigBeta5e (by unwa)'
+            'VOCALS-Melband-Roformer BigBeta5e (by unwa)',
+            'VOCALS-Male Female-BS-RoFormer Male Female Beta 7_2889 (by aufr33)',
+            'VOCALS-MelBand-Roformer Kim FT 2 (by Unwa)'
         ],
         "Instrumental Separation": [
             'INST-VOC-Mel-Roformer a.k.a. duality v2 (by unwa) - Latest version instrumental separation',
@@ -928,7 +1052,12 @@ def create_interface():
             '✅ INST-Mel-Roformer v2 (by unwa) - Most recent instrumental separation model',
             '✅ inst_v1e (by unwa)',
             '✅ INST-Mel-Roformer v1 (by unwa) - Old instrumental separation model',
-            'INST-MelBand-Roformer (by Becruily)'
+            'INST-MelBand-Roformer (by Becruily)',
+            'inst_gaboxFV2',
+            'inst_gaboxFV1',
+            'inst_gaboxBV2',
+            'inst_gaboxBV1',
+            'inst_gabox'
         ],
         "Karaoke & Accompaniment": [
             '✅ KARAOKE-MelBand-Roformer (by aufr33 & viperx) - Advanced karaoke separation'
@@ -939,7 +1068,11 @@ def create_interface():
             '🏛️ DE-REVERB-MelBand-Roformer aggr./v2/19.1729 (by anvuew)',
             '🗣️ DE-REVERB-Echo-MelBand-Roformer (by Sucial)',
             '🔇 DENOISE-MelBand-Roformer-1 (by aufr33) - Basic noise reduction',
-            '🔉 DENOISE-MelBand-Roformer-2 (by aufr33) - Advanced noise reduction'
+            '🔉 DENOISE-MelBand-Roformer-2 (by aufr33) - Advanced noise reduction',
+            'dereverb_mel_band_roformer_less_aggressive_anvuew',
+            'dereverb_mel_band_roformer_anvuew'
+
+
         ],
         "Drum Separation": [
             '✅ DRUMSEP-MDX23C_DrumSep_6stem (by aufr33 & jarredou) - Detailed drum separation'
@@ -1000,13 +1133,13 @@ def create_interface():
 
     def refresh_audio_files(directory):
         """
-        Refreshes and lists audio files in the specified directory
-    
+        Refreshes and lists audio files in the specified directory and old_output directory.
+        
         Args:
-            directory (str): Path of the directory to be scanned
-    
+            directory (str): Path of the directory to be scanned.
+        
         Returns:
-            list: List of discovered audio files
+            list: List of discovered audio files.
         """
         try:
             audio_extensions = ['.wav', '.mp3', '.flac', '.ogg']
@@ -1015,7 +1148,16 @@ def create_interface():
                 if os.path.isfile(os.path.join(directory, f))
                 and os.path.splitext(f)[1].lower() in audio_extensions
             ]
-            return sorted(audio_files)
+            
+            # Eski dosyaları da kontrol et
+            old_output_directory = os.path.join(BASE_PATH, 'old_output')
+            old_audio_files = [
+                f for f in os.listdir(old_output_directory)
+                if os.path.isfile(os.path.join(old_output_directory, f))
+                and os.path.splitext(f)[1].lower() in audio_extensions
+            ]
+            
+            return sorted(audio_files + old_audio_files)
         except Exception as e:
             print(f"Audio file listing error: {e}")
             return []
@@ -1054,14 +1196,14 @@ def create_interface():
                     with gr.Column(scale=1):
                         chunk_size = gr.Dropdown(
                             label="Chunk Size",
-                            info="don't touch this.",
+                            info="Don't touch this.",
                             choices=[352800, 485100],
                             value=352800
                         )
 
                         use_tta = gr.Checkbox(
                             label="Use TTA",
-                            info="Test Time Augmentation:It improves the prediction performance of the model. It also increases the processing time."
+                            info="Test Time Augmentation: It improves the prediction performance of the model. It also increases the processing time."
                         )
 
                         extract_instrumental = gr.Checkbox(
@@ -1081,6 +1223,22 @@ def create_interface():
                         )
 
                         process_btn = gr.Button("Process Audio")
+
+                        # Eski dosyaları silmek için buton
+                        clear_old_output_btn = gr.Button("Clear Old Output Folder")
+                        clear_old_output_status = gr.Textbox(label="Status", interactive=False)
+
+                        def clear_old_output_fn():
+                            try:
+                                clear_old_output()
+                                return "Old output folder cleared successfully."
+                            except Exception as e:
+                                return f"Error clearing old output folder: {str(e)}"
+
+                        clear_old_output_btn.click(
+                            fn=clear_old_output_fn,
+                            outputs=clear_old_output_status
+                        )
 
                         with gr.Column():
                             original_audio = gr.Audio(label="Original Audio")
@@ -1126,6 +1284,8 @@ def create_interface():
                     ]
                 )
 
+
+
             
             with gr.Tab("Audio, File Download"):
                 gr.Markdown("## 🔗 Audio File Download")
@@ -1160,13 +1320,11 @@ def create_interface():
             
             with gr.Tab("Audio Ensemble"):
                 gr.Markdown("# 🎵 Audio Ensemble Tool")
-            
+                
                 with gr.Row():
                     with gr.Column():
-                    
                         refresh_btn = gr.Button("🔄 Refresh Audio Files")
 
-                    
                         ensemble_type = gr.Dropdown(
                             label="Ensemble Algorithm",
                             choices=[
@@ -1182,18 +1340,16 @@ def create_interface():
                             value='avg_wave'
                         )
                         
-                        
                         file_dropdowns = []
-                        drive_audio_files = refresh_audio_files('/content/drive/MyDrive/output')
+                        audio_files = refresh_audio_files('/content/drive/MyDrive/output')
                         
                         for i in range(10):
                             file_dropdown = gr.Dropdown(
                                 label=f"Audio File {i+1}",
-                                choices=['None'] + drive_audio_files,
+                                choices=['None'] + audio_files,
                                 value='None'
                             )
                             file_dropdowns.append(file_dropdown)
-                        
                         
                         def update_audio_dropdowns():
                             updated_files = refresh_audio_files('/content/drive/MyDrive/output')
@@ -1202,32 +1358,26 @@ def create_interface():
                                 for _ in range(10)
                             ]
                         
-                        
                         refresh_btn.click(
                             fn=update_audio_dropdowns,
                             outputs=file_dropdowns
                         )
                         
-                        
                         weights_input = gr.Textbox(
                             label="Weights (comma-separated, optional)",
                             placeholder="e.g., 1.0, 1.2, 0.8"
                         )
-                        
                     
                     with gr.Column():
-                        
                         ensemble_output_audio = gr.Audio(label="Ensembled Audio")
                         ensemble_status = gr.Textbox(label="Status")
 
-                        
                         ensemble_process_btn = gr.Button("Ensemble Audio")
-            
+                    
                     def ensemble_audio_fn(file_1, file_2, file_3, file_4, file_5, 
                                           file_6, file_7, file_8, file_9, file_10, 
                                           ensemble_type, weights_input):
                         try:
-                            
                             file_dropdowns = [
                                 file_1, file_2, file_3, file_4, file_5,
                                 file_6, file_7, file_8, file_9, file_10
@@ -1242,7 +1392,6 @@ def create_interface():
                             if len(files) < 2:
                                 return None, "Select at least 2 files for ensemble"
                             
-                            
                             if weights_input and weights_input.strip():
                                 weights = [float(w.strip()) for w in weights_input.split(',')]
                                 if len(weights) != len(files):
@@ -1250,9 +1399,7 @@ def create_interface():
                             else:
                                 weights = None
                             
-                            
                             output_path = "/tmp/ensembled_audio.wav"
-                            
                             
                             ensemble_args = [
                                 "--files"] + files + [
@@ -1260,10 +1407,8 @@ def create_interface():
                                 "--output", output_path
                             ]
                             
-                            
                             if weights:
                                 ensemble_args.extend(["--weights"] + [str(w) for w in weights])
-                            
                             
                             ensemble_files(ensemble_args)
                             
