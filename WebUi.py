@@ -694,7 +694,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
           conf_edit(config_path, chunk_size, overlap)  
 
 
-    elif clean_model == 'inst_gabox':
+    elif clean_model == 'inst_gabox (by Gabox)':
           model_type = 'mel_band_roformer'
           config_path = 'ckpts/inst_gabox.yaml'
           start_check_point = 'ckpts/inst_gabox.ckpt'
@@ -702,7 +702,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
           download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.ckpt')
           conf_edit(config_path, chunk_size, overlap)
 
-    elif clean_model == 'inst_gaboxBV1':
+    elif clean_model == 'inst_gaboxBV1 (by Gabox)':
           model_type = 'mel_band_roformer'
           config_path = 'ckpts/inst_gabox.yaml'
           start_check_point = 'ckpts/inst_gaboxBv1.ckpt'
@@ -711,7 +711,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
           conf_edit(config_path, chunk_size, overlap)
 
 
-    elif clean_model == 'inst_gaboxBV2':
+    elif clean_model == 'inst_gaboxBV2 (by Gabox)':
           model_type = 'mel_band_roformer'
           config_path = 'ckpts/inst_gabox.yaml'
           start_check_point = 'ckpts/inst_gaboxBv2.ckpt'
@@ -720,7 +720,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
           conf_edit(config_path, chunk_size, overlap)     
 
 
-    elif clean_model == 'inst_gaboxBFV1':
+    elif clean_model == 'inst_gaboxBFV1 (by Gabox)':
           model_type = 'mel_band_roformer'
           config_path = 'ckpts/inst_gabox.yaml'
           start_check_point = 'ckpts/gaboxFv1.ckpt'
@@ -729,7 +729,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
           conf_edit(config_path, chunk_size, overlap)
 
 
-    elif clean_model == 'inst_gaboxFV2':
+    elif clean_model == 'inst_gaboxFV2 (by Gabox)':
           model_type = 'mel_band_roformer'
           config_path = 'ckpts/inst_gabox.yaml'
           start_check_point = 'ckpts/inst_gaboxFv2.ckpt'
@@ -755,7 +755,37 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
           download_file('https://huggingface.co/pcunwa/Kim-Mel-Band-Roformer-FT/resolve/main/kimmel_unwa_ft2.ckpt')
           conf_edit(config_path, chunk_size, overlap)      
 
-       
+    elif model == 'voc_gaboxBSroformer (by Gabox)':
+          model_type = 'bs_reformer'
+          config_path = 'ckpts/voc_gaboxBSroformer.yaml'
+          start_check_point = 'ckpts/voc_gaboxBSR.ckpt'
+          download_file('https://huggingface.co/GaboxR67/BSRoformerVocTest/resolve/main/voc_gaboxBSroformer.yaml')
+          download_file('https://huggingface.co/GaboxR67/BSRoformerVocTest/resolve/main/voc_gaboxBSR.ckpt')
+          conf_edit(config_path, chunk_size, overlap)
+
+    elif model == 'voc_gaboxMelReformer (by Gabox)':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/voc_gabox.yaml'
+          start_check_point = 'ckpts/voc_gabox.ckpt'
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_gabox.yaml')
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_gabox.ckpt')
+          conf_edit(config_path, chunk_size, overlap)
+
+    elif model == 'voc_gaboxMelReformerFV1 (by Gabox)':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/voc_gabox.yaml'
+          start_check_point = 'ckpts/voc_gaboxFv1.ckpt'
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_gabox.yaml')
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_gaboxFv1.ckpt')
+          conf_edit(config_path, chunk_size, overlap)
+
+    elif model == 'voc_gaboxMelReformerFV2 (by Gabox)':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/voc_gabox.yaml'
+          start_check_point = 'ckpts/voc_gaboxFv2.ckpt'
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_gabox.yaml')
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_gaboxFv2.ckpt')
+          conf_edit(config_path, chunk_size, overlap)
 
 
     # Other model options will be added here...
@@ -832,16 +862,20 @@ def clean_model_name(model):
         'DE-REVERB-Echo-MelBand-Roformer (by Sucial)': 'DeReverbEchoMelBand',
         'bleed_suppressor_v1 (by unwa)': 'BleedSuppressorV1',
         'inst_v1e (by unwa)': 'InstV1E',
-        'inst_gabox': 'InstGabox',
-        'inst_gaboxBV1': 'InstGaboxBV1',
-        'inst_gaboxBV2': 'InstGaboxBV2',
-        'inst_gaboxBFV1': 'InstGaboxBFV1',
-        'inst_gaboxFV2': 'InstGaboxFV2',
+        'inst_gabox ( by Gabox)': 'InstGabox',
+        'inst_gaboxBV1 (by Gabox)': 'InstGaboxBV1',
+        'inst_gaboxBV2 (by Gabox)': 'InstGaboxBV2',
+        'inst_gaboxBFV1 (by Gabox)': 'InstGaboxBFV1',
+        'inst_gaboxFV2 (by Gabox)': 'InstGaboxFV2',
         'dereverb_mel_band_roformer_less_aggressive_anvuew': 'DereverbMelBandRoformerLessAggressive',
         'dereverb_mel_band_roformer_anvuew': 'DereverbMelBandRoformer',
         'VOCALS-Male Female-BS-RoFormer Male Female Beta 7_2889 (by aufr33)': 'MaleFemale-BS-RoFormer(by aufr33)',
         'VOCALS-MelBand-Roformer (by Becruily)': 'Vocals-MelBand-Roformer(by Becruily)',
-        'VOCALS-MelBand-Roformer Kim FT 2 (by Unwa)' : 'Vocals-MelBand-Roformer-KİM-FT-2(by Unwa)',
+        'VOCALS-MelBand-Roformer Kim FT 2 (by Unwa)': 'Vocals-MelBand-Roformer-KİM-FT-2(by Unwa)',
+        'voc_gaboxMelReformer (by Gabox)': 'voc_gaboxMelReformer',
+        'voc_gaboxBSroformer (by Gabox)': 'voc_gaboxBSroformer',
+        'voc_gaboxMelReformerFV1 (by Gabox)': 'voc_gaboxMelReformerFV1',
+        'voc_gaboxMelReformerFV2 (by Gabox)': 'voc_gaboxMelReformerFV2',
         # Add more mappings as needed
     }
 
@@ -1043,7 +1077,11 @@ def create_interface():
             'VOCALS-MelBand-Roformer (by Becruily)',
             'VOCALS-Melband-Roformer BigBeta5e (by unwa)',
             'VOCALS-Male Female-BS-RoFormer Male Female Beta 7_2889 (by aufr33)',
-            'VOCALS-MelBand-Roformer Kim FT 2 (by Unwa)'
+            'VOCALS-MelBand-Roformer Kim FT 2 (by Unwa)',
+            'voc_gaboxMelReforner (by Gabox)',
+            'voc_gaboxBSroformer (by Gabox)',
+            'voc_gaboxMelReformerFV1 (by Gabox)',
+            'voc_gaboxMelReformerFV2 (by Gabox)'
         ],
         "Instrumental Separation": [
             'INST-VOC-Mel-Roformer a.k.a. duality v2 (by unwa) - Latest version instrumental separation',
@@ -1053,11 +1091,11 @@ def create_interface():
             '✅ inst_v1e (by unwa)',
             '✅ INST-Mel-Roformer v1 (by unwa) - Old instrumental separation model',
             'INST-MelBand-Roformer (by Becruily)',
-            'inst_gaboxFV2',
-            'inst_gaboxFV1',
-            'inst_gaboxBV2',
-            'inst_gaboxBV1',
-            'inst_gabox'
+            'inst_gaboxFV2 (by Gabox)',
+            'inst_gaboxFV1 (by Gabox)',
+            'inst_gaboxBV2 (by Gabox)',
+            'inst_gaboxBV1 (by Gabox)',
+            'inst_gabox (by Gabox)'
         ],
         "Karaoke & Accompaniment": [
             '✅ KARAOKE-MelBand-Roformer (by aufr33 & viperx) - Advanced karaoke separation'
