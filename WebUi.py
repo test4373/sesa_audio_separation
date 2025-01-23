@@ -929,7 +929,7 @@ def clean_filename(filename):
         base = re.sub(pattern, '', base)
     
     # Dosya türü etiketlerini temizle
-    file_types = ['vocals', 'instrumental', 'drum', 'bass', 'other', 'effects', 'speech', 'music', 'dry']
+    file_types = ['vocals', 'instrumental', 'drum', 'bass', 'other', 'effects', 'speech', 'music', 'dry', 'male', 'female']
     for type_keyword in file_types:
         base = base.replace(f'_{type_keyword}', '')
     
@@ -991,7 +991,7 @@ def run_command_and_process_files(cmd_parts, BASE_PATH, output_folder, clean_mod
                 base, ext = os.path.splitext(filename)
 
                 # Dosya türü etiketlerini tespit et
-                file_types = ['vocals', 'instrumental', 'drum', 'bass', 'other', 'effects', 'speech', 'music', 'dry']
+                file_types = ['vocals', 'instrumental', 'drum', 'bass', 'other', 'effects', 'speech', 'music', 'dry', 'male', 'female']
                 detected_type = None
                 
                 for type_keyword in file_types:
@@ -1040,6 +1040,8 @@ def run_command_and_process_files(cmd_parts, BASE_PATH, output_folder, clean_mod
         speech_file = find_file('speech')
         music_file = find_file('music')
         dry_file = find_file('dry')
+        male_file = find_file('male')
+        female_file = find_file('female')
 
         # Return found files
         return (
@@ -1051,7 +1053,9 @@ def run_command_and_process_files(cmd_parts, BASE_PATH, output_folder, clean_mod
             effects_file or None,
             speech_file or None,
             music_file or None,
-            dry_file or None
+            dry_file or None,
+            male_file or None,
+            female_file or None
         )
 
     except Exception as e:
@@ -1289,6 +1293,8 @@ def create_interface():
                             speech_audio = gr.Audio(label="Speech")
                             music_audio = gr.Audio(label="Music")
                             dry_audio = gr.Audio(label="Dry")
+                            male_audio = gr.Audio(label="male")
+                            female_audio = gr.Audio(label="female")
 
                 input_audio.upload(
                     fn=lambda x: x,
@@ -1318,7 +1324,10 @@ def create_interface():
                         effects_audio,
                         speech_audio,
                         music_audio,
-                        dry_audio
+                        dry_audio,
+                        male_audio,
+                        female_audio
+
                     ]
                 )
 
