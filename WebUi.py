@@ -756,7 +756,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
           conf_edit(config_path, chunk_size, overlap)      
 
     elif model == 'voc_gaboxBSroformer (by Gabox)':
-          model_type = 'bs_reformer'
+          model_type = 'bs_roformer'
           config_path = 'ckpts/voc_gaboxBSroformer.yaml'
           start_check_point = 'ckpts/voc_gaboxBSR.ckpt'
           download_file('https://huggingface.co/GaboxR67/BSRoformerVocTest/resolve/main/voc_gaboxBSroformer.yaml')
@@ -872,10 +872,10 @@ def clean_model_name(model):
         'VOCALS-Male Female-BS-RoFormer Male Female Beta 7_2889 (by aufr33)': 'MaleFemale-BS-RoFormer(by aufr33)',
         'VOCALS-MelBand-Roformer (by Becruily)': 'Vocals-MelBand-Roformer(by Becruily)',
         'VOCALS-MelBand-Roformer Kim FT 2 (by Unwa)': 'Vocals-MelBand-Roformer-KİM-FT-2(by Unwa)',
-        'voc_gaboxMelReformer (by Gabox)': 'voc_gaboxMelReformer',
+        'voc_gaboxMelRoformer (by Gabox)': 'voc_gaboxMelRoformer',
         'voc_gaboxBSroformer (by Gabox)': 'voc_gaboxBSroformer',
-        'voc_gaboxMelReformerFV1 (by Gabox)': 'voc_gaboxMelReformerFV1',
-        'voc_gaboxMelReformerFV2 (by Gabox)': 'voc_gaboxMelReformerFV2',
+        'voc_gaboxMelRoformerFV1 (by Gabox)': 'voc_gaboxMelRoformerFV1',
+        'voc_gaboxMelRoformerFV2 (by Gabox)': 'voc_gaboxMelRoformerFV2',
         # Add more mappings as needed
     }
 
@@ -1078,10 +1078,10 @@ def create_interface():
             'VOCALS-Melband-Roformer BigBeta5e (by unwa)',
             'VOCALS-Male Female-BS-RoFormer Male Female Beta 7_2889 (by aufr33)',
             'VOCALS-MelBand-Roformer Kim FT 2 (by Unwa)',
-            'voc_gaboxMelReforner (by Gabox)',
+            'voc_gaboxMelRoforner (by Gabox)',
             'voc_gaboxBSroformer (by Gabox)',
-            'voc_gaboxMelReformerFV1 (by Gabox)',
-            'voc_gaboxMelReformerFV2 (by Gabox)'
+            'voc_gaboxMelRoformerFV1 (by Gabox)',
+            'voc_gaboxMelRoformerFV2 (by Gabox)'
         ],
         "Instrumental Separation": [
             'INST-VOC-Mel-Roformer a.k.a. duality v2 (by unwa) - Latest version instrumental separation',
