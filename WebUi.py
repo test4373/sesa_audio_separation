@@ -1069,14 +1069,12 @@ def create_interface():
     model_choices = {
         "Vocal Separation": [
             'VOCALS-BS-Roformer_1297 (by viperx)',
+            'VOCALS-BS-Roformer_1296 (by viperx)',
             '✅ VOCALS-Mel-Roformer big beta 4 (by unwa) - Melspectrogram based high performance',
             '✅ VOCALS-BS-RoformerLargev1 (by unwa) - Comprehensive model',
             'VOCALS-InstVocHQ - General purpose model',
             'VOCALS-MelBand-Roformer (by KimberleyJSN) - Alternative model',
             'VOCALS-VitLarge23 (by ZFTurbo) - Transformer-based model',
-            'VOCALS-MelBand-Roformer Kim FT (by Unwa)',
-            'VOCALS-BS-Roformer_1297 (by viperx)',
-            'VOCALS-BS-Roformer_1296 (by viperx)',
             'VOCALS-MelBand-Roformer Kim FT (by Unwa)',
             'VOCALS-MelBand-Roformer (by Becruily)',
             'VOCALS-Melband-Roformer BigBeta5e (by unwa)',
