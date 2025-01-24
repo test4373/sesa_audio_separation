@@ -643,7 +643,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
             start_check_point = 'ckpts/model_scnet_ep_54_sdr_9.8051.ckpt'
             download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.13/config_musdb18_scnet_xl.yaml')
             download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.13/model_scnet_ep_54_sdr_9.8051.ckpt')
-            conf_edit(config_path, chunk_size, overlap) 
+            conf_edit(config_path, chunk_size, overlap)
 
     elif clean_model == '4STEMS-SCNet_Large (by starrytong)':
             model_type = 'scnet'
@@ -1428,15 +1428,23 @@ def create_interface():
                                 file_6, file_7, file_8, file_9, file_10
                             ]
                             
-                            files = [
-                                os.path.join('/content/drive/MyDrive/output', f)
-                                for f in file_dropdowns 
-                                if f != 'None'
+                            files = []
+                            paths_to_check = [
+                                '/content/drive/MyDrive/output',
+                                '/content/Music-Source-Separation-Training/old_output'
                             ]
-                            
+        
+                            for f in file_dropdowns:
+                                if f != 'None':
+                                    for path in paths_to_check:
+                                        full_path = os.path.join(path, f)
+                                        if os.path.exists(full_path):
+                                            files.append(full_path)
+                                            break
+        
                             if len(files) < 2:
                                 return None, "Select at least 2 files for ensemble"
-                            
+        
                             if weights_input and weights_input.strip():
                                 weights = [float(w.strip()) for w in weights_input.split(',')]
                                 if len(weights) != len(files):
