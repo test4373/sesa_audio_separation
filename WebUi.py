@@ -1195,7 +1195,6 @@ def create_interface():
             '4STEMS-SCNet_XL_MUSDB18 (by ZFTurbo)',
             '4STEMS-SCNet_Large (by starrytong)',
             '4STEMS-BS-Roformer_MUSDB18 (by ZFTurbo)',
-            'SYH99999/MelBandRoformerSYHFTB1 (by Amane)',
             'SYH99999/MelBandRoformerSYHFTB1_Model1 (by Amane)',
             'SYH99999/MelBandRoformerSYHFTB1_Model2 (by Amane)',
             'SYH99999/MelBandRoformerSYHFTB1_Model3 (by Amane)'
