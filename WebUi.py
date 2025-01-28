@@ -361,7 +361,7 @@ def extract_model_name(full_model_string):
         cleaned = cleaned.split(' - ')[0]
 
     # Remove emoji prefixes
-    emoji_prefixes = ['✅ ', '👥 ', '🗣️ ', '🏛️ ', '🔇 ', '🔉 ', '🎬 ', '🎼 ']
+    emoji_prefixes = ['✅ ', '👥 ', '🗣️ ', '🏛️ ', '🔇 ', '🔉 ', '🎬 ', '🎼 ', '(?) ']
     for prefix in emoji_prefixes:
         if cleaned.startswith(prefix):
             cleaned = cleaned[len(prefix):]
@@ -1134,13 +1134,13 @@ def create_interface():
             'VOCALS-BS-Roformer_1297 (by viperx)',
             'VOCALS-BS-Roformer_1296 (by viperx)',
             '✅ VOCALS-Mel-Roformer big beta 4 (by unwa) - Melspectrogram based high performance',
-            '✅ VOCALS-BS-RoformerLargev1 (by unwa) - Comprehensive model',
+            'VOCALS-BS-RoformerLargev1 (by unwa) - Comprehensive model',
             'VOCALS-InstVocHQ - General purpose model',
             'VOCALS-MelBand-Roformer (by KimberleyJSN) - Alternative model',
             'VOCALS-VitLarge23 (by ZFTurbo) - Transformer-based model',
             'VOCALS-MelBand-Roformer Kim FT (by Unwa)',
             'VOCALS-MelBand-Roformer (by Becruily)',
-            'VOCALS-Melband-Roformer BigBeta5e (by unwa)',
+            '✅ VOCALS-Melband-Roformer BigBeta5e (by unwa)',
             'VOCALS-Male Female-BS-RoFormer Male Female Beta 7_2889 (by aufr33)',
             'VOCALS-MelBand-Roformer Kim FT 2 (by Unwa)',
             'voc_gaboxMelRoforner (by Gabox)',
@@ -1161,10 +1161,10 @@ def create_interface():
             'inst_gaboxBV2 (by Gabox)',
             'inst_gaboxBV1 (by Gabox)',
             'inst_gabox (by Gabox)',
-            'INST_GaboxFv3 (by Gabox)',
+            '✅(?) INST_GaboxFv3 (by Gabox)',
             'Intrumental_Gabox (by Gabox)',
-            'Inst_Fv4Noise (by Gabox)',
-            'INSTV5 (by Gabox)'
+            '✅(?) Inst_Fv4Noise (by Gabox)',
+            '✅(?) INSTV5 (by Gabox)'
         ],
         "Karaoke & Accompaniment": [
             '✅ KARAOKE-MelBand-Roformer (by aufr33 & viperx) - Advanced karaoke separation'
