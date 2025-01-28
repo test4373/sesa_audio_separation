@@ -791,7 +791,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
           model_type = 'mel_band_roformer'
           config_path = 'ckpts/voc_gabox.yaml'
           start_check_point = 'ckpts/inst_gaboxFv3.ckpt'
-          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_gabox.yaml')
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
           download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gaboxFv3.ckpt')
           conf_edit(config_path, chunk_size, overlap)
 
@@ -799,7 +799,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
           model_type = 'mel_band_roformer'
           config_path = 'ckpts/voc_gabox.yaml'
           start_check_point = 'ckpts/intrumental_gabox.ckpt'
-          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_gabox.yaml')
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
           download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/intrumental_gabox.ckpt')
           conf_edit(config_path, chunk_size, overlap)
 
@@ -807,7 +807,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
           model_type = 'mel_band_roformer'
           config_path = 'ckpts/voc_gabox.yaml'
           start_check_point = 'ckpts/inst_Fv4Noise.ckpt'
-          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_gabox.yaml')
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
           download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_Fv4Noise.ckpt')
           conf_edit(config_path, chunk_size, overlap)
 
@@ -815,7 +815,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
           model_type = 'mel_band_roformer'
           config_path = 'ckpts/voc_gabox.yaml'
           start_check_point = 'ckpts/INSTV5.ckpt'
-          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_gabox.yaml')
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
           download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/INSTV5.ckpt')
           conf_edit(config_path, chunk_size, overlap)
 
@@ -1161,10 +1161,10 @@ def create_interface():
             'inst_gaboxBV2 (by Gabox)',
             'inst_gaboxBV1 (by Gabox)',
             'inst_gabox (by Gabox)',
-            '✅(?) INST_GaboxFv3 (by Gabox)',
+            '✅ INST_GaboxFv3 (by Gabox)',
             'Intrumental_Gabox (by Gabox)',
-            '✅(?) Inst_Fv4Noise (by Gabox)',
-            '✅(?) INSTV5 (by Gabox)'
+            '✅ Inst_Fv4Noise (by Gabox)',
+            '✅ INSTV5 (by Gabox)'
         ],
         "Karaoke & Accompaniment": [
             '✅ KARAOKE-MelBand-Roformer (by aufr33 & viperx) - Advanced karaoke separation'
