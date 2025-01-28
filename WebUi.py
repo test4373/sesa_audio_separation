@@ -819,7 +819,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
           download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/INSTV5.ckpt')
           conf_edit(config_path, chunk_size, overlap)
 
-    elif model == 'SYH99999/MelBandRoformerSYHFTB1 (by Amane)':
+    elif model == 'SYH99999/MelBandRoformerSYHFTB1_Model1 (by Amane)':
           model_type = 'mel_band_roformer'
           config_path = 'ckpts/config.yaml'
           start_check_point = 'ckpts/model.ckpt'
@@ -827,7 +827,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
           download_file('https://huggingface.co/SYH99999/MelBandRoformerSYHFTB1/resolve/main/model.ckpt')
           conf_edit(config_path, chunk_size, overlap)
 
-    elif model == 'SYH99999/MelBandRoformerSYHFTB1 (by Amane)':
+    elif model == 'SYH99999/MelBandRoformerSYHFTB1_Model2 (by Amane)':
           model_type = 'mel_band_roformer'
           config_path = 'ckpts/config.yaml'
           start_check_point = 'ckpts/model2.ckpt'
@@ -835,7 +835,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
           download_file('https://huggingface.co/SYH99999/MelBandRoformerSYHFTB1/resolve/main/model2.ckpt')
           conf_edit(config_path, chunk_size, overlap)
 
-    elif model == 'SYH99999/MelBandRoformerSYHFTB1 (by Amane)':
+    elif model == 'SYH99999/MelBandRoformerSYHFTB1_Model3 (by Amane)':
           model_type = 'mel_band_roformer'
           config_path = 'ckpts/config.yaml'
           start_check_point = 'ckpts/model3.ckpt'
@@ -938,6 +938,9 @@ def clean_model_name(model):
         'Inst_Fv4Noise (by Gabox)': 'Inst_Fv4Noise (by Gabox)',
         'Intrumental_Gabox (by Gabox)': 'Intrumental_Gabox (by Gabox)',
         'INST_GaboxFv3 (by Gabox)': 'INST_GaboxFv3 (by Gabox)',
+        'SYH99999/MelBandRoformerSYHFTB1_Model1 (by Amane)': 'MelBandRoformerSYHFTB1_model1',
+        'SYH99999/MelBandRoformerSYHFTB1_Model2 (by Amane)': 'MelBandRoformerSYHFTB1_model2',
+        'SYH99999/MelBandRoformerSYHFTB1_Model3 (by Amane)': 'MelBandRoformerSYHFTB1_model3',
         
         # Add more mappings as needed
     }
@@ -1192,7 +1195,10 @@ def create_interface():
             '4STEMS-SCNet_XL_MUSDB18 (by ZFTurbo)',
             '4STEMS-SCNet_Large (by starrytong)',
             '4STEMS-BS-Roformer_MUSDB18 (by ZFTurbo)',
-            'SYH99999/MelBandRoformerSYHFTB1 (by Amane)'
+            'SYH99999/MelBandRoformerSYHFTB1 (by Amane)',
+            'SYH99999/MelBandRoformerSYHFTB1_Model1 (by Amane)',
+            'SYH99999/MelBandRoformerSYHFTB1_Model2 (by Amane)',
+            'SYH99999/MelBandRoformerSYHFTB1_Model3 (by Amane)'
         ],
     }
 
