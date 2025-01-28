@@ -409,14 +409,14 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
     # File control
     if input_audio is None:
         print("File not uploaded")
-        return [None] * 9
+        return [None] * 11
 
     # Save file
     dest_path = save_uploaded_file(input_audio, is_input=True)
 
     if not dest_path:
         print("Failed to save file")
-        return [None] * 9
+        return [None] * 11
 
     # Export format parsing
     if export_format == 'wav FLOAT':
@@ -851,7 +851,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
 
     else:
         print(f"Unsupported model: {clean_model}")
-        return None, None, None, None, None, None, None, None, None
+        return None, None, None, None, None, None, None, None, None, None, None
 
 
     cmd_parts = [
@@ -1123,7 +1123,7 @@ def run_command_and_process_files(cmd_parts, BASE_PATH, output_folder, clean_mod
 
     except Exception as e:
         print(f"An error occurred: {e}")
-        return (None,) * 9
+        return (None,) * 11
 
        
 
