@@ -789,7 +789,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
 
     elif model == 'INST_GaboxFv3 (by Gabox)':
           model_type = 'mel_band_roformer'
-          config_path = 'ckpts/voc_gabox.yaml'
+          config_path = 'ckpts/inst_gabox.yaml'
           start_check_point = 'ckpts/inst_gaboxFv3.ckpt'
           download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
           download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gaboxFv3.ckpt')
@@ -797,7 +797,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
 
     elif model == 'Intrumental_Gabox (by Gabox)':
           model_type = 'mel_band_roformer'
-          config_path = 'ckpts/voc_gabox.yaml'
+          config_path = 'ckpts/inst_gabox.yaml'
           start_check_point = 'ckpts/intrumental_gabox.ckpt'
           download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
           download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/intrumental_gabox.ckpt')
@@ -805,7 +805,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
 
     elif model == 'Inst_Fv4Noise (by Gabox)':
           model_type = 'mel_band_roformer'
-          config_path = 'ckpts/voc_gabox.yaml'
+          config_path = 'ckpts/inst_gabox.yaml'
           start_check_point = 'ckpts/inst_Fv4Noise.ckpt'
           download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
           download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_Fv4Noise.ckpt')
@@ -813,7 +813,7 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
 
     elif model == 'INSTV5 (by Gabox)':
           model_type = 'mel_band_roformer'
-          config_path = 'ckpts/voc_gabox.yaml'
+          config_path = 'ckpts/inst_gabox.yaml'
           start_check_point = 'ckpts/INSTV5.ckpt'
           download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
           download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/INSTV5.ckpt')
