@@ -843,6 +843,14 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
           download_file('https://huggingface.co/SYH99999/MelBandRoformerSYHFTB1/resolve/main/model3.ckpt')
           conf_edit(config_path, chunk_size, overlap)
 
+    elif clean_model == 'VOCALS-MelBand-Roformer Kim FT 2 Blendless (by unwa)':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/config_kimmel_unwa_ft.yaml'
+          start_check_point = 'ckpts/kimmel_unwa_ft2_bleedless.ckpt'
+          download_file('https://huggingface.co/pcunwa/Kim-Mel-Band-Roformer-FT/resolve/main/config_kimmel_unwa_ft.yaml')
+          download_file('https://huggingface.co/pcunwa/Kim-Mel-Band-Roformer-FT/resolve/main/kimmel_unwa_ft2_bleedless.ckpt')
+          conf_edit(config_path, chunk_size, overlap)
+
 
 
     # Other model options will be added here...
@@ -941,6 +949,7 @@ def clean_model_name(model):
         'SYH99999/MelBandRoformerSYHFTB1_Model1 (by Amane)': 'MelBandRoformerSYHFTB1_model1',
         'SYH99999/MelBandRoformerSYHFTB1_Model2 (by Amane)': 'MelBandRoformerSYHFTB1_model2',
         'SYH99999/MelBandRoformerSYHFTB1_Model3 (by Amane)': 'MelBandRoformerSYHFTB1_model3',
+        'VOCALS-MelBand-Roformer Kim FT 2 Blendless (by unwa)': 'VOCALS-MelBand-Roformer Kim FT 2 Blendless (by unwa)',
         
         # Add more mappings as needed
     }
@@ -1149,7 +1158,8 @@ def create_interface():
             'voc_gaboxMelRoforner (by Gabox)',
             'voc_gaboxBSroformer (by Gabox)',
             'voc_gaboxMelRoformerFV1 (by Gabox)',
-            'voc_gaboxMelRoformerFV2 (by Gabox)'
+            'voc_gaboxMelRoformerFV2 (by Gabox)',
+            'VOCALS-MelBand-Roformer Kim FT 2 Blendless (by unwa)'
         ],
         "Instrumental Separation": [
             'INST-VOC-Mel-Roformer a.k.a. duality v2 (by unwa) - Latest version instrumental separation',
