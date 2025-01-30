@@ -109,8 +109,6 @@ def run_folder(model, args, config, device, verbose: bool = False):
             if 'instrumental' not in instruments:
                 instruments.append('instrumental')
 
-        current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-
         for instr in instruments:
             estimates = waveforms_orig[instr]
             if 'normalize' in config.inference:
@@ -128,7 +126,7 @@ def run_folder(model, args, config, device, verbose: bool = False):
                 subtype = get_soundfile_subtype('FLOAT', is_float)
 
             shortened_filename = shorten_filename(os.path.basename(path))
-            output_filename = f"{shortened_filename}_{instr}_{current_time}.{codec}"
+            output_filename = f"{shortened_filename}_{instr}.{codec}"
             output_path = os.path.join(args.store_dir, output_filename)
         
             sf.write(output_path, estimates.T, sr, subtype=subtype)
@@ -147,6 +145,7 @@ def proc_folder(args):
     parser.add_argument("--start_check_point", type=str, default='', 
                         help="Initial checkpoint to valid weights")
     parser.add_argument("--input_folder", type=str, help="Folder with mixtures to process")
+    parser.add_argument("--audio_path", type=str, help="Path to a single audio file to process")  # Yeni argüman
     parser.add_argument("--store_dir", default="", type=str, help="Path to store results")
     parser.add_argument("--device_ids", nargs='+', type=int, default=0, 
                         help='List of GPU IDs')
@@ -168,6 +167,12 @@ def proc_folder(args):
                         help="Enable test time augmentation")
     parser.add_argument("--lora_checkpoint", type=str, default='', 
                         help="Initial checkpoint to LoRA weights")
+
+    # Argümanları ayrıştır
+    parsed_args = parser.parse_args(args)
+
+    # Burada parsed_args.audio_path ile ses dosyası yolunu kullanabilirsiniz
+    print(f"Audio path provided: {parsed_args.audio_path}")
     
     if args is None:
         args = parser.parse_args()
