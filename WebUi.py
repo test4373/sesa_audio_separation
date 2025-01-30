@@ -42,6 +42,7 @@ from urllib.parse import quote
 
 os.makedirs('/content/Music-Source-Separation-Training/input', exist_ok=True)
 os.makedirs('/content/Music-Source-Separation-Training/output', exist_ok=True)
+os.makedirs('/content/drive/MyDrive/ensemble_folder', exist_ok=True)
 
 def clear_old_output():
     old_output_folder = os.path.join(BASE_PATH, 'old_output')
@@ -390,8 +391,21 @@ def create_directory(directory):
     else:
         print(f"{directory} directory already exists.")
 
-def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tta, extract_instrumental, *args, **kwargs):
-    # Create input and output directories
+def process_audio(input_audio_file, input_audio_path, model, chunk_size, overlap, export_format, use_tta, extract_instrumental, *args, **kwargs):
+    # Ses dosyasının yolunu belirleme
+    if input_audio_file is not None:
+        audio_path = input_audio_file.name  # Yüklenen dosyanın yolu
+    elif input_audio_path:
+        audio_path = input_audio_path  # Kullanıcının girdiği dosya yolu
+    else:
+        print("No audio file provided.")
+        return [None] * 11  # Hata durumu
+
+    # Model adı temizleme
+    clean_model = extract_model_name(model)
+    print(f"Processing audio from: {audio_path} using model: {clean_model}")
+
+    # Gerekli dizinleri oluştur
     create_directory(INPUT_DIR)
     create_directory(OUTPUT_DIR)
     create_directory(OLD_OUTPUT_DIR)
@@ -399,40 +413,17 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
     # Eski dosyaları taşı
     move_old_files(OUTPUT_DIR)
 
-    # Delete existing files
-    clear_directory(INPUT_DIR)
-
-    # Clear model name
-    clean_model = extract_model_name(model)
-    print(f"Cleaned Model Name: {clean_model}")
-
-    # File control
-    if input_audio is None:
-        print("File not uploaded")
-        return [None] * 11
-
-    # Save file
-    dest_path = save_uploaded_file(input_audio, is_input=True)
+    # Ses dosyasını kaydetme
+    if input_audio_file is not None:
+        dest_path = save_uploaded_file(input_audio_file, is_input=True)
+    else:
+        dest_path = audio_path  # Kullanıcının girdiği dosya yolunu kullan
 
     if not dest_path:
         print("Failed to save file")
         return [None] * 11
 
-    # Export format parsing
-    if export_format == 'wav FLOAT':
-        flac_file = False
-        pcm_type = 'FLOAT'
-        file_ext = 'wav'
-    else:
-        flac_file = True
-        pcm_type = export_format.split(' ')[1]
-        file_ext = 'flac'
-
-    # Define input_folder and output_folder
-    input_folder = INPUT_DIR
-    output_folder = OUTPUT_DIR
-
-    # Model selection and specify relevant parameters
+    # Model yapılandırması
     model_type, config_path, start_check_point = "", "", ""
 
     if clean_model == 'VOCALS-InstVocHQ':
@@ -859,34 +850,11 @@ def process_audio(input_audio, model, chunk_size, overlap, export_format, use_tt
 
     else:
         print(f"Unsupported model: {clean_model}")
-        return None, None, None, None, None, None, None, None, None, None, None
+        return [None] * 11  # Hata durumu
 
+    return run_command_and_process_files(model_type, config_path, start_check_point, INPUT_DIR, OUTPUT_DIR, dest_path, extract_instrumental, use_tta, clean_model)
+    
 
-    cmd_parts = [
-        "python", "inference.py",
-        "--model_type", model_type,
-        "--config_path", config_path,
-        "--start_check_point", start_check_point,
-        "--input_folder", INPUT_DIR,
-        "--store_dir", OUTPUT_DIR
-    ]
-
-    # Add optional parameters
-    if extract_instrumental:
-        cmd_parts.append("--extract_instrumental")
-
-    # FLAC and PCM settings
-    if flac_file:
-        cmd_parts.append("--flac_file")
-        cmd_parts.extend(["--pcm_type", pcm_type])
-    elif pcm_type != 'FLOAT':
-        cmd_parts.extend(["--pcm_type", pcm_type])
-
-    if use_tta:
-        cmd_parts.append("--use_tta")
-
-    # Run command and process files
-    return run_command_and_process_files(cmd_parts, BASE_PATH, output_folder, clean_model)
 
 def clean_model_name(model):
     """
@@ -1020,9 +988,27 @@ def clean_filename(filename):
     
     return clean_base, detected_type, ext
 
-def run_command_and_process_files(cmd_parts, BASE_PATH, output_folder, clean_model):
+def run_command_and_process_files(model_type, config_path, start_check_point, INPUT_DIR, OUTPUT_DIR, dest_path, extract_instrumental, use_tta, clean_model):
     try:
-        # Run subprocess
+        # Komut parçalarını oluştur
+        cmd_parts = [
+            "python", "inference.py",
+            "--model_type", model_type,
+            "--config_path", config_path,
+            "--start_check_point", start_check_point,
+            "--input_folder", INPUT_DIR,
+            "--store_dir", OUTPUT_DIR,
+            "--audio_path", dest_path  # İşlenecek ses dosyasının yolu
+        ]
+
+        # Opsiyonel parametreleri ekle
+        if extract_instrumental:
+            cmd_parts.append("--extract_instrumental")
+
+        if use_tta:
+            cmd_parts.append("--use_tta")
+
+        # Komutu çalıştır
         process = subprocess.Popen(
             cmd_parts,
             cwd=BASE_PATH,
@@ -1033,7 +1019,7 @@ def run_command_and_process_files(cmd_parts, BASE_PATH, output_folder, clean_mod
             universal_newlines=True
         )
 
-        # Print outputs in real-time
+        # Çıktıları gerçek zamanlı olarak yazdır
         for line in process.stdout:
             print(line.strip())
 
@@ -1042,70 +1028,47 @@ def run_command_and_process_files(cmd_parts, BASE_PATH, output_folder, clean_mod
 
         process.wait()
 
-        # Clean the model name for filename
+        # Model adını temizle
         filename_model = clean_model_name(clean_model)
 
-        # Get updated file list
-        output_files = os.listdir(output_folder)
+        # Çıktı dosyalarını al
+        output_files = os.listdir(OUTPUT_DIR)
 
-        # File renaming function
+        # Dosya yeniden adlandırma fonksiyonu
         def rename_files_with_model(folder, filename_model):
-            # Dictionary to track first occurrence of each file type
-            processed_types = {}
-
-            # Sort files to ensure consistent processing
             for filename in sorted(os.listdir(folder)):
-                # Full path of the file
                 file_path = os.path.join(folder, filename)
 
-                # Skip if not a media file
+                # Medya dosyası değilse atla
                 if not any(filename.lower().endswith(ext) for ext in ['.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a']):
                     continue
 
-                # Dosya adını ve uzantısını ayır
                 base, ext = os.path.splitext(filename)
-
-                # Dosya türü etiketlerini tespit et
-                file_types = ['vocals', 'instrumental', 'drum', 'bass', 'other', 'effects', 'speech', 'music', 'dry', 'male', 'female']
-                detected_type = None
-                
-                for type_keyword in file_types:
-                    if type_keyword in base.lower():
-                        detected_type = type_keyword
-                        break
 
                 # Temiz base adı
                 clean_base = base.strip('_- ')
 
                 # Yeni dosya adını oluştur
-                if detected_type:
-                    new_filename = f"{clean_base}.{detected_type}_{filename_model}{ext}"
-                else:
-                    new_filename = f"{clean_base}_{filename_model}{ext}"
+                new_filename = f"{clean_base}_{filename_model}{ext}"
 
                 new_file_path = os.path.join(folder, new_filename)
-
-                # Rename the file
                 os.rename(file_path, new_file_path)
-                processed_types[detected_type] = new_file_path
 
-        # Rename files
-        rename_files_with_model(output_folder, filename_model)
+        # Dosyaları yeniden adlandır
+        rename_files_with_model(OUTPUT_DIR, filename_model)
 
-        # Get updated file list after renaming
-        output_files = os.listdir(output_folder)
+        # Güncellenmiş dosya listesini al
+        output_files = os.listdir(OUTPUT_DIR)
 
-        # File finding function
+        # Dosya bulma fonksiyonu
         def find_file(keyword):
-            # Find files with the keyword
             matching_files = [
-                os.path.join(output_folder, f) for f in output_files 
+                os.path.join(OUTPUT_DIR, f) for f in output_files 
                 if keyword in f.lower()
             ]
-            
             return matching_files[0] if matching_files else None
 
-        # Find different types of files
+        # Farklı dosya türlerini bul
         vocal_file = find_file('vocals')
         instrumental_file = find_file('instrumental')
         drum_file = find_file('drum')
@@ -1118,7 +1081,7 @@ def run_command_and_process_files(cmd_parts, BASE_PATH, output_folder, clean_mod
         male_file = find_file('male')
         female_file = find_file('female')
 
-        # Return found files
+        # Bulunan dosyaları döndür
         return (
             vocal_file or None,
             instrumental_file or None,
@@ -1285,6 +1248,7 @@ def create_interface():
             print(f"Audio file listing error: {e}")
             return []
 
+
     with gr.Blocks() as demo:
         gr.Markdown("# 🎵 Music Source Separation Tool")
 
@@ -1292,7 +1256,8 @@ def create_interface():
             with gr.Tab("Audio Separation"):
                 with gr.Row():
                     with gr.Column(scale=1):
-                        input_audio = gr.File(label="Select Audio File", type="filepath")
+                        input_audio_file = gr.File(label="Upload Audio File", type="filepath")
+                        input_audio_path = gr.Textbox(label="Or Enter Audio File Path", placeholder="e.g., /content/Music-Source-Separation-Training/input/audio.wav")
 
                         model_category = gr.Dropdown(
                             label="Model Category",
@@ -1347,7 +1312,6 @@ def create_interface():
 
                         process_btn = gr.Button("Process Audio")
 
-                        # Eski dosyaları silmek için buton
                         clear_old_output_btn = gr.Button("Clear Old Output Folder")
                         clear_old_output_status = gr.Textbox(label="Status", interactive=False)
 
@@ -1374,43 +1338,37 @@ def create_interface():
                             speech_audio = gr.Audio(label="Speech")
                             music_audio = gr.Audio(label="Music")
                             dry_audio = gr.Audio(label="Dry")
-                            male_audio = gr.Audio(label="male")
-                            female_audio = gr.Audio(label="female")
+                            male_audio = gr.Audio(label="Male")
+                            female_audio = gr.Audio(label="Female")
 
-                input_audio.upload(
-                    fn=lambda x: x,
-                    inputs=input_audio,
-                    outputs=original_audio
-                )
-
-                process_btn.click(
-                    fn=process_audio,
-                    inputs=[
-                        input_audio,
-                        model_dropdown,
-                        chunk_size,
-                        overlap,
-                        export_format,
-                        use_tta,
-                        extract_instrumental,
-                        gr.State(None),
-                        gr.State(None)
-                    ],
-                    outputs=[
-                        vocals_audio,
-                        instrumental_audio,
-                        drum_audio,
-                        bass_audio,
-                        other_audio,
-                        effects_audio,
-                        speech_audio,
-                        music_audio,
-                        dry_audio,
-                        male_audio,
-                        female_audio
-
-                    ]
-                )
+                        process_btn.click(
+                            fn=process_audio,
+                            inputs=[
+                                input_audio_file,  # Yüklenen dosya
+                                input_audio_path,  # Dosya yolu
+                                model_dropdown,
+                                chunk_size,
+                                overlap,
+                                export_format,
+                                use_tta,
+                                extract_instrumental,
+                                gr.State(None),
+                                gr.State(None)
+                            ],
+                            outputs=[
+                                vocals_audio,
+                                instrumental_audio,
+                                drum_audio,
+                                bass_audio,
+                                other_audio,
+                                effects_audio,
+                                speech_audio,
+                                music_audio,
+                                dry_audio,
+                                male_audio,
+                                female_audio
+                            ]
+                        )
 
 
 
@@ -1436,13 +1394,13 @@ def create_interface():
                 drive_download_btn.click(
                     fn=download_callback,
                     inputs=[drive_url_input, gr.State('drive')],
-                    outputs=[drive_download_output, drive_download_status, input_audio, original_audio]
+                    outputs=[drive_download_output, drive_download_status, input_audio_file, original_audio]
                 )
 
                 direct_download_btn.click(
                     fn=download_callback,
                     inputs=[direct_url_input, gr.State('direct')],
-                    outputs=[direct_download_output, direct_download_status, input_audio, original_audio]
+                    outputs=[direct_download_output, direct_download_status, input_audio_file, original_audio]
                 )
 
             
@@ -1535,7 +1493,7 @@ def create_interface():
                             else:
                                 weights = None
                             
-                            output_path = "/tmp/ensembled_audio.wav"
+                            output_path = "/content/drive/MyDrive/ensemble_folder/ensembled_audio.wav"
                             
                             ensemble_args = [
                                 "--files"] + files + [
