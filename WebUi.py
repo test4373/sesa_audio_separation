@@ -842,6 +842,14 @@ def process_audio(input_audio_file, input_audio_path, model, chunk_size, overlap
           download_file('https://huggingface.co/pcunwa/Kim-Mel-Band-Roformer-FT/resolve/main/kimmel_unwa_ft2_bleedless.ckpt')
           conf_edit(config_path, chunk_size, overlap)
 
+    elif clean_model == 'inst_gaboxFV1 (by Gabox)':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/inst_gabox.yaml'
+          start_check_point = 'ckpts/inst_gaboxFv1.ckpt'
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gaboxFv1.ckpt')
+          conf_edit(config_path, chunk_size, overlap)
+
 
 
     # Other model options will be added here...
@@ -900,6 +908,7 @@ def clean_model_name(model):
         'inst_gaboxBV2 (by Gabox)': 'InstGaboxBV2',
         'inst_gaboxBFV1 (by Gabox)': 'InstGaboxBFV1',
         'inst_gaboxFV2 (by Gabox)': 'InstGaboxFV2',
+        'inst_gaboxFV1 (by Gabox)': 'InstGaboxFV1',
         'dereverb_mel_band_roformer_less_aggressive_anvuew': 'DereverbMelBandRoformerLessAggressive',
         'dereverb_mel_band_roformer_anvuew': 'DereverbMelBandRoformer',
         'VOCALS-Male Female-BS-RoFormer Male Female Beta 7_2889 (by aufr33)': 'MaleFemale-BS-RoFormer(by aufr33)',
