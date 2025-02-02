@@ -396,7 +396,7 @@ def create_directory(directory):
     else:
         print(f"{directory} directory already exists.")
 
-def process_audio(input_audio_file, input_audio_path, model, chunk_size, overlap, export_format, use_tta, demucs_phaseremix_inst, extract_instrumental, *args, **kwargs):
+def process_audio(input_audio_file, input_audio_path, model, chunk_size, overlap, export_format, use_tta, demud_phaseremix_inst, extract_instrumental, *args, **kwargs):
     # Ses dosyasının yolunu belirleme
     if input_audio_file is not None:
         audio_path = input_audio_file.name  # Yüklenen dosyanın yolu
@@ -865,7 +865,7 @@ def process_audio(input_audio_file, input_audio_path, model, chunk_size, overlap
         print(f"Unsupported model: {clean_model}")
         return [None] * 12  # Hata durumu
 
-    return run_command_and_process_files(model_type, config_path, start_check_point, INPUT_DIR, OUTPUT_DIR, dest_path, extract_instrumental, use_tta, demucs_phaseremix_inst, clean_model)
+    return run_command_and_process_files(model_type, config_path, start_check_point, INPUT_DIR, OUTPUT_DIR, dest_path, extract_instrumental, use_tta, demud_phaseremix_inst, clean_model)
     
 
 
@@ -1002,7 +1002,7 @@ def clean_filename(filename):
     
     return clean_base, detected_type, ext
 
-def run_command_and_process_files(model_type, config_path, start_check_point, INPUT_DIR, OUTPUT_DIR, dest_path, extract_instrumental, use_tta, demucs_phaseremix_inst, clean_model):
+def run_command_and_process_files(model_type, config_path, start_check_point, INPUT_DIR, OUTPUT_DIR, dest_path, extract_instrumental, use_tta, demud_phaseremix_inst, clean_model):
     try:
         # Komut parçalarını oluştur
         cmd_parts = [
@@ -1022,8 +1022,8 @@ def run_command_and_process_files(model_type, config_path, start_check_point, IN
         if use_tta:
             cmd_parts.append("--use_tta")
 
-        if demucs_phaseremix_inst:
-            cmd_parts.append("--demucs_phaseremix_inst")
+        if demud_phaseremix_inst:
+            cmd_parts.append("--demud_phaseremix_inst")
 
         # Komutu çalıştır
         process = subprocess.Popen(
@@ -1315,9 +1315,9 @@ def create_interface():
                             info="Test Time Augmentation: It improves the prediction performance of the model. It also increases the processing time."
                         )
              
-                        use_demucs_phaseremix_inst = gr.Checkbox(
-                            label="Use Demucs Phaseremix Inst",
-                            info="Enable Demucs Phaseremix for instrumental separation."
+                        use_demud_phaseremix_inst = gr.Checkbox(
+                            label="Use Demud Phaseremix Inst",
+                            info="Enable Demud Phaseremix for instrumental separation."
                         )
 
                         extract_instrumental = gr.Checkbox(
@@ -1379,7 +1379,7 @@ def create_interface():
                                 overlap,
                                 export_format,
                                 use_tta,
-                                use_demucs_phaseremix_inst,
+                                use_demud_phaseremix_inst,
                                 extract_instrumental,
                                 gr.State(None),
                                 gr.State(None)
