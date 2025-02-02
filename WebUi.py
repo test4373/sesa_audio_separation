@@ -306,8 +306,8 @@ def save_uploaded_file(uploaded_file, is_input=False):
         else:
             clean_filename = original_filename
 
-        # Hedef dizini belirle
-        target_directory = "INPUT_DIR" if is_input else "OUTPUT_DIR"
+        # Hedef dizini belirle (DÜZELTME BURADA)
+        target_directory = INPUT_DIR if is_input else OUTPUT_DIR
         target_path = os.path.join(target_directory, clean_filename)
         
         # Dizini oluştur (yoksa)
@@ -322,7 +322,7 @@ def save_uploaded_file(uploaded_file, is_input=False):
                 elif os.path.isdir(file_path):
                     shutil.rmtree(file_path)
             except Exception as e:
-                print(f"{file_path} silinemedi: {e}")
+                print(f"{file_path} Not deleted: {e}")
 
         # Yeni dosyayı kaydet
         if hasattr(uploaded_file, 'read'):
@@ -331,11 +331,11 @@ def save_uploaded_file(uploaded_file, is_input=False):
         else:
             shutil.copy(uploaded_file, target_path)
             
-        print(f"Dosya başarıyla kaydedildi: {os.path.basename(target_path)}")
+        print(f"File saved successfully: {os.path.basename(target_path)}")
         return target_path
     
     except Exception as e:
-        print(f"Dosya kaydetme hatası: {e}")
+        print(f"File save error: {e}")
         return None
 
         clear_memory()
