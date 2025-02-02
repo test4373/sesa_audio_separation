@@ -1,3 +1,4 @@
+
 import os
 
 os.chdir('/content/Music-Source-Separation-Training')
@@ -263,74 +264,78 @@ def conf_edit(config_path, chunk_size, overlap):
     with open(config_path, 'w') as f:
         yaml.dump(data, f, default_flow_style=False, sort_keys=False, Dumper=IndentDumper, allow_unicode=True)
 
-
 def save_uploaded_file(uploaded_file, is_input=False):
     """
-    Saves the uploaded file in the specified directory, 
-    removing existing timestamps and multiple extensions
+    Yüklenen dosyayı belirtilen dizine kaydeder, önceki dosyaları siler.
+    Sadece en son yüklenen dosya dizinde kalır.
     """
     try:
-        # Media file extensions
+        # Medya dosya uzantıları
         media_extensions = ['.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a']
         
-        # Timestamp patterns
+        # Zaman damgası pattern'leri
         timestamp_patterns = [
             r'_\d{8}_\d{6}_\d{6}$',  # _20231215_123456_123456
-            r'_\d{14}$',              # _20231215123456
-            r'_\d{10}$',              # _1702658400
+            r'_\d{14}$',             # _20231215123456
+            r'_\d{10}$',             # _1702658400
+            r'_\d+$'                 # Herhangi bir sayı
         ]
         
-        # Safely get the filename
+        # Dosya adını al
         if hasattr(uploaded_file, 'name'):
             original_filename = os.path.basename(uploaded_file.name)
         else:
             original_filename = os.path.basename(str(uploaded_file))
         
-        # Remove timestamps and multiple extensions from filename
-        base_filename = original_filename
-        
-        # Clear timestamps
-        for pattern in timestamp_patterns:
-            base_filename = re.sub(pattern, '', base_filename)
-        
-        # Clear multiple extensions
-        for ext in media_extensions:
-            base_filename = base_filename.replace(ext, '')
-        
-        # Determine file extension
-        file_ext = next((ext for ext in media_extensions if original_filename.lower().endswith(ext)), '.wav')
-        
-        # Create clean filename
-        clean_filename = base_filename.strip('_- ') + file_ext
-        
-        # Determine target directory
-        target_directory = INPUT_DIR if is_input else OUTPUT_DIR
-        
-        # Create full target path
+        # Dosya adını temizle (sadece input'lar için)
+        if is_input:
+            base_filename = original_filename
+            # Zaman damgalarını sil
+            for pattern in timestamp_patterns:
+                base_filename = re.sub(pattern, '', base_filename)
+            # Çoklu uzantıları sil
+            for ext in media_extensions:
+                base_filename = base_filename.replace(ext, '')
+            
+            # Dosya uzantısını belirle
+            file_ext = next(
+                (ext for ext in media_extensions if original_filename.lower().endswith(ext)),
+                '.wav'
+            )
+            clean_filename = f"{base_filename.strip('_- ')}{file_ext}"
+        else:
+            clean_filename = original_filename
+
+        # Hedef dizini belirle
+        target_directory = "INPUT_DIR" if is_input else "OUTPUT_DIR"
         target_path = os.path.join(target_directory, clean_filename)
         
-        # If a file with the same name exists, create a unique name
-        counter = 1
-        original_target_path = target_path
-        while os.path.exists(target_path):
-            base, ext = os.path.splitext(original_target_path)
-            target_path = f"{base}_{counter}{ext}"
-            counter += 1
+        # Dizini oluştur (yoksa)
+        os.makedirs(target_directory, exist_ok=True)
         
-        # Save the file
+        # Dizindeki TÜM önceki dosyaları sil
+        for filename in os.listdir(target_directory):
+            file_path = os.path.join(target_directory, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                print(f"{file_path} silinemedi: {e}")
+
+        # Yeni dosyayı kaydet
         if hasattr(uploaded_file, 'read'):
-            # Gradio file object
             with open(target_path, "wb") as f:
                 f.write(uploaded_file.read())
         else:
-            # If it's already a file path
             shutil.copy(uploaded_file, target_path)
-        
-        print(f"File successfully saved: {os.path.basename(target_path)}")
+            
+        print(f"Dosya başarıyla kaydedildi: {os.path.basename(target_path)}")
         return target_path
     
     except Exception as e:
-        print(f"File saving error: {e}")
+        print(f"Dosya kaydetme hatası: {e}")
         return None
 
         clear_memory()
@@ -391,7 +396,7 @@ def create_directory(directory):
     else:
         print(f"{directory} directory already exists.")
 
-def process_audio(input_audio_file, input_audio_path, model, chunk_size, overlap, export_format, use_tta, extract_instrumental, *args, **kwargs):
+def process_audio(input_audio_file, input_audio_path, model, chunk_size, overlap, export_format, use_tta, demucs_phaseremix_inst, extract_instrumental, *args, **kwargs):
     # Ses dosyasının yolunu belirleme
     if input_audio_file is not None:
         audio_path = input_audio_file.name  # Yüklenen dosyanın yolu
@@ -399,7 +404,7 @@ def process_audio(input_audio_file, input_audio_path, model, chunk_size, overlap
         audio_path = input_audio_path  # Kullanıcının girdiği dosya yolu
     else:
         print("No audio file provided.")
-        return [None] * 11  # Hata durumu
+        return [None] * 12  # Hata durumu
 
     # Model adı temizleme
     clean_model = extract_model_name(model)
@@ -421,7 +426,7 @@ def process_audio(input_audio_file, input_audio_path, model, chunk_size, overlap
 
     if not dest_path:
         print("Failed to save file")
-        return [None] * 11
+        return [None] * 12
 
     # Model yapılandırması
     model_type, config_path, start_check_point = "", "", ""
@@ -858,9 +863,9 @@ def process_audio(input_audio_file, input_audio_path, model, chunk_size, overlap
 
     else:
         print(f"Unsupported model: {clean_model}")
-        return [None] * 11  # Hata durumu
+        return [None] * 12  # Hata durumu
 
-    return run_command_and_process_files(model_type, config_path, start_check_point, INPUT_DIR, OUTPUT_DIR, dest_path, extract_instrumental, use_tta, clean_model)
+    return run_command_and_process_files(model_type, config_path, start_check_point, INPUT_DIR, OUTPUT_DIR, dest_path, extract_instrumental, use_tta, demucs_phaseremix_inst, clean_model)
     
 
 
@@ -997,7 +1002,7 @@ def clean_filename(filename):
     
     return clean_base, detected_type, ext
 
-def run_command_and_process_files(model_type, config_path, start_check_point, INPUT_DIR, OUTPUT_DIR, dest_path, extract_instrumental, use_tta, clean_model):
+def run_command_and_process_files(model_type, config_path, start_check_point, INPUT_DIR, OUTPUT_DIR, dest_path, extract_instrumental, use_tta, demucs_phaseremix_inst, clean_model):
     try:
         # Komut parçalarını oluştur
         cmd_parts = [
@@ -1016,6 +1021,9 @@ def run_command_and_process_files(model_type, config_path, start_check_point, IN
 
         if use_tta:
             cmd_parts.append("--use_tta")
+
+        if demucs_phaseremix_inst:
+            cmd_parts.append("--demucs_phaseremix_inst")
 
         # Komutu çalıştır
         process = subprocess.Popen(
@@ -1080,6 +1088,7 @@ def run_command_and_process_files(model_type, config_path, start_check_point, IN
         # Farklı dosya türlerini bul
         vocal_file = find_file('vocals')
         instrumental_file = find_file('instrumental')
+        phaseremix_file = find_file('phaseremix')
         drum_file = find_file('drum')
         bass_file = find_file('bass')
         other_file = find_file('other')
@@ -1089,11 +1098,13 @@ def run_command_and_process_files(model_type, config_path, start_check_point, IN
         dry_file = find_file('dry')
         male_file = find_file('male')
         female_file = find_file('female')
+        
 
         # Bulunan dosyaları döndür
         return (
             vocal_file or None,
             instrumental_file or None,
+            phaseremix_file or None,
             drum_file or None,
             bass_file or None,
             other_file or None,
@@ -1103,11 +1114,12 @@ def run_command_and_process_files(model_type, config_path, start_check_point, IN
             dry_file or None,
             male_file or None,
             female_file or None
+            
         )
 
     except Exception as e:
         print(f"An error occurred: {e}")
-        return (None,) * 11
+        return (None,) * 12
 
        
 
@@ -1302,6 +1314,11 @@ def create_interface():
                             label="Use TTA",
                             info="Test Time Augmentation: It improves the prediction performance of the model. It also increases the processing time."
                         )
+             
+                        use_demucs_phaseremix_inst = gr.Checkbox(
+                            label="Use Demucs Phaseremix Inst",
+                            info="Enable Demucs Phaseremix for instrumental separation."
+                        )
 
                         extract_instrumental = gr.Checkbox(
                             label="Extract Instrumental",
@@ -1340,6 +1357,7 @@ def create_interface():
                             original_audio = gr.Audio(label="Original Audio")
                             vocals_audio = gr.Audio(label="Vocals")
                             instrumental_audio = gr.Audio(label="Instrumental")
+                            phaseremix_audio = gr.Audio(label="phaseremix")
                             drum_audio = gr.Audio(label="Drum")
                             bass_audio = gr.Audio(label="Bass")
                             other_audio = gr.Audio(label="Other")
@@ -1349,6 +1367,7 @@ def create_interface():
                             dry_audio = gr.Audio(label="Dry")
                             male_audio = gr.Audio(label="Male")
                             female_audio = gr.Audio(label="Female")
+                            
 
                         process_btn.click(
                             fn=process_audio,
@@ -1360,6 +1379,7 @@ def create_interface():
                                 overlap,
                                 export_format,
                                 use_tta,
+                                use_demucs_phaseremix_inst,
                                 extract_instrumental,
                                 gr.State(None),
                                 gr.State(None)
@@ -1367,6 +1387,7 @@ def create_interface():
                             outputs=[
                                 vocals_audio,
                                 instrumental_audio,
+                                phaseremix_audio,
                                 drum_audio,
                                 bass_audio,
                                 other_audio,
@@ -1376,6 +1397,7 @@ def create_interface():
                                 dry_audio,
                                 male_audio,
                                 female_audio
+                                
                             ]
                         )
 
