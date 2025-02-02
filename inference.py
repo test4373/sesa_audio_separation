@@ -74,8 +74,8 @@ def run_folder(model, args, config, device, ckpt_name, verbose: bool = False):
         if args.use_tta:
             waveforms_orig = apply_tta(config, model, mix, waveforms_orig, device, args.model_type)
 
-        if args.demucs_phaseremix_inst:
-            print(f"Applying Demucs phase remix (instrumental) to: {path}")
+        if args.demud_phaseremix_inst:
+            print(f"Applying Demud phase remix (instrumental) to: {path}")
             instr = 'vocals' if 'vocals' in instruments else instruments[0]
             instruments.append('instrumental_phaseremix')
             
@@ -142,8 +142,8 @@ def proc_folder(args):
                         help="Enable test time augmentation")
     parser.add_argument("--lora_checkpoint", type=str, default='',
                         help="Initial checkpoint to LoRA weights")
-    parser.add_argument("--demucs_phaseremix_inst", action='store_true',
-                        help="Enable Demucs phase remix for instrumental separation")
+    parser.add_argument("--demud_phaseremix_inst", action='store_true',
+                        help="Enable Demud phase remix for instrumental separation")
 
     args = parser.parse_args()
 
