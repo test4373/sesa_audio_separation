@@ -410,6 +410,8 @@ def process_audio(input_audio_file, input_audio_path, model, chunk_size, overlap
     clean_model = extract_model_name(model)
     print(f"Processing audio from: {audio_path} using model: {clean_model}")
 
+    clear_directory(INPUT_DIR)
+
     # Gerekli dizinleri oluştur
     create_directory(INPUT_DIR)
     create_directory(OUTPUT_DIR)
