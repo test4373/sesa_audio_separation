@@ -942,6 +942,7 @@ def clean_model_name(model):
         'SYH99999/MelBandRoformerSYHFTB1_Model2 (by Amane)': 'MelBandRoformerSYHFTB1_model2',
         'SYH99999/MelBandRoformerSYHFTB1_Model3 (by Amane)': 'MelBandRoformerSYHFTB1_model3',
         'VOCALS-MelBand-Roformer Kim FT 2 Blendless (by unwa)': 'VOCALS-MelBand-Roformer Kim FT 2 Blendless (by unwa)',
+        'inst_gaboxFV6 (by Gabox)': 'inst_gaboxFV6 (by Gabox)',
         
         # Add more mappings as needed
     }
@@ -1156,12 +1157,10 @@ def create_interface():
             'VOCALS-MelBand-Roformer Kim FT 2 Blendless (by unwa)'
         ],
         "Instrumental Separation": [
-            'INST-VOC-Mel-Roformer a.k.a. duality v2 (by unwa) - Latest version instrumental separation',
-            'INST-VOC-Mel-Roformer a.k.a. duality (by unwa) - Previous version',
-            'INST-Separator MDX23C (by aufr33) - Alternative instrumental separation',
+            'inst_gaboxFV6 (by Gabox)',
             '✅ INST-Mel-Roformer v2 (by unwa) - Most recent instrumental separation model',
             '✅ inst_v1e (by unwa)',
-            '✅ INST-Mel-Roformer v1 (by unwa) - Old instrumental separation model',
+            '✅ INST-Mel-Roformer v1 (by unwa) - Old instrumental separation model'
             'INST-MelBand-Roformer (by Becruily)',
             'inst_gaboxFV2 (by Gabox)',
             'inst_gaboxFV1 (by Gabox)',
@@ -1171,7 +1170,10 @@ def create_interface():
             '✅(?) inst_GaboxFv3 (by Gabox)',
             'Intrumental_Gabox (by Gabox)',
             '✅(?) inst_Fv4Noise (by Gabox)',
-            '✅(?) inst_V5 (by Gabox)'
+            '✅(?) inst_V5 (by Gabox)',
+            'INST-VOC-Mel-Roformer a.k.a. duality v2 (by unwa) - Latest version instrumental separation',
+            'INST-VOC-Mel-Roformer a.k.a. duality (by unwa) - Previous version',
+            'INST-Separator MDX23C (by aufr33) - Alternative instrumental separation'
         ],
         "Karaoke & Accompaniment": [
             '✅ KARAOKE-MelBand-Roformer (by aufr33 & viperx) - Advanced karaoke separation'
