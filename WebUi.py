@@ -748,7 +748,7 @@ def process_audio(input_audio_file, input_audio_path, model, chunk_size, overlap
     elif clean_model == 'VOCALS-MelBand-Roformer Kim FT 2 (by Unwa)':
           model_type = 'mel_band_roformer'
           config_path = 'ckpts/config_kimmel_unwa_ft.yaml'
-          start_check_point = 'ckpts/kimmel_unwa_ft.ckpt'
+          start_check_point = 'ckpts/kimmel_unwa_ft2.ckpt'
           download_file('https://huggingface.co/pcunwa/Kim-Mel-Band-Roformer-FT/resolve/main/config_kimmel_unwa_ft.yaml')
           download_file('https://huggingface.co/pcunwa/Kim-Mel-Band-Roformer-FT/resolve/main/kimmel_unwa_ft2.ckpt')
           conf_edit(config_path, chunk_size, overlap)      
