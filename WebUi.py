@@ -857,6 +857,14 @@ def process_audio(input_audio_file, input_audio_path, model, chunk_size, overlap
           download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gaboxFv1.ckpt')
           conf_edit(config_path, chunk_size, overlap)
 
+    elif clean_model == 'inst_gaboxFV6 (by Gabox)':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/inst_gabox.yaml'
+          start_check_point = 'ckpts/INSTV6.ckpt'
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/INSTV6.ckpt')
+          conf_edit(config_path, chunk_size, overlap)
+
 
 
     # Other model options will be added here...
