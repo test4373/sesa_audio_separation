@@ -1160,7 +1160,7 @@ def create_interface():
             'inst_gaboxFV6 (by Gabox)',
             '✅ INST-Mel-Roformer v2 (by unwa) - Most recent instrumental separation model',
             '✅ inst_v1e (by unwa)',
-            '✅ INST-Mel-Roformer v1 (by unwa) - Old instrumental separation model'
+            '✅ INST-Mel-Roformer v1 (by unwa) - Old instrumental separation model',
             'INST-MelBand-Roformer (by Becruily)',
             'inst_gaboxFV2 (by Gabox)',
             'inst_gaboxFV1 (by Gabox)',
