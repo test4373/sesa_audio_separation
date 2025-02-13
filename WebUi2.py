@@ -1343,7 +1343,7 @@ def create_interface():
     def auto_ensemble_process(audio_input, selected_models, chunk_size, overlap, use_tta, extract_instrumental, ensemble_type, weights, progress=gr.Progress()):
         try:
             # 1. Giriş doğrulama ve dosya yönetimi
-           if isinstance(audio_input, dict):  # Gradio audio formatı
+            if isinstance(audio_input, dict):  # Gradio audio formatı
                 audio_path = audio_input["name"]
             else:
                 audio_path = str(audio_input)
