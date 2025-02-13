@@ -378,6 +378,8 @@ BASE_PATH = '/content/Music-Source-Separation-Training'
 INPUT_DIR = os.path.join(BASE_PATH, 'input')
 OUTPUT_DIR = '/content/drive/MyDrive/output'
 OLD_OUTPUT_DIR = '/content/drive/MyDrive/old_output'
+AUTO_ENSEMBLE_TEMP = '/content/Music-Source-Separation-Training/auto_ensemble_temp'
+AUTO_ENSEMBLE_OUTPUT = '/content/drive/MyDrive/ensemble_folder'
 
 def clear_directory(directory):
     """Deletes all files in the given directory."""
