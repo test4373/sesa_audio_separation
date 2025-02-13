@@ -1339,7 +1339,7 @@ def create_interface():
             print(f"Audio file listing error: {e}")
             return []
 
-    def auto_ensemble_process(audio_input, selected_models, chunk_size, overlap, ensemble_type, weights, progress=gr.Progress()):
+    def auto_ensemble_process(model_type, config_path, start_check_point, audio_input, INPUT_DIR, temp_input_path, selected_models, chunk_size, overlap, ensemble_type, weights, extract_instrumental, use_tta, demud_phaseremix_inst, clean_model, progress=gr.Progress()):
         try:
             # Klasörleri temizle ve oluştur
             shutil.rmtree(AUTO_ENSEMBLE_TEMP, ignore_errors=True)
@@ -1367,15 +1367,19 @@ def create_interface():
                     "--input_folder", INPUT_DIR,
                     "--audio_path", temp_input_path,
                     "--model_type", model_type,  # Model tipi uygun şekilde ayarlanmalı
-                    "--store_dir", AUTO_ENSEMBLE_TEMP,
-                    "--chunk_size", str(chunk_size),
-                    "--overlap", str(overlap)
+                    "--store_dir", AUTO_ENSEMBLE_TEMP
                       
                 ]
             
                 # Model özel parametrelerini ekle
                 if "demud_phaseremix" in model.lower():
                     cmd.append("--demud_phaseremix_inst")
+
+                if "extract_instrumental" in model.lower():
+                    cmd.append("--extract_instrumental")
+
+                if "use_tta" in model.lower():
+                    cmd.append("--use_tta")
             
                 # Komutu çalıştır
                 subprocess.run(cmd, check=True)
