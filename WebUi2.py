@@ -1338,7 +1338,7 @@ def create_interface():
             print(f"Audio file listing error: {e}")
             return []
 
-    def auto_ensemble_process(audio_input, selected_models, chunk_size, overlap, ensemble_type, weights, progress=gr.Progress()):
+    def auto_ensemble_process(audio_input, selected_models, chunk_size, overlap, use_tta, extract_instrumental, ensemble_type, weights, progress=gr.Progress()):
         try:
             # Klasörleri temizle ve oluştur
             shutil.rmtree(AUTO_ENSEMBLE_TEMP, ignore_errors=True)
@@ -1593,6 +1593,11 @@ def create_interface():
                             value=2,
                             step=1
                         )
+
+                        use_demud_phaseremix_inst = gr.Checkbox(
+                            label="Use Demud Phaseremix Inst",
+                            info="Enable Demud Phaseremix for instrumental separation."
+                        )
                     
                         auto_ensemble_type = gr.Dropdown(
                             label="Ensemble Algorithm",
@@ -1619,6 +1624,9 @@ def create_interface():
                         auto_model_select,
                         auto_chunk_size,
                         auto_overlap,
+                        auto_use_demud_phaseremix_inst,
+                        auto_extract_instrumental,
+                        auto_use_tta,
                         auto_ensemble_type,
                         auto_weights
                     ],
