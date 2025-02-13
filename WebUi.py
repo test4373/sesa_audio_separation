@@ -865,6 +865,51 @@ def process_audio(input_audio_file, input_audio_path, model, chunk_size, overlap
           download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/INSTV6.ckpt')
           conf_edit(config_path, chunk_size, overlap)
 
+    elif clean_model == 'denoisedebleed (by Gabox)':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/model_mel_band_roformer_denoise.yaml'
+          start_check_point = 'ckpts/denoisedebleed.ckpt'
+          download_file('https://huggingface.co/poiqazwsx/melband-roformer-denoise/resolve/main/model_mel_band_roformer_denoise.yaml')
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/denoisedebleed.ckpt')
+          conf_edit(config_path, chunk_size, overlap)
+
+    elif clean_model == 'INSTV5N (by Gabox)':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/inst_gabox.yaml'
+          start_check_point = 'ckpts/INSTV5N.ckpt'
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/INSTV5N.ckpt')
+          conf_edit(config_path, chunk_size, overlap)
+
+    elif clean_model == 'Voc_Fv3 (by Gabox)':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/voc_gabox.yaml'
+          start_check_point = 'ckpts/voc_Fv3.ckpt'
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_gabox.yaml')
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_Fv3.ckpt')
+          conf_edit(config_path, chunk_size, overlap)
+
+    elif clean_model == 'MelBandRoformer4StemFTLarge (SYH99999)':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/config.yaml'
+          start_check_point = 'ckpts/MelBandRoformer4StemFTLarge.ckpt'
+          download_file('https://huggingface.co/SYH99999/MelBandRoformer4StemFTLarge/resolve/main/config.yaml')
+          download_file('https://huggingface.co/SYH99999/MelBandRoformer4StemFTLarge/resolve/main/MelBandRoformer4StemFTLarge.ckpt')
+          conf_edit(config_path, chunk_size, overlap)
+
+    elif clean_model == 'dereverb_mel_band_roformer_mono (by anvuew)':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/dereverb_mel_band_roformer_anvuew.yaml'
+          start_check_point = 'ckpts/dereverb_mel_band_roformer_mono_anvuew_sdr_20.4029.ckpt'
+          download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_anvuew.yaml')
+          download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_mono_anvuew_sdr_20.4029.ckpt')
+          conf_edit(config_path, chunk_size, overlap)
+
+
+
+
+
+
 
 
     # Other model options will be added here...
@@ -943,6 +988,11 @@ def clean_model_name(model):
         'SYH99999/MelBandRoformerSYHFTB1_Model3 (by Amane)': 'MelBandRoformerSYHFTB1_model3',
         'VOCALS-MelBand-Roformer Kim FT 2 Blendless (by unwa)': 'VOCALS-MelBand-Roformer Kim FT 2 Blendless (by unwa)',
         'inst_gaboxFV6 (by Gabox)': 'inst_gaboxFV6 (by Gabox)',
+        'denoisedebleed (by Gabox)': 'denoisedebleed (by Gabox)',
+        'INSTV5N (by Gabox)': 'INSTV5N (by Gabox)',
+        'Voc_Fv3 (by Gabox)': 'Voc_Fv3 (by Gabox)',
+        'MelBandRoformer4StemFTLarge (SYH99999)': 'MelBandRoformer4StemFTLarge (SYH99999)',
+        'dereverb_mel_band_roformer_mono (by anvuew)': 'dereverb_mel_band_roformer_mono (by anvuew)',
         
         # Add more mappings as needed
     }
@@ -1138,6 +1188,7 @@ def create_interface():
     # Let's define the model options in advance
     model_choices = {
         "Vocal Separation": [
+            'Voc_Fv3 (by Gabox)',
             'VOCALS-BS-Roformer_1297 (by viperx)',
             'VOCALS-BS-Roformer_1296 (by viperx)',
             '✅ VOCALS-Mel-Roformer big beta 4 (by unwa) - Melspectrogram based high performance',
@@ -1157,6 +1208,8 @@ def create_interface():
             'VOCALS-MelBand-Roformer Kim FT 2 Blendless (by unwa)'
         ],
         "Instrumental Separation": [
+            'INSTV5N (by Gabox)',
+            'denoisedebleed (by Gabox)',
             'inst_gaboxFV6 (by Gabox)',
             '✅ INST-Mel-Roformer v2 (by unwa) - Most recent instrumental separation model',
             '✅ inst_v1e (by unwa)',
@@ -1179,6 +1232,7 @@ def create_interface():
             '✅ KARAOKE-MelBand-Roformer (by aufr33 & viperx) - Advanced karaoke separation'
         ],
         "Noise & Effect Removal": [
+            'dereverb_mel_band_roformer_mono (by anvuew)',
             '👥 CROWD-REMOVAL-MelBand-Roformer (by aufr33) - Crowd noise removal',
             '🏛️ DE-REVERB-MDX23C (by aufr33 & jarredou) - Reverb reduction',
             '🏛️ DE-REVERB-MelBand-Roformer aggr./v2/19.1729 (by anvuew)',
@@ -1194,6 +1248,7 @@ def create_interface():
             '✅ DRUMSEP-MDX23C_DrumSep_6stem (by aufr33 & jarredou) - Detailed drum separation'
         ],
         "Multi-Stem & Other Models": [
+            'MelBandRoformer4StemFTLarge (SYH99999)',
             '🎬 4STEMS-SCNet_MUSDB18 (by starrytong) - Multi-stem separation',
             '🎼 CINEMATIC-BandIt_Plus (by kwatcharasupat) - Cinematic music analysis',
             'OTHER-BS-Roformer_1053 (by viperx) - Other special models',
