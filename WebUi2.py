@@ -1340,67 +1340,67 @@ def create_interface():
 
     def auto_ensemble_process(audio_input, selected_models, chunk_size, overlap, ensemble_type, weights, progress=gr.Progress()):
         try:
-           # Klasörleri temizle ve oluştur
-           shutil.rmtree(AUTO_ENSEMBLE_TEMP, ignore_errors=True)
-           os.makedirs(AUTO_ENSEMBLE_TEMP, exist_ok=True)
-           os.makedirs(AUTO_ENSEMBLE_OUTPUT, exist_ok=True)
+            # Klasörleri temizle ve oluştur
+            shutil.rmtree(AUTO_ENSEMBLE_TEMP, ignore_errors=True)
+            os.makedirs(AUTO_ENSEMBLE_TEMP, exist_ok=True)
+            os.makedirs(AUTO_ENSEMBLE_OUTPUT, exist_ok=True)
 
-           # Tüm modelleri işle
-           all_outputs = []
-           total_models = len(selected_models)
+            # Tüm modelleri işle
+            all_outputs = []
+            total_models = len(selected_models)
         
-           for idx, model in enumerate(selected_models):
-               progress((idx+1)/total_models, f"Processing {model}...")
+            for idx, model in enumerate(selected_models):
+                progress((idx+1)/total_models, f"Processing {model}...")
             
-               # Modeli çalıştır
-               outputs = process_audio(
-                   input_audio_file=None,
-                   input_audio_path=audio_input,
-                   model=model,
-                   chunk_size=chunk_size,
-                   overlap=overlap,
-                   export_format='wav FLOAT',
-                   use_tta=False,
-                   demud_phaseremix_inst=False,
-                   extract_instrumental=False
-               )
+                # Modeli çalıştır
+                outputs = process_audio(
+                    input_audio_file=None,
+                    input_audio_path=audio_input,
+                    model=model,
+                    chunk_size=chunk_size,
+                    overlap=overlap,
+                    export_format='wav FLOAT',
+                    use_tta=False,
+                    demud_phaseremix_inst=False,
+                    extract_instrumental=False
+                )
             
-               # Çıktıları kaydet
-               model_name = clean_model_name(model)
-               for output in outputs:
-                   if output and os.path.exists(output):
-                       new_path = os.path.join(AUTO_ENSEMBLE_TEMP, f"{model_name}_{os.path.basename(output)}")
-                       shutil.copy(output, new_path)
-                       all_outputs.append(new_path)
+                # Çıktıları kaydet
+                model_name = clean_model_name(model)
+                for output in outputs:
+                    if output and os.path.exists(output):
+                        new_path = os.path.join(AUTO_ENSEMBLE_TEMP, f"{model_name}_{os.path.basename(output)}")
+                        shutil.copy(output, new_path)
+                        all_outputs.append(new_path)
 
-           # Ensemble işlemi
-           if len(all_outputs) < 2:
-               return None, "At least 2 models required for ensemble"
+            # Ensemble işlemi
+            if len(all_outputs) < 2:
+                return None, "At least 2 models required for ensemble"
 
-           # Ensemble argümanlarını hazırla
-           ensemble_args = [
-               "--files"] + all_outputs + [
-               "--type", ensemble_type,
-               "--output", os.path.join(AUTO_ENSEMBLE_OUTPUT, "auto_ensemble_result.wav")
-           ]
+            # Ensemble argümanlarını hazırla
+            ensemble_args = [
+                "--files"] + all_outputs + [
+                "--type", ensemble_type,
+                "--output", os.path.join(AUTO_ENSEMBLE_OUTPUT, "auto_ensemble_result.wav")
+            ]
         
-           if weights:
-               ensemble_args.extend(["--weights", weights])
+            if weights:
+                ensemble_args.extend(["--weights", weights])
 
-           # Ensemble çalıştır
-           result = ensemble_files(ensemble_args)
+            # Ensemble çalıştır
+            result = ensemble_files(ensemble_args)
         
-           # Temp dosyalarını sil
-           shutil.rmtree(AUTO_ENSEMBLE_TEMP, ignore_errors=True)
+            # Temp dosyalarını sil
+            shutil.rmtree(AUTO_ENSEMBLE_TEMP, ignore_errors=True)
         
-           return os.path.join(AUTO_ENSEMBLE_OUTPUT, "auto_ensemble_result.wav"), "Auto Ensemble Successful!"
+            return os.path.join(AUTO_ENSEMBLE_OUTPUT, "auto_ensemble_result.wav"), "Auto Ensemble Successful!"
 
-       except Exception as e:
-           return None, f"Error: {str(e)}"
-       finally:
-           # Bellek temizle
-           gc.collect()
-           torch.cuda.empty_cache()
+        except Exception as e:
+            return None, f"Error: {str(e)}"
+        finally:
+            # Bellek temizle
+            gc.collect()
+            torch.cuda.empty_cache()
 
 
     with gr.Blocks() as demo:
