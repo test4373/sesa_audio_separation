@@ -380,6 +380,7 @@ OUTPUT_DIR = '/content/drive/MyDrive/output'
 OLD_OUTPUT_DIR = '/content/drive/MyDrive/old_output'
 AUTO_ENSEMBLE_TEMP = '/content/Music-Source-Separation-Training/auto_ensemble_temp'
 AUTO_ENSEMBLE_OUTPUT = '/content/drive/MyDrive/ensemble_folder'
+INFERENCE_SCRIPT_PATH = '/content/Music-Source-Separation-Training/inference.py'
 
 def clear_directory(directory):
     """Deletes all files in the given directory."""
@@ -1338,12 +1339,17 @@ def create_interface():
             print(f"Audio file listing error: {e}")
             return []
 
-    def auto_ensemble_process(audio_input, selected_models, chunk_size, overlap, use_tta, extract_instrumental, demud_phaseremix_inst, ensemble_type, weights, progress=gr.Progress()):
+    def auto_ensemble_process(audio_input, selected_models, chunk_size, overlap, ensemble_type, weights, progress=gr.Progress()):
         try:
             # Klasörleri temizle ve oluştur
             shutil.rmtree(AUTO_ENSEMBLE_TEMP, ignore_errors=True)
             os.makedirs(AUTO_ENSEMBLE_TEMP, exist_ok=True)
             os.makedirs(AUTO_ENSEMBLE_OUTPUT, exist_ok=True)
+
+            # Giriş dosyasını kopyala
+            input_filename = os.path.basename(audio_input)
+            temp_input_path = os.path.join(AUTO_ENSEMBLE_TEMP, input_filename)
+            shutil.copyfile(audio_input, temp_input_path)
 
             # Tüm modelleri işle
             all_outputs = []
@@ -1352,53 +1358,63 @@ def create_interface():
             for idx, model in enumerate(selected_models):
                 progress((idx+1)/total_models, f"Processing {model}...")
             
-                # Modeli çalıştır
-                outputs = process_audio(
-                    input_audio_file=None,
-                    input_audio_path=audio_input,
-                    model=model,
-                    chunk_size=chunk_size,
-                    overlap=overlap,
-                    export_format='wav FLOAT',
-                    use_tta=False,
-                    demud_phaseremix_inst=False,
-                    extract_instrumental=False
-                )
+                # Model komutunu oluştur
+                cmd = [
+                    "python",
+                    INFERENCE_SCRIPT_PATH,
+                    "--config_path", config_path,
+                    "--start_check_point", start_check_point,
+                    "--input_folder", INPUT_DIR,
+                    "--audio_path", temp_input_path,
+                    "--model_type", model_type,  # Model tipi uygun şekilde ayarlanmalı
+                    "--store_dir", AUTO_ENSEMBLE_TEMP,
+                    "--chunk_size", str(chunk_size),
+                    "--overlap", str(overlap)
+                      
+                ]
             
-                # Çıktıları kaydet
-                model_name = clean_model_name(model)
-                for output in outputs:
-                    if output and os.path.exists(output):
-                        new_path = os.path.join(AUTO_ENSEMBLE_TEMP, f"{model_name}_{os.path.basename(output)}")
-                        shutil.copy(output, new_path)
-                        all_outputs.append(new_path)
+                # Model özel parametrelerini ekle
+                if "demud_phaseremix" in model.lower():
+                    cmd.append("--demud_phaseremix_inst")
+            
+                # Komutu çalıştır
+                subprocess.run(cmd, check=True)
+            
+                # Çıktı dosyalarını topla
+                model_outputs = [f for f in os.listdir(AUTO_ENSEMBLE_TEMP)
+                               if f.startswith(os.path.splitext(input_filename)[0])]
+                all_outputs.extend([os.path.join(AUTO_ENSEMBLE_TEMP, f) for f in model_outputs])
 
             # Ensemble işlemi
             if len(all_outputs) < 2:
-                return None, "At least 2 models required for ensemble"
+                return None, "At least 2 outputs required for ensemble"
 
-            # Ensemble argümanlarını hazırla
-            ensemble_args = [
-                "--files"] + all_outputs + [
+            # Ensemble komutunu oluştur
+            ensemble_output_path = os.path.join(AUTO_ENSEMBLE_OUTPUT, "auto_ensemble_result.wav")
+            ensemble_cmd = [
+                "python",
+                "/content/Music-Source-Separation-Training/ensemble.py",
+                "--files"
+            ] + all_outputs + [
                 "--type", ensemble_type,
-                "--output", os.path.join(AUTO_ENSEMBLE_OUTPUT, "auto_ensemble_result.wav")
+                "--output", ensemble_output_path
             ]
         
             if weights:
-                ensemble_args.extend(["--weights", weights])
+                ensemble_cmd += ["--weights", weights]
 
-            # Ensemble çalıştır
-            result = ensemble_files(ensemble_args)
+            # Ensemble komutunu çalıştır
+            subprocess.run(ensemble_cmd, check=True)
         
-            # Temp dosyalarını sil
-            shutil.rmtree(AUTO_ENSEMBLE_TEMP, ignore_errors=True)
-        
-            return os.path.join(AUTO_ENSEMBLE_OUTPUT, "auto_ensemble_result.wav"), "Auto Ensemble Successful!"
+            return ensemble_output_path, "Auto Ensemble Successful!"
 
+        except subprocess.CalledProcessError as e:
+            return None, f"Process error: {str(e)}"
         except Exception as e:
             return None, f"Error: {str(e)}"
         finally:
-            # Bellek temizle
+            # Geçici dosyaları temizle
+            shutil.rmtree(AUTO_ENSEMBLE_TEMP, ignore_errors=True)
             gc.collect()
             torch.cuda.empty_cache()
 
@@ -1574,16 +1590,16 @@ def create_interface():
                     with gr.Column():
                         auto_audio_input = gr.Audio(label="Input Audio", type="filepath")
                         auto_model_select = gr.Dropdown(
-                            label="Select Models",
-                            choices=model_choices["Vocal Separation"] + model_choices["Instrumental Separation"],
-                            multiselect=True,
-                            max_choices=5
+                             label="Select Models",
+                             choices=model_choices["Vocal Separation"] + model_choices["Instrumental Separation"],
+                             multiselect=True,
+                             max_choices=5
                         )
                     
                         auto_chunk_size = gr.Dropdown(
-                            label="Chunk Size",
-                            choices=[352800, 485100],
-                            value=352800
+                             label="Chunk Size",
+                             choices=[352800, 485100],
+                             value=352800
                         )
                     
                         auto_overlap = gr.Slider(
@@ -1600,15 +1616,15 @@ def create_interface():
                         )
                     
                         auto_ensemble_type = gr.Dropdown(
-                            label="Ensemble Algorithm",
-                            choices=['avg_wave', 'median_wave', 'min_wave', 'max_wave',
+                             label="Ensemble Algorithm",
+                             choices=['avg_wave', 'median_wave', 'min_wave', 'max_wave',
                                     'avg_fft', 'median_fft', 'min_fft', 'max_fft'],
-                            value='avg_wave'
+                             value='avg_wave'
                         )
                     
                         auto_weights = gr.Textbox(
-                            label="Weights (comma separated)",
-                            placeholder="e.g., 1.0, 0.8, 1.2"
+                             label="Weights (comma separated)",
+                             placeholder="e.g., 1.0, 0.8, 1.2"
                         )
                     
                         auto_process_btn = gr.Button("Start Auto Ensemble")
