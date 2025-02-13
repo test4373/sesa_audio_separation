@@ -1625,8 +1625,8 @@ def create_interface():
                         auto_chunk_size,
                         auto_overlap,
                         use_demud_phaseremix_inst,
-                        auto_extract_instrumental,
-                        auto_use_tta,
+                        extract_instrumental,
+                        use_tta,
                         auto_ensemble_type,
                         auto_weights
                     ],
