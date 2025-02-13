@@ -1340,7 +1340,7 @@ def create_interface():
             return []
 
     
-    def auto_ensemble_process(audio_input, selected_models, chunk_size, overlap, ensemble_type, weights, progress=gr.Progress()):
+    def auto_ensemble_process(audio_input, selected_models, chunk_size, overlap, use_tta, extract_instrumental, ensemble_type, weights, progress=gr.Progress()):
         try:
             # 1. Giriş doğrulama ve dosya yönetimi
             if isinstance(audio_input, dict):  # Gradio audio formatı
@@ -1651,7 +1651,8 @@ def create_interface():
                          auto_use_tta,
                          auto_extract_instrumental,
                          auto_ensemble_type,
-                         auto_weights
+                         auto_weights,
+                         gr.State(None)
                     ],
                     outputs=[auto_output_audio, auto_status]
                 )
