@@ -1367,7 +1367,9 @@ def create_interface():
                     "--input_folder", INPUT_DIR,
                     "--audio_path", temp_input_path,
                     "--model_type", model_type,  # Model tipi uygun şekilde ayarlanmalı
-                    "--store_dir", AUTO_ENSEMBLE_TEMP
+                    "--store_dir", AUTO_ENSEMBLE_TEMP,
+                    "--chunk_size", str(chunk_size),
+                    "--overlap", str(overlap)
                       
                 ]
             
@@ -1597,7 +1599,7 @@ def create_interface():
                              label="Select Models",
                              choices=model_choices["Vocal Separation"] + model_choices["Instrumental Separation"],
                              multiselect=True,
-                             max_choices=5
+                             max_choices=50
                         )
                     
                         auto_chunk_size = gr.Dropdown(
