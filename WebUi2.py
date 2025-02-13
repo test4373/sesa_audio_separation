@@ -1340,86 +1340,86 @@ def create_interface():
             return []
 
     
-def auto_ensemble_process(audio_input, selected_models, chunk_size, overlap, use_tta, extract_instrumental, ensemble_type, weights, progress=gr.Progress()):
-    try:
-        # 1. Giriş doğrulama ve dosya yönetimi
-        if isinstance(audio_input, dict):  # Gradio audio formatı
-            audio_path = audio_input["name"]
-        else:
-            audio_path = str(audio_input)
+    def auto_ensemble_process(audio_input, selected_models, chunk_size, overlap, use_tta, extract_instrumental, ensemble_type, weights, progress=gr.Progress()):
+        try:
+            # 1. Giriş doğrulama ve dosya yönetimi
+           if isinstance(audio_input, dict):  # Gradio audio formatı
+                audio_path = audio_input["name"]
+            else:
+                audio_path = str(audio_input)
         
-        if not os.path.exists(audio_path):
-            return None, "Input file not found"
+            if not os.path.exists(audio_path):
+                return None, "Input file not found"
 
-        # 2. Geçici klasörleri hazırla
-        shutil.rmtree(AUTO_ENSEMBLE_TEMP, ignore_errors=True)
-        os.makedirs(AUTO_ENSEMBLE_TEMP, exist_ok=True)
-        os.makedirs(AUTO_ENSEMBLE_OUTPUT, exist_ok=True)
+            # 2. Geçici klasörleri hazırla
+            shutil.rmtree(AUTO_ENSEMBLE_TEMP, ignore_errors=True)
+            os.makedirs(AUTO_ENSEMBLE_TEMP, exist_ok=True)
+            os.makedirs(AUTO_ENSEMBLE_OUTPUT, exist_ok=True)
 
-        # 3. Her model için işlem yap
-        all_outputs = []
-        total_models = len(selected_models)
+            # 3. Her model için işlem yap
+            all_outputs = []
+            total_models = len(selected_models)
         
-        for idx, model in enumerate(selected_models):
-            progress((idx+1)/total_models, f"Processing {model}...")
+            for idx, model in enumerate(selected_models):
+                progress((idx+1)/total_models, f"Processing {model}...")
             
-            # Model parametrelerini al
-            clean_model = extract_model_name(model)
-            model_type, config_path, start_check_point = get_model_parameters(clean_model)
+                # Model parametrelerini al
+                clean_model = extract_model_name(model)
+                model_type, config_path, start_check_point = get_model_parameters(clean_model)
             
-            # Geçici çıktı klasörü
-            model_output_dir = os.path.join(AUTO_ENSEMBLE_TEMP, clean_model)
-            os.makedirs(model_output_dir, exist_ok=True)
+                # Geçici çıktı klasörü
+                model_output_dir = os.path.join(AUTO_ENSEMBLE_TEMP, clean_model)
+                os.makedirs(model_output_dir, exist_ok=True)
 
-            # Inference komutunu oluştur
-            cmd = [
+                # Inference komutunu oluştur
+                cmd = [
+                    "python",
+                    INFERENCE_SCRIPT_PATH,
+                    "--model_type", str(model_type),
+                    "--config_path", str(config_path),
+                    "--start_check_point", str(start_check_point),
+                    "--audio_path", str(audio_path),
+                    "--store_dir", str(model_output_dir),
+                    "--chunk_size", str(chunk_size),
+                    "--overlap", str(overlap)
+                ]
+            
+                # Komutu çalıştır
+                subprocess.run(cmd, check=True)
+            
+                # Çıktı dosyalarını topla
+                model_outputs = glob.glob(os.path.join(model_output_dir, "*.wav"))
+                all_outputs.extend(model_outputs)
+
+            # 4. Ensemble işlemi
+            if len(all_outputs) < 2:
+                return None, "At least 2 models required for ensemble"
+
+            ensemble_output_path = os.path.join(AUTO_ENSEMBLE_OUTPUT, "auto_ensemble_result.wav")
+            ensemble_cmd = [
                 "python",
-                INFERENCE_SCRIPT_PATH,
-                "--model_type", str(model_type),
-                "--config_path", str(config_path),
-                "--start_check_point", str(start_check_point),
-                "--audio_path", str(audio_path),
-                "--store_dir", str(model_output_dir),
-                "--chunk_size", str(chunk_size),
-                "--overlap", str(overlap)
+                "/content/Music-Source-Separation-Training/ensemble.py",
+                "--files"
+            ] + all_outputs + [
+                "--type", ensemble_type,
+                "--output", ensemble_output_path
             ]
-            
-            # Komutu çalıştır
-            subprocess.run(cmd, check=True)
-            
-            # Çıktı dosyalarını topla
-            model_outputs = glob.glob(os.path.join(model_output_dir, "*.wav"))
-            all_outputs.extend(model_outputs)
-
-        # 4. Ensemble işlemi
-        if len(all_outputs) < 2:
-            return None, "At least 2 models required for ensemble"
-
-        ensemble_output_path = os.path.join(AUTO_ENSEMBLE_OUTPUT, "auto_ensemble_result.wav")
-        ensemble_cmd = [
-            "python",
-            "/content/Music-Source-Separation-Training/ensemble.py",
-            "--files"
-        ] + all_outputs + [
-            "--type", ensemble_type,
-            "--output", ensemble_output_path
-        ]
         
-        if weights.strip():
-            ensemble_cmd += ["--weights", weights]
+            if weights.strip():
+                ensemble_cmd += ["--weights", weights]
 
-        subprocess.run(ensemble_cmd, check=True)
+            subprocess.run(ensemble_cmd, check=True)
         
-        return ensemble_output_path, "Auto Ensemble Successful!"
+            return ensemble_output_path, "Auto Ensemble Successful!"
 
-    except subprocess.CalledProcessError as e:
-        return None, f"Process error: {str(e)}"
-    except Exception as e:
-        return None, f"Error: {str(e)}"
-    finally:
-        shutil.rmtree(AUTO_ENSEMBLE_TEMP, ignore_errors=True)
-        gc.collect()
-        torch.cuda.empty_cache()
+        except subprocess.CalledProcessError as e:
+            return None, f"Process error: {str(e)}"
+        except Exception as e:
+            return None, f"Error: {str(e)}"
+        finally:
+            shutil.rmtree(AUTO_ENSEMBLE_TEMP, ignore_errors=True)
+            gc.collect()
+            torch.cuda.empty_cache()
 
 
     with gr.Blocks() as demo:
