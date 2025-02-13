@@ -1648,7 +1648,13 @@ def create_interface():
                         extract_instrumental,
                         use_tta,
                         auto_ensemble_type,
-                        auto_weights
+                        auto_weights,
+                        gr.State(None),
+                        gr.State(None),
+                        gr.State(None),
+                        gr.State(None),
+                        gr.State(None),
+                        gr.State(None)
                     ],
                     outputs=[auto_output_audio, auto_status]
                 )
