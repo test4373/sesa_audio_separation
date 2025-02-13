@@ -1344,9 +1344,9 @@ def create_interface():
         try:
             # 1. Giriş doğrulama ve dosya yönetimi
             if isinstance(audio_input, dict):  # Gradio audio formatı
-                audio_path = audio_input["name"]
+                 audio_path = audio_input["name"]
             else:
-                audio_path = str(audio_input)
+                 audio_path = str(audio_input)
         
             if not os.path.exists(audio_path):
                 return None, "Input file not found"
