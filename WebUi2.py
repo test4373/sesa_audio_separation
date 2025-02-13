@@ -1338,7 +1338,7 @@ def create_interface():
             print(f"Audio file listing error: {e}")
             return []
 
-    def auto_ensemble_process(audio_input, selected_models, chunk_size, overlap, use_tta, extract_instrumental, use_demud_phaseremix_inst, ensemble_type, weights, progress=gr.Progress()):
+    def auto_ensemble_process(audio_input, selected_models, chunk_size, overlap, use_tta, extract_instrumental, demud_phaseremix_inst, ensemble_type, weights, progress=gr.Progress()):
         try:
             # Klasörleri temizle ve oluştur
             shutil.rmtree(AUTO_ENSEMBLE_TEMP, ignore_errors=True)
