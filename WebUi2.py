@@ -1615,9 +1615,30 @@ def create_interface():
                             step=1
                         )
 
+                        use_tta = gr.Checkbox(
+                            label="Use TTA",
+                            info="Test Time Augmentation: It improves the prediction performance of the model. It also increases the processing time."
+                        )
+             
                         use_demud_phaseremix_inst = gr.Checkbox(
                             label="Use Demud Phaseremix Inst",
                             info="Enable Demud Phaseremix for instrumental separation."
+                        )
+
+                        extract_instrumental = gr.Checkbox(
+                            label="Extract Instrumental",
+                            info="If you turn it off, it will give 1 of vocal or instrumental.",
+                            value=False
+                        )
+
+                        export_format = gr.Dropdown(
+                            label="Export Format",
+                            choices=[
+                                'wav FLOAT',
+                                'flac PCM_16',
+                                'flac PCM_24'
+                            ],
+                            value='wav FLOAT'
                         )
                     
                         auto_ensemble_type = gr.Dropdown(
