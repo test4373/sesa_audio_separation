@@ -2183,7 +2183,7 @@ def create_interface():
                             value=352800
                         )
 
-                            export_format = gr.Dropdown(
+                            export_format2 = gr.Dropdown(
                             label="Output Format",
                             choices=['wav FLOAT', 'flac PCM_16', 'flac PCM_24'],
                             value='wav FLOAT'
@@ -2397,6 +2397,7 @@ def create_interface():
                                 auto_input_audio_path,
                                 selected_models,
                                 auto_chunk_size,
+                                export_format2,
                                 auto_overlap,
                                 auto_use_tta,
                                 auto_extract_instrumental,
