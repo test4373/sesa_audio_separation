@@ -2407,8 +2407,8 @@ def create_interface():
                         )
 
             
-            with gr.Tab("Audio Ensemble"):
-                gr.Markdown("# 🎵 Audio Ensemble Tool")
+            with gr.Tab("Manuel Ensemble"):
+                gr.Markdown("# 🎵 Manuel Ensemble Tool")
                 
                 with gr.Row():
                     with gr.Column():
