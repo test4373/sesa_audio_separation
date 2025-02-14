@@ -123,7 +123,7 @@ def download_callback(url, download_type='direct', cookie_file=None):
 
         # 2. URL DOĞRULAMA
         if not validators.url(url):
-            return None, "❌ Geçersiz URL", None, None, None, None
+            return None, "❌ Invalid URL", None, None, None, None
 
         # 3. GELİŞMİŞ COOKIE YÖNETİMİ
         if cookie_file is not None:
@@ -132,9 +132,9 @@ def download_callback(url, download_type='direct', cookie_file=None):
                     cookie_content = f.read()
                 with open(cookie_path, "wb") as f:
                     f.write(cookie_content)
-                print("✅ Cookie dosyası başarıyla güncellendi!")
+                print("✅ Cookie file updated successfully!")
             except Exception as e:
-                print(f"⚠️ Cookie yükleme hatası: {str(e)}")
+                print(f"⚠️ Cookie installation error: {str(e)}")
 
         # 4. GÜNCELLENMİŞ YT-DLP KONFİGÜRASYONU
         ydl_opts = {
@@ -190,17 +190,17 @@ def download_callback(url, download_type='direct', cookie_file=None):
                     if not os.path.exists(wav_path):
                         raise FileNotFoundError("WAV dönüşümü başarısız")
                         
-                    print(f"✅ Başarıyla indirildi: {wav_path}")
+                    print(f"✅ Downloaded successfully: {wav_path}")
                     break
 
             except yt_dlp.utils.DownloadError as e:
                 error_msg = str(e)
                 if "403" in error_msg:
-                    return None, "🔑 Oturum süresi doldu! Lütfen cookie'leri yenileyin", None, None, None, None
+                    return None, "🔑 Session expired! Please refresh cookies", None, None, None, None
                 elif "PO Token" in error_msg:
-                    return None, "⚠️ Geçerli PO Token gerekiyor", None, None, None, None
+                    return None, "⚠️ Valid PO Token required", None, None, None, None
                 if attempt == 3:
-                    return None, f"⛔ Son hata: {error_msg}", None, None, None, None
+                    return None, f"⛔ Last error: {error_msg}", None, None, None, None
                 time.sleep(2 ** attempt)
 
         # 6. GOOGLE DRIVE DESTEĞİ
@@ -214,17 +214,17 @@ def download_callback(url, download_type='direct', cookie_file=None):
         if wav_path and os.path.exists(wav_path):
             return (
                 gr.File(value=wav_path),  # drive_download_output/direct_download_output
-                "🎉 Başarıyla indirildi!",  # status message
+                "🎉 Downloaded successfully!",  # status message
                 gr.File(value=wav_path),  # input_audio_file
                 gr.File(value=wav_path),  # auto_input_audio_file
                 gr.Audio(value=wav_path),  # Ana sekme original_audio
                 gr.Audio(value=wav_path)   # Oto ensemble sekmesi için original_audio2
             )
 
-        return None, "❌ İndirme başarısız", None, None, None, None
+        return None, "❌ Download failed", None, None, None, None
 
     except Exception as e:
-        error_msg = f"🔥 Kritik Hata: {str(e)}"
+        error_msg = f"🔥 Critical Error: {str(e)}"
         print(error_msg)
         return None, error_msg, None, None, None, None
 
