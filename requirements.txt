@@ -31,3 +31,5 @@ yt_dlp
 rotary_embedding_torch
 noisereduce
 loralib
+browser-cookie3
+ipython pycryptodomex
