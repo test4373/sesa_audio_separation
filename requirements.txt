@@ -32,4 +32,4 @@ rotary_embedding_torch
 noisereduce
 loralib
 browser-cookie3
-ipython-pycryptodomex
+ipython_pycryptodomex
