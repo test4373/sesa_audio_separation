@@ -44,6 +44,8 @@ from urllib.parse import quote
 os.makedirs('/content/Music-Source-Separation-Training/input', exist_ok=True)
 os.makedirs('/content/Music-Source-Separation-Training/output', exist_ok=True)
 os.makedirs('/content/drive/MyDrive/ensemble_folder', exist_ok=True)
+os.makedirs('/content/Music-Source-Separation-Training/old_output', exist_ok=True)
+os.makedirs('/content/Music-Source-Separation-Training/auto_ensemble_temp', exist_ok=True)
 
 def clear_old_output():
     old_output_folder = os.path.join(BASE_PATH, 'old_output')
@@ -102,82 +104,131 @@ import validators
 import yt_dlp
 import gdown
 
-def download_callback(url, download_type='direct'):
-    try:
-        # Clear folder
-        clear_input_folder()
+# Özel karakterleri temizlemek için
+def clean_filename(title):
+    return re.sub(r'[^\w\-_\. ]', '', title).strip()
 
-        # Target folder
-        input_path = "/content/Music-Source-Separation-Training/input"
+import browser_cookie3
+import requests
+
+def download_callback(url, download_type='direct', cookie_file=None):
+    try:
+        # 1. TEMİZLİK VE KLASÖR HAZIRLIĞI
+        base_path = "/content"
+        input_path = os.path.join(base_path, "Music-Source-Separation-Training/input")
+        cookie_path = os.path.join(base_path, "cookies.txt")
+        
+        clear_input_folder()
         os.makedirs(input_path, exist_ok=True)
 
-        # URL control
+        # 2. URL DOĞRULAMA
         if not validators.url(url):
-            return None, "Invalid URL", None, None
+            return None, "❌ Geçersiz URL", None, None, None, None
 
-        # Different operations depending on the type of download
-        if download_type == 'direct':
-            ydl_opts = {
-                'format': 'bestaudio/best',
-                'outtmpl': os.path.join(input_path, '%(title)s.%(ext)s'),
-                'postprocessors': [{
-                    'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'wav',
-                    'preferredquality': '0',
-                }],
-                'max_filesize': 10 * 1024 * 1024 * 1024,  # 10 GB limit
-                'nooverwrites': True,
-                'no_color': True,
-                'progress_hooks': [download_progress_hook]
-            }
+        # 3. GELİŞMİŞ COOKIE YÖNETİMİ
+        if cookie_file is not None:
+            try:
+                with open(cookie_file.name, "rb") as f:
+                    cookie_content = f.read()
+                with open(cookie_path, "wb") as f:
+                    f.write(cookie_content)
+                print("✅ Cookie dosyası başarıyla güncellendi!")
+            except Exception as e:
+                print(f"⚠️ Cookie yükleme hatası: {str(e)}")
 
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info_dict = ydl.extract_info(url, download=True)
-                wav_path = ydl.prepare_filename(info_dict).replace(f".{info_dict['ext']}", ".wav")
+        # 4. GÜNCELLENMİŞ YT-DLP KONFİGÜRASYONU
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'outtmpl': os.path.join(input_path, '%(title)s.%(ext)s'),
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'wav',
+                'preferredquality': '0',
+                'nopostoverwrites': True  # Dosya çakışmalarını önle
+            }],
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                'Referer': 'https://www.youtube.com/',
+                'X-YouTube-Client-Name': '3',
+                'X-YouTube-Client-Version': '2.20240710.06.00'
+            },
+            'cookiefile': cookie_path if os.path.exists(cookie_path) else None,
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'web'],
+                    'player_skip': ['configs', 'webpage'],
+                    'age_gate': 'bypass',
+                    'data_sync_id': 'CgtySzR0d0JjN3JZRSjLq5WGBg%3D%3D'  # Gerekli parametre
+                }
+            },
+            'geo_bypass': True,
+            'geo_bypass_country': 'US',
+            'retries': 10,
+            'fragment_retries': 10,
+            'nocheckcertificate': True,
+            'verbose': False,
+            'ignoreerrors': False
+        }
 
-        elif download_type == 'drive':
-            # Use gdown to download large files from Google Drive
-            file_id = url.split("/")[-2] if "/file/d/" in url else url.split("=")[-1]
-            output_path = os.path.join(input_path, "downloaded_file.wav")
-            gdown.download(f'https://drive.google.com/uc?id={file_id}', output_path, quiet=False)
+        # 5. GELİŞMİŞ İNDİRME MEKANİZMASI
+        download_strategies = [
+            {'player_client': ['android', 'web'], 'country': 'US'},
+            {'player_client': ['tv_embedded', 'mweb'], 'country': 'DE'},
+            {'player_client': ['ios', 'web'], 'country': 'FR'}
+        ]
 
-            # File check after download
-            if os.path.exists(output_path):
-                wav_path = output_path
-            else:
-                return None, "Failed to download file", None, None
+        for attempt, strategy in enumerate(download_strategies, 1):
+            try:
+                print(f"🔧 Deneme {attempt}/3: {strategy}")
+                ydl_opts['extractor_args']['youtube'].update(strategy)
+                
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(url, download=True)
+                    wav_path = ydl.prepare_filename(info).replace('.webm', '.wav').replace('.mp4', '.wav')
+                    
+                    # Dosya varlık kontrolü
+                    if not os.path.exists(wav_path):
+                        raise FileNotFoundError("WAV dönüşümü başarısız")
+                        
+                    print(f"✅ Başarıyla indirildi: {wav_path}")
+                    break
 
-        else:
-            return None, "Invalid download type", None, None
+            except yt_dlp.utils.DownloadError as e:
+                error_msg = str(e)
+                if "403" in error_msg:
+                    return None, "🔑 Oturum süresi doldu! Lütfen cookie'leri yenileyin", None, None, None, None
+                elif "PO Token" in error_msg:
+                    return None, "⚠️ Geçerli PO Token gerekiyor", None, None, None, None
+                if attempt == 3:
+                    return None, f"⛔ Son hata: {error_msg}", None, None, None, None
+                time.sleep(2 ** attempt)
 
-        # File checks
+        # 6. GOOGLE DRIVE DESTEĞİ
+        if download_type == 'drive':
+            file_id = re.search(r'/d/([^/]+)', url).group(1) if '/d/' in url else url.split('id=')[-1]
+            drive_path = os.path.join(input_path, "drive_download.wav")
+            gdown.download(f'https://drive.google.com/uc?id={file_id}', drive_path, quiet=True)
+            wav_path = drive_path if os.path.exists(drive_path) else wav_path
+
+        # 7. SON KONTROLLER
         if wav_path and os.path.exists(wav_path):
-            filename = os.path.basename(wav_path)
-            input_file_path = os.path.join(input_path, filename)
-
-            # Add timestamp if there is a file with the same name
-            if os.path.exists(input_file_path):
-                base, ext = os.path.splitext(filename)
-                timestamp = int(time.time())
-                filename = f"{base}_{timestamp}{ext}"
-                input_file_path = os.path.join(input_path, filename)
-
-            # Move file
-            shutil.move(wav_path, input_file_path)
-
             return (
-                gr.File(value=input_file_path),  # Downloaded file
-                f"successfully downloaded: {filename}",  # Message
-                gr.File(value=input_file_path),  # input_audio update
-                gr.Audio(value=input_file_path)  # audio for original_audio
+                gr.File(value=wav_path),  # drive_download_output/direct_download_output
+                "🎉 Başarıyla indirildi!",  # status message
+                gr.File(value=wav_path),  # input_audio_file
+                gr.File(value=wav_path),  # auto_input_audio_file
+                gr.Audio(value=wav_path),  # Ana sekme original_audio
+                gr.Audio(value=wav_path)   # Oto ensemble sekmesi için original_audio2
             )
 
-        return None, "Failed to download file", None, None
+        return None, "❌ İndirme başarısız", None, None, None, None
 
     except Exception as e:
-        print(f"Download error: {e}")
-        return None, str(e), None, None
+        error_msg = f"🔥 Kritik Hata: {str(e)}"
+        print(error_msg)
+        return None, error_msg, None, None, None, None
 
+        
 # Hook function to track download progress
 def download_progress_hook(d):
     if d['status'] == 'finished':
@@ -211,7 +262,6 @@ def download_file(url):
     except Exception as e:
         print(f"Error downloading file '{filename}' from '{url}': {e}")
         
-        clear_memory()
 
 
 def generate_random_port():
@@ -263,6 +313,82 @@ def conf_edit(config_path, chunk_size, overlap):
 
     with open(config_path, 'w') as f:
         yaml.dump(data, f, default_flow_style=False, sort_keys=False, Dumper=IndentDumper, allow_unicode=True)
+
+def save_uploaded_file2(uploaded_file, is_input=False):
+    """
+    Yüklenen dosyayı belirtilen dizine kaydeder, önceki dosyaları siler.
+    Sadece en son yüklenen dosya dizinde kalır.
+    """
+    try:
+        # Medya dosya uzantıları
+        media_extensions = ['.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a']
+        
+        # Zaman damgası pattern'leri
+        timestamp_patterns = [
+            r'_\d{8}_\d{6}_\d{6}$',  # _20231215_123456_123456
+            r'_\d{14}$',             # _20231215123456
+            r'_\d{10}$',             # _1702658400
+            r'_\d+$'                 # Herhangi bir sayı
+        ]
+        
+        # Dosya adını al
+        if hasattr(uploaded_file, 'name'):
+            original_filename = os.path.basename(uploaded_file.name)
+        else:
+            original_filename = os.path.basename(str(uploaded_file))
+        
+        # Dosya adını temizle (sadece input'lar için)
+        if is_input:
+            base_filename = original_filename
+            # Zaman damgalarını sil
+            for pattern in timestamp_patterns:
+                base_filename = re.sub(pattern, '', base_filename)
+            # Çoklu uzantıları sil
+            for ext in media_extensions:
+                base_filename = base_filename.replace(ext, '')
+            
+            # Dosya uzantısını belirle
+            file_ext = next(
+                (ext for ext in media_extensions if original_filename.lower().endswith(ext)),
+                '.wav'
+            )
+            clean_filename = f"{base_filename.strip('_- ')}{file_ext}"
+        else:
+            clean_filename = original_filename
+
+        # Hedef dizini belirle (DÜZELTME BURADA)
+        target_directory = INPUT_DIR if is_input else OUTPUT_DIR
+        target_path = os.path.join(target_directory, clean_filename)
+        
+        # Dizini oluştur (yoksa)
+        os.makedirs(target_directory, exist_ok=True)
+        
+        # Dizindeki TÜM önceki dosyaları sil
+        for filename in os.listdir(target_directory):
+            file_path = os.path.join(target_directory, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                print(f"{file_path} Not deleted: {e}")
+
+        # Yeni dosyayı kaydet
+        if hasattr(uploaded_file, 'read'):
+            with open(target_path, "wb") as f:
+                f.write(uploaded_file.read())
+        else:
+            shutil.copy(uploaded_file, target_path)
+            
+        print(f"File saved successfully: {os.path.basename(target_path)}")
+        return target_path
+    
+    except Exception as e:
+        print(f"File save error: {e}")
+        return None
+
+        clear_memory()
 
 def save_uploaded_file(uploaded_file, is_input=False):
     """
@@ -351,7 +477,8 @@ def move_old_files(output_folder):
             # Yeni dosya adını oluştur
             new_filename = f"{os.path.splitext(filename)[0]}_old{os.path.splitext(filename)[1]}"
             new_file_path = os.path.join(old_output_folder, new_filename)
-            shutil.move(file_path, new_file_path)        
+            shutil.move(file_path, new_file_path) 
+
 
 def extract_model_name(full_model_string):
     """
@@ -389,7 +516,7 @@ def clear_directory(directory):
         try:
             os.remove(f)  # remove files
         except Exception as e:
-            print(f"{f} could not be deleted: {e}")
+            print(f"{f} could not be deleted: {e}")     
 
 def create_directory(directory):
     """Creates the given directory (if it exists, if not)."""
@@ -397,23 +524,45 @@ def create_directory(directory):
         os.makedirs(directory)
         print(f"{directory} directory created.")
     else:
-        print(f"{directory} directory already exists.")
+        print(f"{directory} directory already exists.")     
+
+def convert_to_wav(file_path):
+    """Converts an audio file to WAV format using ffmpeg if it is not already in WAV format."""
+    if not file_path.lower().endswith('.wav'):
+        # Define the output path
+        wav_path = os.path.splitext(file_path)[0] + '.wav'
+        
+        # Use ffmpeg to convert the audio file to WAV format
+        command = ['ffmpeg', '-y', '-i', file_path, '-acodec', 'pcm_s16le', '-ar', '44100', wav_path]
+        
+        try:
+            subprocess.run(command, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+            return wav_path  # Return the path to the converted WAV file
+        except subprocess.CalledProcessError as e:
+            print(f"Error during conversion: {e.stderr.decode().strip()}")  # Print the error message
+            return None  # Return None if conversion fails
+    return file_path
 
 def process_audio(input_audio_file, input_audio_path, model, chunk_size, overlap, export_format, use_tta, demud_phaseremix_inst, extract_instrumental, *args, **kwargs):
-    # Ses dosyasının yolunu belirleme
+    # Determine the audio path
     if input_audio_file is not None:
-        audio_path = input_audio_file.name  # Yüklenen dosyanın yolu
+        audio_path = input_audio_file.name
     elif input_audio_path:
-        audio_path = input_audio_path  # Kullanıcının girdiği dosya yolu
+        audio_path = input_audio_path
     else:
         print("No audio file provided.")
-        return [None] * 12  # Hata durumu
+        return [None] * 12  # Error case
+
+    # Convert to WAV if necessary
+    wav_path = convert_to_wav(audio_path)
+
+    # Clear the input directory and save the WAV file
+    clear_directory(INPUT_DIR)
+    shutil.copy(wav_path, INPUT_DIR)
 
     # Model adı temizleme
     clean_model = extract_model_name(model)
     print(f"Processing audio from: {audio_path} using model: {clean_model}")
-
-    clear_directory(INPUT_DIR)
 
     # Gerekli dizinleri oluştur
     create_directory(INPUT_DIR)
@@ -1340,66 +1489,568 @@ def create_interface():
             return []
 
     
-    def auto_ensemble_process(audio_input, selected_models, chunk_size, overlap, use_tta, extract_instrumental, ensemble_type, weights, progress=gr.Progress(), *args, **kwargs):
+    def auto_ensemble_process(audio_input, audio_path, selected_models, chunk_size, overlap, use_tta, extract_instrumental, ensemble_type, weights, progress=gr.Progress()):
         try:
             # 1. Giriş doğrulama ve dosya yönetimi
-            if isinstance(audio_input, dict):  # Gradio audio formatı
-                 audio_path = audio_input["name"]
+            if audio_input is not None:  # Dosya yüklendi
+                audio_path = audio_input.name
+            elif audio_path:  # Dosya yolu belirtildi
+                audio_path = str(audio_path)
             else:
-                 audio_path = str(audio_input)
-        
+                return None, "No audio file provided"
+
             if not os.path.exists(audio_path):
                 return None, "Input file not found"
 
-            # 2. Geçici klasörleri hazırla
+            # 2. WAV'a dönüştürme ve temizleme
+            clear_directory(INPUT_DIR)  # INPUT_DIR klasörünü temizle
+            wav_path = convert_to_wav(audio_path)
+            if wav_path is None:
+                return None, "Failed to convert audio to WAV format."
+
+            shutil.copy(wav_path, INPUT_DIR)
+
+            # 3. Model işlemleri
+            all_outputs = []
+            total_models = len(selected_models)
+            
+            # Geçici klasörleri temizle
             shutil.rmtree(AUTO_ENSEMBLE_TEMP, ignore_errors=True)
             os.makedirs(AUTO_ENSEMBLE_TEMP, exist_ok=True)
             os.makedirs(AUTO_ENSEMBLE_OUTPUT, exist_ok=True)
 
-            # 3. Her model için işlem yap
-            all_outputs = []
-            total_models = len(selected_models)
-        
             for idx, model in enumerate(selected_models):
-                progress((idx+1)/total_models, f"Processing {model}...")
-            
-                # Model parametrelerini doğrudan belirle
+                progress((idx + 1) / total_models, f"Processing {model}...")
+                
+                # Model adı temizleme
                 clean_model = extract_model_name(model)
+                print(f"Processing audio from: {audio_path} using model: {clean_model}")
+
                 model_type, config_path, start_check_point = "", "", ""
             
-                model_output_dir = os.path.join(AUTO_ENSEMBLE_TEMP, clean_model)
-                os.makedirs(model_output_dir, exist_ok=True)
+                # Ana sekmedeki model seçim mantığını kullan
+                if clean_model == 'VOCALS-InstVocHQ':
+                        model_type = 'mdx23c'
+                        config_path = 'ckpts/config_vocals_mdx23c.yaml'
+                        start_check_point = 'ckpts/model_vocals_mdx23c_sdr_10.17.ckpt'
+                        download_file('https://raw.githubusercontent.com/ZFTurbo/Music-Source-Separation-Training/main/configs/config_vocals_mdx23c.yaml')
+                        download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.0/model_vocals_mdx23c_sdr_10.17.ckpt')
 
-                # Inference komutunu oluştur
+                elif clean_model == 'VOCALS-MelBand-Roformer (by KimberleyJSN)':
+                        model_type = 'mel_band_roformer'
+                        config_path = 'ckpts/config_vocals_mel_band_roformer_kj.yaml'
+                        start_check_point = 'ckpts/MelBandRoformer.ckpt'
+                        download_file('https://raw.githubusercontent.com/ZFTurbo/Music-Source-Separation-Training/main/configs/KimberleyJensen/config_vocals_mel_band_roformer_kj.yaml')
+                        download_file('https://huggingface.co/KimberleyJSN/melbandroformer/resolve/main/MelBandRoformer.ckpt')
+                        conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'VOCALS-BS-Roformer_1297 (by viperx)':
+                        model_type = 'bs_roformer'
+                        config_path = 'ckpts/model_bs_roformer_ep_317_sdr_12.9755.yaml'
+                        start_check_point = 'ckpts/model_bs_roformer_ep_317_sdr_12.9755.ckpt'
+                        download_file('https://raw.githubusercontent.com/ZFTurbo/Music-Source-Separation-Training/main/configs/viperx/model_bs_roformer_ep_317_sdr_12.9755.yaml')
+                        download_file('https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/model_bs_roformer_ep_317_sdr_12.9755.ckpt')
+                        conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'VOCALS-BS-Roformer_1296 (by viperx)':
+                        model_type = 'bs_roformer'
+                        config_path = 'ckpts/model_bs_roformer_ep_368_sdr_12.9628.yaml'
+                        start_check_point = 'ckpts/model_bs_roformer_ep_368_sdr_12.9628.ckpt'
+                        download_file('https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/model_bs_roformer_ep_368_sdr_12.9628.ckpt')
+                        download_file('https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/model_bs_roformer_ep_368_sdr_12.9628.yaml')
+                        conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'VOCALS-BS-RoformerLargev1 (by unwa)':
+                        model_type = 'bs_roformer'
+                        config_path = 'ckpts/config_bsrofoL.yaml'
+                        start_check_point = 'ckpts/BS-Roformer_LargeV1.ckpt'
+                        download_file('https://huggingface.co/jarredou/unwa_bs_roformer/resolve/main/BS-Roformer_LargeV1.ckpt')
+                        download_file('https://huggingface.co/jarredou/unwa_bs_roformer/raw/main/config_bsrofoL.yaml')
+                        conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'VOCALS-Mel-Roformer big beta 4 (by unwa)':
+                        model_type = 'mel_band_roformer'
+                        config_path = 'ckpts/config_melbandroformer_big_beta4.yaml'
+                        start_check_point = 'ckpts/melband_roformer_big_beta4.ckpt'
+                        download_file('https://huggingface.co/pcunwa/Mel-Band-Roformer-big/resolve/main/melband_roformer_big_beta4.ckpt')
+                        download_file('https://huggingface.co/pcunwa/Mel-Band-Roformer-big/raw/main/config_melbandroformer_big_beta4.yaml')
+                        conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'VOCALS-Melband-Roformer BigBeta5e (by unwa)':
+                        model_type = 'mel_band_roformer'
+                        config_path = 'ckpts/big_beta5e.yaml'
+                        start_check_point = 'ckpts/big_beta5e.ckpt'
+                        download_file('https://huggingface.co/pcunwa/Mel-Band-Roformer-big/resolve/main/big_beta5e.ckpt')
+                        download_file('https://huggingface.co/pcunwa/Mel-Band-Roformer-big/resolve/main/big_beta5e.yaml')
+                        conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'INST-Mel-Roformer v1 (by unwa)':
+                        model_type = 'mel_band_roformer'
+                        config_path = 'ckpts/config_melbandroformer_inst.yaml'
+                        start_check_point = 'ckpts/melband_roformer_inst_v1.ckpt'
+                        download_file('https://huggingface.co/pcunwa/Mel-Band-Roformer-Inst/resolve/main/melband_roformer_inst_v1.ckpt')
+                        download_file('https://huggingface.co/pcunwa/Mel-Band-Roformer-Inst/raw/main/config_melbandroformer_inst.yaml')
+                        conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'INST-Mel-Roformer v2 (by unwa)':
+                        model_type = 'mel_band_roformer'
+                        config_path = 'ckpts/config_melbandroformer_inst_v2.yaml'
+                        start_check_point = 'ckpts/melband_roformer_inst_v2.ckpt'
+                        download_file('https://huggingface.co/pcunwa/Mel-Band-Roformer-Inst/resolve/main/melband_roformer_inst_v2.ckpt')
+                        download_file('https://huggingface.co/pcunwa/Mel-Band-Roformer-Inst/raw/main/config_melbandroformer_inst_v2.yaml')
+                        conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'INST-VOC-Mel-Roformer a.k.a. duality (by unwa)':
+                        model_type = 'mel_band_roformer'
+                        config_path = 'ckpts/config_melbandroformer_instvoc_duality.yaml'
+                        start_check_point = 'ckpts/melband_roformer_instvoc_duality_v1.ckpt'
+                        download_file('https://huggingface.co/pcunwa/Mel-Band-Roformer-InstVoc-Duality/resolve/main/melband_roformer_instvoc_duality_v1.ckpt')
+                        download_file('https://huggingface.co/pcunwa/Mel-Band-Roformer-InstVoc-Duality/raw/main/config_melbandroformer_instvoc_duality.yaml')
+                        conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'INST-VOC-Mel-Roformer a.k.a. duality v2 (by unwa)':
+                        model_type = 'mel_band_roformer'
+                        config_path = 'ckpts/config_melbandroformer_instvoc_duality.yaml'
+                        start_check_point = 'ckpts/melband_roformer_instvox_duality_v2.ckpt'
+                        download_file('https://huggingface.co/pcunwa/Mel-Band-Roformer-InstVoc-Duality/resolve/main/melband_roformer_instvox_duality_v2.ckpt')
+                        download_file('https://huggingface.co/pcunwa/Mel-Band-Roformer-InstVoc-Duality/raw/main/config_melbandroformer_instvoc_duality.yaml')
+                        conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'KARAOKE-MelBand-Roformer (by aufr33 & viperx)':
+                        model_type = 'mel_band_roformer'
+                        config_path = 'ckpts/config_mel_band_roformer_karaoke.yaml'
+                        start_check_point = 'ckpts/mel_band_roformer_karaoke_aufr33_viperx_sdr_10.1956.ckpt'
+                        download_file('https://huggingface.co/jarredou/aufr33-viperx-karaoke-melroformer-model/resolve/main/mel_band_roformer_karaoke_aufr33_viperx_sdr_10.1956.ckpt')
+                        download_file('https://huggingface.co/jarredou/aufr33-viperx-karaoke-melroformer-model/resolve/main/config_mel_band_roformer_karaoke.yaml')
+                        conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'OTHER-BS-Roformer_1053 (by viperx)':
+                        model_type = 'bs_roformer'
+                        config_path = 'ckpts/model_bs_roformer_ep_937_sdr_10.5309.yaml'
+                        start_check_point = 'ckpts/model_bs_roformer_ep_937_sdr_10.5309.ckpt'
+                        download_file('https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/model_bs_roformer_ep_937_sdr_10.5309.ckpt')
+                        download_file('https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/model_bs_roformer_ep_937_sdr_10.5309.yaml')
+                        conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'CROWD-REMOVAL-MelBand-Roformer (by aufr33)':
+                        model_type = 'mel_band_roformer'
+                        config_path = 'ckpts/model_mel_band_roformer _crowd.yaml'
+                        start_check_point = 'ckpts/mel_band_roformer_crowd_aufr33_viperx_sdr_8.7144.ckpt'
+                        download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v.1.0.4/mel_band_roformer_crowd_aufr33_viperx_sdr_8.7144.ckpt')
+                        download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v.1.0.4/model_mel_band_roformer_crowd.yaml')
+                        conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'VOCALS-VitLarge23 (by ZFTurbo)':
+                        model_type = 'segm_models'
+                        config_path = 'ckpts/config_vocals_segm_models.yaml'
+                        start_check_point = 'ckpts/model_vocals_segm_models_sdr_9.77.ckpt'
+                        download_file('https://raw.githubusercontent.com/ZFTurbo/Music-Source-Separation-Training/refs/heads/main/configs/config_vocals_segm_models.yaml')
+                        download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.0/model_vocals_segm_models_sdr_9.77.ckpt')
+
+                elif clean_model == 'CINEMATIC-BandIt_Plus (by kwatcharasupat)':
+                        model_type = 'bandit'
+                        config_path = 'ckpts/config_dnr_bandit_bsrnn_multi_mus64.yaml'
+                        start_check_point = 'ckpts/model_bandit_plus_dnr_sdr_11.47.chpt'
+                        download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v.1.0.3/config_dnr_bandit_bsrnn_multi_mus64.yaml')
+                        download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v.1.0.3/model_bandit_plus_dnr_sdr_11.47.chpt')
+
+                elif clean_model == 'DRUMSEP-MDX23C_DrumSep_6stem (by aufr33 & jarredou)':
+                        model_type = 'mdx23c'
+                        config_path = 'ckpts/aufr33-jarredou_DrumSep_model_mdx23c_ep_141_sdr_10.8059.yaml'
+                        start_check_point = 'ckpts/aufr33-jarredou_DrumSep_model_mdx23c_ep_141_sdr_10.8059.ckpt'
+                        download_file('https://github.com/jarredou/models/releases/download/aufr33-jarredou_MDX23C_DrumSep_model_v0.1/aufr33-jarredou_DrumSep_model_mdx23c_ep_141_sdr_10.8059.ckpt')
+                        download_file('https://github.com/jarredou/models/releases/download/aufr33-jarredou_MDX23C_DrumSep_model_v0.1/aufr33-jarredou_DrumSep_model_mdx23c_ep_141_sdr_10.8059.yaml')
+
+                elif clean_model == '4STEMS-SCNet_MUSDB18 (by starrytong)':
+                        model_type = 'scnet'
+                        config_path = 'ckpts/config_musdb18_scnet.yaml'
+                        start_check_point = 'ckpts/scnet_checkpoint_musdb18.ckpt'
+                        download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v.1.0.6/config_musdb18_scnet.yaml')
+                        download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v.1.0.6/scnet_checkpoint_musdb18.ckpt')
+
+                elif clean_model == 'DE-REVERB-MDX23C (by aufr33 & jarredou)':
+                        model_type = 'mdx23c'
+                        config_path = 'ckpts/config_dereverb_mdx23c.yaml'
+                        start_check_point = 'ckpts/dereverb_mdx23c_sdr_6.9096.ckpt'
+                        download_file('https://huggingface.co/jarredou/aufr33_jarredou_MDXv3_DeReverb/resolve/main/dereverb_mdx23c_sdr_6.9096.ckpt')
+                        download_file('https://huggingface.co/jarredou/aufr33_jarredou_MDXv3_DeReverb/resolve/main/config_dereverb_mdx23c.yaml')
+
+                elif clean_model == 'DENOISE-MelBand-Roformer-1 (by aufr33)':
+                        model_type = 'mel_band_roformer'
+                        config_path = 'ckpts/model_mel_band_roformer_denoise.yaml'
+                        start_check_point = 'ckpts/denoise_mel_band_roformer_aufr33_sdr_27.9959.ckpt'
+                        download_file('https://huggingface.co/jarredou/aufr33_MelBand_Denoise/resolve/main/denoise_mel_band_roformer_aufr33_sdr_27.9959.ckpt')
+                        download_file('https://huggingface.co/jarredou/aufr33_MelBand_Denoise/resolve/main/model_mel_band_roformer_denoise.yaml')
+                        conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'DENOISE-MelBand-Roformer-2 (by aufr33)':
+                        model_type = 'mel_band_roformer'
+                        config_path = 'ckpts/model_mel_band_roformer_denoise.yaml'
+                        start_check_point = 'ckpts/denoise_mel_band_roformer_aufr33_aggr_sdr_27.9768.ckpt'
+                        download_file('https://huggingface.co/jarredou/aufr33_MelBand_Denoise/resolve/main/denoise_mel_band_roformer_aufr33_aggr_sdr_27.9768.ckpt')
+                        download_file('https://huggingface.co/jarredou/aufr33_MelBand_Denoise/resolve/main/model_mel_band_roformer_denoise.yaml')
+                        conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'VOCALS-MelBand-Roformer Kim FT (by Unwa)':
+                        model_type = 'mel_band_roformer'
+                        config_path = 'ckpts/config_kimmel_unwa_ft.yaml'
+                        start_check_point = 'ckpts/kimmel_unwa_ft.ckpt'
+                        download_file('https://huggingface.co/pcunwa/Kim-Mel-Band-Roformer-FT/resolve/main/kimmel_unwa_ft.ckpt')
+                        download_file('https://huggingface.co/pcunwa/Kim-Mel-Band-Roformer-FT/resolve/main/config_kimmel_unwa_ft.yaml')
+                        conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'inst_v1e (by unwa)':
+                        model_type = 'mel_band_roformer'
+                        config_path = 'ckpts/config_melbandroformer_inst.yaml'
+                        start_check_point = 'ckpts/inst_v1e.ckpt'
+                        download_file('https://huggingface.co/pcunwa/Mel-Band-Roformer-Inst/resolve/main/inst_v1e.ckpt')
+                        download_file('https://huggingface.co/pcunwa/Mel-Band-Roformer-Inst/resolve/main/config_melbandroformer_inst.yaml')
+                        conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'bleed_suppressor_v1 (by unwa)':
+                        model_type = 'mel_band_roformer'
+                        config_path = 'ckpts/config_bleed_suppressor_v1.yaml'
+                        start_check_point = 'ckpts/bleed_suppressor_v1.ckpt'
+                        download_file('https://shared.multimedia.workers.dev/download/1/other/bleed_suppressor_v1.ckpt')
+                        download_file('https://shared.multimedia.workers.dev/download/1/other/config_bleed_suppressor_v1.yaml')
+                        conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'VOCALS-MelBand-Roformer (by Becruily)':
+                        model_type = 'mel_band_roformer'
+                        config_path = 'ckpts/config_instrumental_becruily.yaml'
+                        start_check_point = 'ckpts/mel_band_roformer_vocals_becruily.ckpt'
+                        download_file('https://huggingface.co/becruily/mel-band-roformer-vocals/resolve/main/config_vocals_becruily.yaml')
+                        download_file('https://huggingface.co/becruily/mel-band-roformer-vocals/resolve/main/mel_band_roformer_vocals_becruily.ckpt')
+                        conf_edit(config_path, chunk_size, overlap)
+                
+                elif clean_model == 'INST-MelBand-Roformer (by Becruily)':
+                        model_type = 'mel_band_roformer'
+                        config_path = 'ckpts/config_instrumental_becruily.yaml'
+                        start_check_point = 'ckpts/mel_band_roformer_instrumental_becruily.ckpt'
+                        download_file('https://huggingface.co/becruily/mel-band-roformer-instrumental/resolve/main/config_instrumental_becruily.yaml')
+                        download_file('https://huggingface.co/becruily/mel-band-roformer-instrumental/resolve/main/mel_band_roformer_instrumental_becruily.ckpt')
+                        conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == '4STEMS-SCNet_XL_MUSDB18 (by ZFTurbo)':
+                        model_type = 'scnet'
+                        config_path = 'ckpts/config_musdb18_scnet_xl.yaml'
+                        start_check_point = 'ckpts/model_scnet_ep_54_sdr_9.8051.ckpt'
+                        download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.13/config_musdb18_scnet_xl.yaml')
+                        download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.13/model_scnet_ep_54_sdr_9.8051.ckpt')
+                        conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == '4STEMS-SCNet_Large (by starrytong)':
+                        model_type = 'scnet'
+                        config_path = 'ckpts/config_musdb18_scnet_large_starrytong.yaml'
+                        start_check_point = 'ckpts/SCNet-large_starrytong_fixed.ckpt'
+                        download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.9/config_musdb18_scnet_large_starrytong.yaml')
+                        download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.9/SCNet-large_starrytong_fixed.ckpt')
+                        conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == '4STEMS-BS-Roformer_MUSDB18 (by ZFTurbo)':
+                      model_type = 'bs_roformer'
+                      config_path = 'ckpts/config_bs_roformer_384_8_2_485100.yaml'
+                      start_check_point = 'ckpts/model_bs_roformer_ep_17_sdr_9.6568.ckpt'
+                      download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.12/config_bs_roformer_384_8_2_485100.yaml')
+                      download_file('https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.12/model_bs_roformer_ep_17_sdr_9.6568.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'DE-REVERB-MelBand-Roformer aggr./v2/19.1729 (by anvuew)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/dereverb_mel_band_roformer_anvuew.yaml'
+                      start_check_point = 'ckpts/dereverb_mel_band_roformer_anvuew_sdr_19.1729.ckpt'
+                      download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_anvuew_sdr_19.1729.ckpt')
+                      download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_anvuew.yaml')
+                      conf_edit(config_path, chunk_size, overlap)
+                      
+                elif clean_model == 'DE-REVERB-Echo-MelBand-Roformer (by Sucial)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/config_dereverb-echo_mel_band_roformer.yaml'
+                      start_check_point = 'ckpts/dereverb-echo_mel_band_roformer_sdr_10.0169.ckpt'
+                      download_file('https://huggingface.co/Sucial/Dereverb-Echo_Mel_Band_Roformer/resolve/main/dereverb-echo_mel_band_roformer_sdr_10.0169.ckpt')
+                      download_file('https://huggingface.co/Sucial/Dereverb-Echo_Mel_Band_Roformer/resolve/main/config_dereverb-echo_mel_band_roformer.yaml')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'dereverb_mel_band_roformer_less_aggressive_anvuew':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/dereverb_mel_band_roformer_anvuew.yaml'
+                      start_check_point = 'ckpts/dereverb_mel_band_roformer_less_aggressive_anvuew_sdr_18.8050.ckpt'
+                      download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_anvuew.yaml')
+                      download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_less_aggressive_anvuew_sdr_18.8050.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'dereverb_mel_band_roformer_anvuew':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'dereverb_mel_band_roformer_anvuew.yaml'
+                      start_check_point = 'ckpts/dereverb_mel_band_roformer_anvuew_sdr_19.1729.ckpt'
+                      download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_anvuew.yaml')
+                      download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_anvuew_sdr_19.1729.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)  
+
+
+                elif clean_model == 'inst_gabox (by Gabox)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/inst_gabox.yaml'
+                      start_check_point = 'ckpts/inst_gabox.ckpt'
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'inst_gaboxBV1 (by Gabox)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/inst_gabox.yaml'
+                      start_check_point = 'ckpts/inst_gaboxBv1.ckpt'
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gaboxBv1.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+
+                elif clean_model == 'inst_gaboxBV2 (by Gabox)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/inst_gabox.yaml'
+                      start_check_point = 'ckpts/inst_gaboxBv2.ckpt'
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gaboxBv2.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)     
+
+
+                elif clean_model == 'inst_gaboxBFV1 (by Gabox)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/inst_gabox.yaml'
+                      start_check_point = 'ckpts/gaboxFv1.ckpt'
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gaboxFv1.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+
+                elif clean_model == 'inst_gaboxFV2 (by Gabox)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/inst_gabox.yaml'
+                      start_check_point = 'ckpts/inst_gaboxFv2.ckpt'
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gaboxFv2.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                
+                elif clean_model == 'VOCALS-Male Female-BS-RoFormer Male Female Beta 7_2889 (by aufr33)':
+                      model_type = 'bs_roformer'
+                      config_path = 'ckpts/config_chorus_male_female_bs_roformer.yaml'
+                      start_check_point = 'ckpts/bs_roformer_male_female_by_aufr33_sdr_7.2889.ckpt'
+                      download_file('https://huggingface.co/RareSirMix/AIModelRehosting/resolve/main/bs_roformer_male_female_by_aufr33_sdr_7.2889.ckpt')
+                      download_file('https://huggingface.co/Sucial/Chorus_Male_Female_BS_Roformer/resolve/main/config_chorus_male_female_bs_roformer.yaml')
+                      conf_edit(config_path, chunk_size, overlap)
+
+
+                elif clean_model == 'VOCALS-MelBand-Roformer Kim FT 2 (by Unwa)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/config_kimmel_unwa_ft.yaml'
+                      start_check_point = 'ckpts/kimmel_unwa_ft2.ckpt'
+                      download_file('https://huggingface.co/pcunwa/Kim-Mel-Band-Roformer-FT/resolve/main/config_kimmel_unwa_ft.yaml')
+                      download_file('https://huggingface.co/pcunwa/Kim-Mel-Band-Roformer-FT/resolve/main/kimmel_unwa_ft2.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)      
+
+                elif clean_model == 'voc_gaboxBSroformer (by Gabox)':
+                      model_type = 'bs_roformer'
+                      config_path = 'ckpts/voc_gaboxBSroformer.yaml'
+                      start_check_point = 'ckpts/voc_gaboxBSR.ckpt'
+                      download_file('https://huggingface.co/GaboxR67/BSRoformerVocTest/resolve/main/voc_gaboxBSroformer.yaml')
+                      download_file('https://huggingface.co/GaboxR67/BSRoformerVocTest/resolve/main/voc_gaboxBSR.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'voc_gaboxMelReformer (by Gabox)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/voc_gabox.yaml'
+                      start_check_point = 'ckpts/voc_gabox.ckpt'
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_gabox.yaml')
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_gabox.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'voc_gaboxMelReformerFV1 (by Gabox)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/voc_gabox.yaml'
+                      start_check_point = 'ckpts/voc_gaboxFv1.ckpt'
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_gabox.yaml')
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_gaboxFv1.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'voc_gaboxMelReformerFV2 (by Gabox)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/voc_gabox.yaml'
+                      start_check_point = 'ckpts/voc_gaboxFv2.ckpt'
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_gabox.yaml')
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_gaboxFv2.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'inst_GaboxFv3 (by Gabox)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/inst_gabox.yaml'
+                      start_check_point = 'ckpts/inst_gaboxFv3.ckpt'
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gaboxFv3.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'Intrumental_Gabox (by Gabox)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/inst_gabox.yaml'
+                      start_check_point = 'ckpts/intrumental_gabox.ckpt'
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/intrumental_gabox.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'inst_Fv4Noise (by Gabox)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/inst_gabox.yaml'
+                      start_check_point = 'ckpts/inst_Fv4Noise.ckpt'
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_Fv4Noise.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'inst_V5 (by Gabox)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/inst_gabox.yaml'
+                      start_check_point = 'ckpts/INSTV5.ckpt'
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/INSTV5.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'SYH99999/MelBandRoformerSYHFTB1_Model1 (by Amane)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/config.yaml'
+                      start_check_point = 'ckpts/model.ckpt'
+                      download_file('https://huggingface.co/SYH99999/MelBandRoformerSYHFTB1/resolve/main/config.yaml')
+                      download_file('https://huggingface.co/SYH99999/MelBandRoformerSYHFTB1/resolve/main/model.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'SYH99999/MelBandRoformerSYHFTB1_Model2 (by Amane)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/config.yaml'
+                      start_check_point = 'ckpts/model2.ckpt'
+                      download_file('https://huggingface.co/SYH99999/MelBandRoformerSYHFTB1/resolve/main/config.yaml')
+                      download_file('https://huggingface.co/SYH99999/MelBandRoformerSYHFTB1/resolve/main/model2.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'SYH99999/MelBandRoformerSYHFTB1_Model3 (by Amane)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/config.yaml'
+                      start_check_point = 'ckpts/model3.ckpt'
+                      download_file('https://huggingface.co/SYH99999/MelBandRoformerSYHFTB1/resolve/main/config.yaml')
+                      download_file('https://huggingface.co/SYH99999/MelBandRoformerSYHFTB1/resolve/main/model3.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'VOCALS-MelBand-Roformer Kim FT 2 Blendless (by unwa)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/config_kimmel_unwa_ft.yaml'
+                      start_check_point = 'ckpts/kimmel_unwa_ft2_bleedless.ckpt'
+                      download_file('https://huggingface.co/pcunwa/Kim-Mel-Band-Roformer-FT/resolve/main/config_kimmel_unwa_ft.yaml')
+                      download_file('https://huggingface.co/pcunwa/Kim-Mel-Band-Roformer-FT/resolve/main/kimmel_unwa_ft2_bleedless.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'inst_gaboxFV1 (by Gabox)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/inst_gabox.yaml'
+                      start_check_point = 'ckpts/inst_gaboxFv1.ckpt'
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gaboxFv1.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'inst_gaboxFV6 (by Gabox)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/inst_gabox.yaml'
+                      start_check_point = 'ckpts/INSTV6.ckpt'
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/INSTV6.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'denoisedebleed (by Gabox)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/model_mel_band_roformer_denoise.yaml'
+                      start_check_point = 'ckpts/denoisedebleed.ckpt'
+                      download_file('https://huggingface.co/poiqazwsx/melband-roformer-denoise/resolve/main/model_mel_band_roformer_denoise.yaml')
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/denoisedebleed.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'INSTV5N (by Gabox)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/inst_gabox.yaml'
+                      start_check_point = 'ckpts/INSTV5N.ckpt'
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/INSTV5N.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'Voc_Fv3 (by Gabox)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/voc_gabox.yaml'
+                      start_check_point = 'ckpts/voc_Fv3.ckpt'
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_gabox.yaml')
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_Fv3.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'MelBandRoformer4StemFTLarge (SYH99999)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/config.yaml'
+                      start_check_point = 'ckpts/MelBandRoformer4StemFTLarge.ckpt'
+                      download_file('https://huggingface.co/SYH99999/MelBandRoformer4StemFTLarge/resolve/main/config.yaml')
+                      download_file('https://huggingface.co/SYH99999/MelBandRoformer4StemFTLarge/resolve/main/MelBandRoformer4StemFTLarge.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'dereverb_mel_band_roformer_mono (by anvuew)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/dereverb_mel_band_roformer_anvuew.yaml'
+                      start_check_point = 'ckpts/dereverb_mel_band_roformer_mono_anvuew_sdr_20.4029.ckpt'
+                      download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_anvuew.yaml')
+                      download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_mono_anvuew_sdr_20.4029.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                # Tüm diğer model koşulları buraya aynı girinti seviyesinde eklenmeli
+                # ... [Diğer model koşulları] ...
+
+                else:
+                    print(f"Unsupported model: {clean_model}")
+                    continue
+
+                # Model çıktı klasörü
+                model_output_dir = os.path.join(AUTO_ENSEMBLE_TEMP, clean_model)
+                os.makedirs(AUTO_ENSEMBLE_TEMP, exist_ok=True)
+
+                # Ana sekme komut yapısını kullan
                 cmd = [
-                    "python",
-                    INFERENCE_SCRIPT_PATH,
-                    "--model_type", str(model_type),
-                    "--config_path", str(config_path),
-                    "--start_check_point", str(start_check_point),
-                    "--audio_path", str(audio_path),
-                    "--store_dir", str(model_output_dir),
-                    "--chunk_size", str(chunk_size),
-                    "--overlap", str(overlap)
+                    "python", 
+                    "inference.py",
+                    "--model_type", model_type,
+                    "--config_path", config_path,
+                    "--start_check_point", start_check_point,
+                    "--input_folder", INPUT_DIR,
+                    "--store_dir", AUTO_ENSEMBLE_TEMP,
+                    "--audio_path", wav_path  # WAV dosyasının yolunu kullan
                 ]
-            
-                # Komutu çalıştır
-                subprocess.run(cmd, check=True)
-            
-                # Çıktı dosyalarını topla
-                model_outputs = glob.glob(os.path.join(model_output_dir, "*.wav"))
+
+                if use_tta:
+                    cmd.append("--use_tta")
+                if extract_instrumental:
+                    cmd.append("--extract_instrumental")
+
+                # Hata yakalama ile çalıştırma
+                try:
+                    result = subprocess.run(cmd, capture_output=True, text=True)
+                    print(result.stdout)
+                    if result.returncode != 0:
+                        print(f"Error: {result.stderr}")
+                        return None, f"Model {model} failed: {result.stderr}"
+                except Exception as e:
+                    return None, f"Critical error with {model}: {str(e)}"
+                
+                # Çıktıları topla
+                model_outputs = glob.glob(os.path.join(AUTO_ENSEMBLE_TEMP, "*.wav"))
                 all_outputs.extend(model_outputs)
 
             # 4. Ensemble işlemi
             if len(all_outputs) < 2:
                 return None, "At least 2 models required for ensemble"
 
-            ensemble_output_path = os.path.join(AUTO_ENSEMBLE_OUTPUT, "auto_ensemble_result.wav")
+            ensemble_output_path = os.path.join(AUTO_ENSEMBLE_OUTPUT, f"ensemble_{int(time.time())}.wav")
             ensemble_cmd = [
-                "python",
-                "/content/Music-Source-Separation-Training/ensemble.py",
-                "--files"
-            ] + all_outputs + [
+                "python", "ensemble.py",
+                "--files", *all_outputs,
                 "--type", ensemble_type,
                 "--output", ensemble_output_path
             ]
@@ -1418,112 +2069,284 @@ def create_interface():
         finally:
             shutil.rmtree(AUTO_ENSEMBLE_TEMP, ignore_errors=True)
             gc.collect()
-            torch.cuda.empty_cache()
+            torch.cuda.empty_cache()      
 
+    main_input_key = "shared_audio_input"
+    # Global components
+    input_audio_file = gr.File(visible=True)
+    auto_input_audio_file = gr.File(visible=True)
+    original_audio = gr.Audio(visible=True)
+    
     with gr.Blocks() as demo:
         gr.Markdown("# 🎵 Music Source Separation Tool")
 
         with gr.Tabs():
+            # Ses Ayırma Sekmesi
             with gr.Tab("Audio Separation"):
                 with gr.Row():
                     with gr.Column(scale=1):
-                        input_audio_file = gr.File(label="Upload Audio File", type="filepath")
-                        input_audio_path = gr.Textbox(label="Or Enter Audio File Path", placeholder="e.g., /content/Music-Source-Separation-Training/input/audio.wav")
+                        input_audio_file.render()
+                        input_audio_path = gr.Textbox(
+                            label="Or Enter Audio File Path", 
+                            placeholder="e.g., /content/input/audio.wav",
+                            key=main_input_key
+                        )
 
                         model_category = gr.Dropdown(
                             label="Model Category",
-                            choices=list(model_choices.keys())
+                            choices=list(model_choices.keys()),
+                            value="Vocal Separation"
                         )
 
-                        model_dropdown = gr.Dropdown(label="Select Model")
+                        model_dropdown = gr.Dropdown(
+                            label="Select Model",
+                            interactive=True
+                        )
 
                         overlap = gr.Slider(
                             label="Overlap",
-                            info="It's usually between 5 and 2. Change it if you want something different.",
                             minimum=2,
                             maximum=50,
                             step=1,
-                            value=2
+                            value=2,
+                            info="Recommended: 2-10 (Higher values increase quality but require more VRAM)"
                         )
-
-                    model_category.change(
-                        fn=update_models,
-                        inputs=model_category,
-                        outputs=model_dropdown
-                    )
 
                     with gr.Column(scale=1):
                         chunk_size = gr.Dropdown(
                             label="Chunk Size",
-                            info="Don't touch this.",
+                            choices=[352800, 485100],
+                            value=352800,
+                            info="Don't change unless you have specific requirements"
+                        )
+
+                        with gr.Accordion("Advanced Settings", open=False):
+                            use_tta = gr.Checkbox(label="Use TTA (Test Time Augmentation)", value=False)
+                            use_demud_phaseremix_inst = gr.Checkbox(label="Enable Demucs Phase Remix")
+                            extract_instrumental = gr.Checkbox(label="Extract Instrumental Version")
+
+                        export_format = gr.Dropdown(
+                            label="Output Format",
+                            choices=['wav FLOAT', 'flac PCM_16', 'flac PCM_24'],
+                            value='wav FLOAT'
+                        )
+
+                        process_btn = gr.Button("🚀 Start Processing", variant="primary")
+                        clear_old_output_btn = gr.Button("🧹 Clear Outputs")
+                        clear_old_output_status = gr.Textbox(label="Status", interactive=False)
+
+                        with gr.Column():
+                            original_audio = gr.Audio(label="original_audio", show_download_button=True)
+                            with gr.Tabs():
+                                with gr.Tab("Vocals"):
+                                    vocals_audio = gr.Audio(label="", show_download_button=True)
+                                with gr.Tab("Instrumental"):
+                                    instrumental_audio = gr.Audio(label="", show_download_button=True)
+                                with gr.Tab("Advanced"):
+                                    phaseremix_audio = gr.Audio(label="Phase Remix")
+                                    drum_audio = gr.Audio(label="Drums")
+                                    bass_audio = gr.Audio(label="Bass")
+                                    other_audio = gr.Audio(label="Other")
+                                    effects_audio = gr.Audio(label="Effects")
+                                    speech_audio = gr.Audio(label="Speech")
+                                    music_audio = gr.Audio(label="Music")
+                                    dry_audio = gr.Audio(label="Dry")
+                                    male_audio = gr.Audio(label="Male")
+                                    female_audio = gr.Audio(label="Female")
+
+            # Oto Ensemble Sekmesi
+            with gr.Tab("Auto Ensemble"):
+                with gr.Row():
+                    with gr.Column():
+                        auto_input_audio_file.render()
+                        auto_input_audio_path = gr.Textbox(
+                            label="Or Enter Audio File Path", 
+                            placeholder="e.g., /content/input/audio.wav",
+                            key=main_input_key
+                        )
+                        
+
+                        with gr.Accordion("Advanced Settings", open=False):
+                            auto_use_tta = gr.Checkbox(label="Use TTA (Test Time Augmentation)", value=False)
+                            auto_extract_instrumental = gr.Checkbox(label="Extract Instrumental Version")
+                            auto_overlap = gr.Slider(
+                            label="Overlap",
+                            minimum=2,
+                            maximum=50,
+                            value=2,
+                            step=1
+                        )
+                            
+                            auto_chunk_size = gr.Dropdown(
+                            label="Chunk Size",
                             choices=[352800, 485100],
                             value=352800
                         )
 
-                        use_tta = gr.Checkbox(
-                            label="Use TTA",
-                            info="Test Time Augmentation: It improves the prediction performance of the model. It also increases the processing time."
-                        )
-             
-                        use_demud_phaseremix_inst = gr.Checkbox(
-                            label="Use Demud Phaseremix Inst",
-                            info="Enable Demud Phaseremix for instrumental separation."
-                        )
-
-                        extract_instrumental = gr.Checkbox(
-                            label="Extract Instrumental",
-                            info="If you turn it off, it will give 1 of vocal or instrumental.",
-                            value=False
-                        )
-
-                        export_format = gr.Dropdown(
-                            label="Export Format",
-                            choices=[
-                                'wav FLOAT',
-                                'flac PCM_16',
-                                'flac PCM_24'
-                            ],
+                            export_format = gr.Dropdown(
+                            label="Output Format",
+                            choices=['wav FLOAT', 'flac PCM_16', 'flac PCM_24'],
                             value='wav FLOAT'
                         )
 
-                        process_btn = gr.Button("Process Audio")
 
-                        clear_old_output_btn = gr.Button("Clear Old Output Folder")
-                        clear_old_output_status = gr.Textbox(label="Status", interactive=False)
-
-                        def clear_old_output_fn():
-                            try:
-                                clear_old_output()
-                                return "Old output folder cleared successfully."
-                            except Exception as e:
-                                return f"Error clearing old output folder: {str(e)}"
-
-                        clear_old_output_btn.click(
-                            fn=clear_old_output_fn,
-                            outputs=clear_old_output_status
+                        auto_category_dropdown = gr.Dropdown(
+                            label="Model Category",
+                            choices=list(model_choices.keys()),
+                            value="Vocal Separation"
                         )
 
-                        with gr.Column():
-                            original_audio = gr.Audio(label="Original Audio")
-                            vocals_audio = gr.Audio(label="Vocals")
-                            instrumental_audio = gr.Audio(label="Instrumental")
-                            phaseremix_audio = gr.Audio(label="phaseremix")
-                            drum_audio = gr.Audio(label="Drum")
-                            bass_audio = gr.Audio(label="Bass")
-                            other_audio = gr.Audio(label="Other")
-                            effects_audio = gr.Audio(label="Effects")
-                            speech_audio = gr.Audio(label="Speech")
-                            music_audio = gr.Audio(label="Music")
-                            dry_audio = gr.Audio(label="Dry")
-                            male_audio = gr.Audio(label="Male")
-                            female_audio = gr.Audio(label="Female")
-                            
+                        # Model seçimi (tek seferde)
+                        auto_model_dropdown = gr.Dropdown(
+                            label="Select Models from Category",
+                            choices=model_choices["Vocal Separation"],
+                            multiselect=True,
+                            max_choices=50,
+                            interactive=True
+                        )
+
+                        # Seçilen modellerin listesi (ayrı kutucuk)
+                        selected_models = gr.Dropdown(
+                            label="Selected Models",
+                            choices=[],
+                            multiselect=True,
+                            interactive=False  # Kullanıcı buraya direkt seçim yapamaz
+                        )
+
+                        auto_ensemble_type = gr.Dropdown(
+                            label="Ensemble Method",
+                            choices=['avg_wave', 'median_wave', 'min_wave', 'max_wave',
+                                   'avg_fft', 'median_fft', 'min_fft', 'max_fft'],
+                            value='avg_wave',
+                            info="my recommendation is avg_wave and max_fft"
+                        )
+                        
+                        auto_weights = gr.Textbox(
+                            label="Model Weights (comma separated)",
+                            placeholder="e.g., 1.0, 0.8, 1.2",
+                            info="Leave blank for equal weights"
+                        )
+
+                        # Butonlar
+                        with gr.Row():
+                            add_btn = gr.Button("➕ Add Selected", variant="secondary")
+                            clear_btn = gr.Button("🗑️ Clear All", variant="stop")
+
+                        # Etkileşimler
+                        def update_models(category):
+                            return gr.Dropdown(choices=model_choices[category])
+
+                        def add_models(new_models, existing_models):
+                            updated = list(set(existing_models + new_models))
+                            return gr.Dropdown(choices=updated, value=updated)
+
+                        def clear_models():
+                            return gr.Dropdown(choices=[], value=[])
+
+                        auto_category_dropdown.change(
+                            fn=update_models,
+                            inputs=auto_category_dropdown,
+                            outputs=auto_model_dropdown
+                        )
+
+                        add_btn.click(
+                            fn=add_models,
+                            inputs=[auto_model_dropdown, selected_models],
+                            outputs=selected_models
+                        )
+
+                        clear_btn.click(
+                            fn=clear_models,
+                            inputs=[],
+                            outputs=selected_models
+                        )
+                      
+                        
+                        auto_process_btn = gr.Button("🎛️ Start Ensemble", variant="primary")
+
+                    with gr.Column():
+                            with gr.Tabs():
+                                with gr.Tab("Original Audio"):
+                                    original_audio2 = gr.Audio(label="original_audio", show_download_button=True)
+                                with gr.Tab("Ensembled Result"):
+                                    auto_output_audio = gr.Audio(label="Ensembled Result", show_download_button=True)
+
+                            auto_status = gr.Textbox(label="Processing Status", interactive=False)            
+                        
+
+            # İndirme Sekmesi
+            with gr.Tab("Download Sources"):
+                with gr.Row():
+                    with gr.Column():
+                        gr.Markdown("### 🗂️ Cloud Storage")
+                        drive_url_input = gr.Textbox(label="Google Drive Shareable Link")
+                        drive_download_btn = gr.Button("⬇️ Download from Drive", variant="secondary")
+                        drive_download_status = gr.Textbox(label="Download Status")
+                        drive_download_output = gr.File(label="Downloaded File", interactive=False)
+
+                    with gr.Column():
+                        gr.Markdown("### 🌐 Direct Links")
+                        direct_url_input = gr.Textbox(label="Audio File URL")
+                        direct_download_btn = gr.Button("⬇️ Download from URL", variant="secondary")
+                        direct_download_status = gr.Textbox(label="Download Status")
+                        direct_download_output = gr.File(label="Downloaded File", interactive=False)
+
+                    with gr.Column():
+                        gr.Markdown("### 🍪 Cookie Management")
+                        cookie_file = gr.File(
+                            label="Upload Cookies.txt",
+                            file_types=[".txt"],
+                            interactive=True,
+                            elem_id="cookie_upload"
+                        )
+                        gr.Markdown("""
+                        <div style="margin-left:15px; font-size:0.95em">
+                        
+                        **📌 Why Needed?**  
+                        - Access age-restricted content  
+                        - Download private/unlisted videos  
+                        - Bypass regional restrictions  
+                        - Avoid YouTube download limits  
+
+                        **⚠️ Important Notes**  
+                        - NEVER share your cookie files!  
+                        - Refresh cookies when:  
+                          • Getting "403 Forbidden" errors  
+                          • Downloads suddenly stop  
+                          • Seeing "Session expired" messages  
+
+                        **🔄 Renewal Steps**  
+                        1. Install this <a href="https://chromewebstore.google.com/detail/get-cookiestxt-clean/ahmnmhfbokciafffnknlekllgcnafnie" target="_blank">Chrome extension</a>  
+                        2. Login to YouTube in Chrome  
+                        3. Click extension icon → "Export"  
+                        4. Upload the downloaded file here  
+
+                        **⏳ Cookie Lifespan**  
+                        - Normal sessions: 24 hours  
+                        - Sensitive operations: 1 hour  
+                        - Password changes: Immediate invalidation  
+
+                        </div>
+                        """)
+
+
+                        # Event handlers
+                        model_category.change(
+                            fn=update_models,
+                            inputs=model_category,
+                            outputs=model_dropdown
+                        )
+
+                        clear_old_output_btn.click(
+                            fn=lambda: ("Old output folder cleared successfully!",),
+                            outputs=clear_old_output_status
+                        )
 
                         process_btn.click(
                             fn=process_audio,
                             inputs=[
-                                input_audio_file,  # Yüklenen dosya
-                                input_audio_path,  # Dosya yolu
+                                input_audio_file,
+                                input_audio_path,
                                 model_dropdown,
                                 chunk_size,
                                 overlap,
@@ -1535,129 +2358,53 @@ def create_interface():
                                 gr.State(None)
                             ],
                             outputs=[
-                                vocals_audio,
-                                instrumental_audio,
-                                phaseremix_audio,
-                                drum_audio,
-                                bass_audio,
-                                other_audio,
-                                effects_audio,
-                                speech_audio,
-                                music_audio,
-                                dry_audio,
-                                male_audio,
-                                female_audio
-                                
+                                vocals_audio, instrumental_audio, phaseremix_audio,
+                                drum_audio, bass_audio, other_audio, effects_audio,
+                                speech_audio, music_audio, dry_audio, male_audio, female_audio
                             ]
                         )
 
-
-
-            
-            with gr.Tab("Audio, File Download"):
-                gr.Markdown("## 🔗 Audio File Download")
-
-                with gr.Row():
-                    with gr.Column():
-                        gr.Markdown("### 📂 Google Drive Download")
-                        drive_url_input = gr.Textbox(label="Google Drive Link")
-                        drive_download_btn = gr.Button("Download")
-                        drive_download_status = gr.Textbox(label="Status")
-                        drive_download_output = gr.File(label="Downloaded File")
-
-                    with gr.Column():
-                        gr.Markdown("### 🌐 Direct URL Download")
-                        direct_url_input = gr.Textbox(label="Direct URL")
-                        direct_download_btn = gr.Button("Download")
-                        direct_download_status = gr.Textbox(label="Status")
-                        direct_download_output = gr.File(label="Downloaded File")
-
-                drive_download_btn.click(
-                    fn=download_callback,
-                    inputs=[drive_url_input, gr.State('drive')],
-                    outputs=[drive_download_output, drive_download_status, input_audio_file, original_audio]
-                )
-
-                direct_download_btn.click(
-                    fn=download_callback,
-                    inputs=[direct_url_input, gr.State('direct')],
-                    outputs=[direct_download_output, direct_download_status, input_audio_file, original_audio]
-                )
-
-            with gr.Tab("Auto Ensemble"):
-                gr.Markdown("# 🤖 Automatic Ensemble Pipeline")
-            
-                with gr.Row():
-                    with gr.Column():
-                        auto_audio_input = gr.Audio(label="Input Audio", type="filepath")
-                        auto_model_select = gr.Dropdown(
-                             label="Select Models",
-                             choices=model_choices["Vocal Separation"] + model_choices["Instrumental Separation"],
-                             multiselect=True,
-                             max_choices=50
-                        )
-                    
-                        auto_chunk_size = gr.Dropdown(
-                             label="Chunk Size",
-                             choices=[352800, 485100],
-                             value=352800
-                        )
-                    
-                        auto_overlap = gr.Slider(
-                            label="Overlap",
-                            minimum=2,
-                            maximum=50,
-                            value=2,
-                            step=1
+                        drive_download_btn.click(
+                            fn=download_callback,
+                            inputs=[drive_url_input, gr.State('drive')],
+                            outputs=[
+                                drive_download_output,  # 0. Dosya çıktısı
+                                drive_download_status,  # 1. Durum mesajı
+                                input_audio_file,       # 2. Ana ses dosyası girişi
+                                auto_input_audio_file,  # 3. Oto ensemble girişi
+                                original_audio,         # 4. Orijinal ses çıktısı
+                                original_audio2 
+                            ]
                         )
 
-                        auto_use_tta = gr.Checkbox(
-                            label="Use TTA",
-                            info="Test Time Augmentation: It improves the prediction performance of the model. It also increases the processing time."
+                        direct_download_btn.click(
+                            fn=download_callback,
+                            inputs=[direct_url_input, gr.State('direct'), cookie_file],
+                            outputs=[
+                                direct_download_output,  # 0. Dosya çıktısı
+                                direct_download_status,  # 1. Durum mesajı
+                                input_audio_file,        # 2. Ana ses dosyası girişi
+                                auto_input_audio_file,   # 3. Oto ensemble girişi
+                                original_audio,           # 4. Orijinal ses çıktısı
+                                original_audio2 
+                            ]
                         )
-             
 
-                        auto_extract_instrumental = gr.Checkbox(
-                            label="Extract Instrumental",
-                            info="If you turn it off, it will give 1 of vocal or instrumental.",
-                            value=False
-                        )          
-                    
-                        auto_ensemble_type = gr.Dropdown(
-                             label="Ensemble Algorithm",
-                             choices=['avg_wave', 'median_wave', 'min_wave', 'max_wave',
-                                    'avg_fft', 'median_fft', 'min_fft', 'max_fft'],
-                             value='avg_wave'
+                        auto_process_btn.click(
+                            fn=auto_ensemble_process,
+                            inputs=[
+                                auto_input_audio_file,
+                                auto_input_audio_path,
+                                selected_models,
+                                auto_chunk_size,
+                                auto_overlap,
+                                auto_use_tta,
+                                auto_extract_instrumental,
+                                auto_ensemble_type,
+                                auto_weights
+                            ],
+                            outputs=[auto_output_audio, auto_status]
                         )
-                    
-                        auto_weights = gr.Textbox(
-                             label="Weights (comma separated)",
-                             placeholder="e.g., 1.0, 0.8, 1.2"
-                        )
-                    
-                        auto_process_btn = gr.Button("Start Auto Ensemble")
-                
-                    with gr.Column():
-                        auto_output_audio = gr.Audio(label="Ensembled Result")
-                        auto_status = gr.Textbox(label="Processing Status")
-            
-                auto_process_btn.click(
-                    fn=auto_ensemble_process,
-                    inputs=[
-                         auto_audio_input,
-                         auto_model_select,
-                         auto_chunk_size,
-                         auto_overlap,
-                         auto_use_tta,
-                         auto_extract_instrumental,
-                         auto_ensemble_type,
-                         auto_weights,
-                         gr.State(None),
-                         gr.State(None),
-                         gr.State(None)
-                    ],
-                    outputs=[auto_output_audio, auto_status]
-                )
 
             
             with gr.Tab("Audio Ensemble"):
