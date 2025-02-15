@@ -2122,7 +2122,7 @@ def create_interface():
 
                         with gr.Accordion("Advanced Settings", open=False):
                             use_tta = gr.Checkbox(label="Use TTA (Test Time Augmentation)", value=False)
-                            use_demud_phaseremix_inst = gr.Checkbox(label="Enable Demucs Phase Remix")
+                            use_demud_phaseremix_inst = gr.Checkbox(label="Enable Demud Phase Remix")
                             extract_instrumental = gr.Checkbox(label="Extract Instrumental Version")
 
                         export_format = gr.Dropdown(
