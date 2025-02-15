@@ -188,7 +188,7 @@ def download_callback(url, download_type='direct', cookie_file=None):
                     
                     # Dosya varlık kontrolü
                     if not os.path.exists(wav_path):
-                        raise FileNotFoundError("WAV dönüşümü başarısız")
+                        raise FileNotFoundError("WAV conversion failed")
                         
                     print(f"✅ Downloaded successfully: {wav_path}")
                     break
