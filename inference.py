@@ -1,25 +1,28 @@
-
 # coding: utf-8
 __author__ = 'Roman Solovyev (ZFTurbo): https://github.com/ZFTurbo/'
 
 import argparse
 import time
 import librosa
-from tqdm.auto import tqdm
 import sys
 import os
 import glob
 import torch
 import soundfile as sf
+import numpy as np
+from tqdm.auto import tqdm
 import torch.nn as nn
+from typing import Dict, Union
 
+# Using the embedded version of Python can also correctly import the utils module.
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
-from utils import demix, get_model_from_config, normalize_audio, denormalize_audio
+from utils import demix, get_model_from_config, normalize_audio, denormalize_audio, draw_spectrogram
 from utils import prefer_target_instrument, apply_tta, load_start_checkpoint
 
 import warnings
+
 warnings.filterwarnings("ignore")
 
 
