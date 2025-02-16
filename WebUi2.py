@@ -1,3 +1,4 @@
+from enum import auto
 
 import os
 
@@ -49,18 +50,20 @@ os.makedirs('/content/Music-Source-Separation-Training/auto_ensemble_temp', exis
 
 def clear_old_output():
     old_output_folder = os.path.join(BASE_PATH, 'old_output')
+    try:
+        if not os.path.exists(old_output_folder):
+            return "❌ Old output folder does not exist"
+        
+        # Tüm dosya ve alt klasörleri sil
+        shutil.rmtree(old_output_folder)
+        os.makedirs(old_output_folder, exist_ok=True)
+        
+        return "✅ Old outputs successfully cleared!"
     
-    # Eğer klasör yoksa, hiçbir şey yapma
-    if not os.path.exists(old_output_folder):
-        print("Old output folder does not exist.")
-        return
-    
-    # Klasördeki tüm dosyaları sil
-    for filename in os.listdir(old_output_folder):
-        file_path = os.path.join(old_output_folder, filename)
-        if os.path.isfile(file_path):
-            os.remove(file_path)
-            print(f"Deleted: {file_path}")
+    except Exception as e:
+        error_msg = f"🔥 Error: {str(e)}"
+        print(error_msg)
+        return error_msg
     
     print("All files in old_output have been deleted.")
 
@@ -114,111 +117,107 @@ import requests
 def download_callback(url, download_type='direct', cookie_file=None):
     try:
         # 1. TEMİZLİK VE KLASÖR HAZIRLIĞI
-        base_path = "/content"
-        input_path = os.path.join(base_path, "Music-Source-Separation-Training/input")
-        cookie_path = os.path.join(base_path, "cookies.txt")
+        BASE_PATH = "/content/Music-Source-Separation-Training"
+        INPUT_DIR = os.path.join(BASE_PATH, "input")
+        COOKIE_PATH = os.path.join(BASE_PATH, "cookies.txt")
         
+        # Input klasörünü temizle ve yeniden oluştur
         clear_input_folder()
-        os.makedirs(input_path, exist_ok=True)
+        os.makedirs(INPUT_DIR, exist_ok=True)
 
         # 2. URL DOĞRULAMA
         if not validators.url(url):
             return None, "❌ Invalid URL", None, None, None, None
 
-        # 3. GELİŞMİŞ COOKIE YÖNETİMİ
+        # 3. COOKIE YÖNETİMİ
         if cookie_file is not None:
             try:
                 with open(cookie_file.name, "rb") as f:
                     cookie_content = f.read()
-                with open(cookie_path, "wb") as f:
+                with open(COOKIE_PATH, "wb") as f:
                     f.write(cookie_content)
-                print("✅ Cookie file updated successfully!")
+                print("✅ Cookie file updated!")
             except Exception as e:
                 print(f"⚠️ Cookie installation error: {str(e)}")
 
-        # 4. GÜNCELLENMİŞ YT-DLP KONFİGÜRASYONU
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'outtmpl': os.path.join(input_path, '%(title)s.%(ext)s'),
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'wav',
-                'preferredquality': '0',
-                'nopostoverwrites': True  # Dosya çakışmalarını önle
-            }],
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-                'Referer': 'https://www.youtube.com/',
-                'X-YouTube-Client-Name': '3',
-                'X-YouTube-Client-Version': '2.20240710.06.00'
-            },
-            'cookiefile': cookie_path if os.path.exists(cookie_path) else None,
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['android', 'web'],
-                    'player_skip': ['configs', 'webpage'],
-                    'age_gate': 'bypass',
-                    'data_sync_id': 'CgtySzR0d0JjN3JZRSjLq5WGBg%3D%3D'  # Gerekli parametre
-                }
-            },
-            'geo_bypass': True,
-            'geo_bypass_country': 'US',
-            'retries': 10,
-            'fragment_retries': 10,
-            'nocheckcertificate': True,
-            'verbose': False,
-            'ignoreerrors': False
-        }
+        wav_path = None
+        download_success = False
 
-        # 5. GELİŞMİŞ İNDİRME MEKANİZMASI
-        download_strategies = [
-            {'player_client': ['android', 'web'], 'country': 'US'},
-            {'player_client': ['tv_embedded', 'mweb'], 'country': 'DE'},
-            {'player_client': ['ios', 'web'], 'country': 'FR'}
-        ]
-
-        for attempt, strategy in enumerate(download_strategies, 1):
-            try:
-                print(f"🔧 Deneme {attempt}/3: {strategy}")
-                ydl_opts['extractor_args']['youtube'].update(strategy)
-                
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    info = ydl.extract_info(url, download=True)
-                    wav_path = ydl.prepare_filename(info).replace('.webm', '.wav').replace('.mp4', '.wav')
-                    
-                    # Dosya varlık kontrolü
-                    if not os.path.exists(wav_path):
-                        raise FileNotFoundError("WAV conversion failed")
-                        
-                    print(f"✅ Downloaded successfully: {wav_path}")
-                    break
-
-            except yt_dlp.utils.DownloadError as e:
-                error_msg = str(e)
-                if "403" in error_msg:
-                    return None, "🔑 Session expired! Please refresh cookies", None, None, None, None
-                elif "PO Token" in error_msg:
-                    return None, "⚠️ Valid PO Token required", None, None, None, None
-                if attempt == 3:
-                    return None, f"⛔ Last error: {error_msg}", None, None, None, None
-                time.sleep(2 ** attempt)
-
-        # 6. GOOGLE DRIVE DESTEĞİ
+        # 4. İNDİRME TÜRÜNE GÖRE İŞLEM
         if download_type == 'drive':
-            file_id = re.search(r'/d/([^/]+)', url).group(1) if '/d/' in url else url.split('id=')[-1]
-            drive_path = os.path.join(input_path, "drive_download.wav")
-            gdown.download(f'https://drive.google.com/uc?id={file_id}', drive_path, quiet=True)
-            wav_path = drive_path if os.path.exists(drive_path) else wav_path
+            # GOOGLE DRIVE İNDİRME
+            try:
+                file_id = re.search(r'/d/([^/]+)', url).group(1) if '/d/' in url else url.split('id=')[-1]
+                original_filename = "drive_download.wav"
+                
+                # Gdown ile indirme
+                output_path = os.path.join(INPUT_DIR, original_filename)
+                gdown.download(
+                    f'https://drive.google.com/uc?id={file_id}',
+                    output_path,
+                    quiet=True,
+                    fuzzy=True
+                )
+                
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                    wav_path = output_path
+                    download_success = True
+                    print(f"✅ Downloaded from Google Drive: {wav_path}")
+                else:
+                    raise Exception("File size zero or file not created")
 
-        # 7. SON KONTROLLER
-        if wav_path and os.path.exists(wav_path):
+            except Exception as e:
+                error_msg = f"❌ Google Drive download error: {str(e)}"
+                print(error_msg)
+                return None, error_msg, None, None, None, None
+
+        else:
+            # YOUTUBE/DİREKT LİNK İNDİRME
+            ydl_opts = {
+                'format': 'bestaudio/best',
+                'outtmpl': os.path.join(INPUT_DIR, '%(title)s.%(ext)s'),
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'wav',
+                    'preferredquality': '0'
+                }],
+                'cookiefile': COOKIE_PATH if os.path.exists(COOKIE_PATH) else None,
+                'nocheckcertificate': True,
+                'ignoreerrors': True,
+                'retries': 3
+            }
+
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info_dict = ydl.extract_info(url, download=True)
+                    temp_path = ydl.prepare_filename(info_dict)
+                    wav_path = os.path.splitext(temp_path)[0] + '.wav'
+                    
+                    if os.path.exists(wav_path):
+                        download_success = True
+                        print(f"✅ Downloaded successfully: {wav_path}")
+                    else:
+                        raise Exception("WAV conversion failed")
+
+            except Exception as e:
+                error_msg = f"❌ Download error: {str(e)}"
+                print(error_msg)
+                return None, error_msg, None, None, None, None
+
+        # 5. SON KONTROLLER VE TEMİZLİK
+        if download_success and wav_path:
+            # Input klasöründeki gereksiz dosyaları temizle
+            for f in os.listdir(INPUT_DIR):
+                if f != os.path.basename(wav_path):
+                    os.remove(os.path.join(INPUT_DIR, f))
+            
             return (
-                gr.File(value=wav_path),  # drive_download_output/direct_download_output
-                "🎉 Downloaded successfully!",  # status message
-                gr.File(value=wav_path),  # input_audio_file
-                gr.File(value=wav_path),  # auto_input_audio_file
-                gr.Audio(value=wav_path),  # Ana sekme original_audio
-                gr.Audio(value=wav_path)   # Oto ensemble sekmesi için original_audio2
+                gr.File(value=wav_path),
+                "🎉 Downloaded successfully!",
+                gr.File(value=wav_path),
+                gr.File(value=wav_path),
+                gr.Audio(value=wav_path),
+                gr.Audio(value=wav_path)
             )
 
         return None, "❌ Download failed", None, None, None, None
@@ -297,23 +296,23 @@ def conf_edit(config_path, chunk_size, overlap):
 
     # handle cases where 'use_amp' is missing from config:
     if 'use_amp' not in data.keys():
-      data['training']['use_amp'] = True
+        data['training']['use_amp'] = True
 
-    data['audio']['chunk_size'] = chunk_size
-    data['inference']['num_overlap'] = overlap
+    # Ensure chunk_size and overlap are integers
+    data['audio']['chunk_size'] = int(chunk_size)
+    data['inference']['num_overlap'] = int(overlap)
 
     if data['inference']['batch_size'] == 1:
-      data['inference']['batch_size'] = 2
+        data['inference']['batch_size'] = 2
 
     print("Using custom overlap and chunk_size values:")
     print(f"overlap = {data['inference']['num_overlap']}")
     print(f"chunk_size = {data['audio']['chunk_size']}")
     print(f"batch_size = {data['inference']['batch_size']}")
 
-
     with open(config_path, 'w') as f:
         yaml.dump(data, f, default_flow_style=False, sort_keys=False, Dumper=IndentDumper, allow_unicode=True)
-
+        
 def save_uploaded_file2(uploaded_file, is_input=False):
     """
     Yüklenen dosyayı belirtilen dizine kaydeder, önceki dosyaları siler.
@@ -464,8 +463,6 @@ def save_uploaded_file(uploaded_file, is_input=False):
         print(f"File save error: {e}")
         return None
 
-        clear_memory()
-
 def move_old_files(output_folder):
     old_output_folder = os.path.join(BASE_PATH, 'old_output')
     os.makedirs(old_output_folder, exist_ok=True)
@@ -478,6 +475,19 @@ def move_old_files(output_folder):
             new_filename = f"{os.path.splitext(filename)[0]}_old{os.path.splitext(filename)[1]}"
             new_file_path = os.path.join(old_output_folder, new_filename)
             shutil.move(file_path, new_file_path) 
+
+def move_wav_files2(auto_ensemble_temp):
+    AUTO_ENSEMBLE_TEMP = os.path.join(AUTO_ENSEMBLE_TEMP, 'auto_ensemble_temp')
+    os.makedirs(AUTO_ENSEMBLE_TEMP, exist_ok=True)
+
+    # Eski dosyaları taşı ve adlarının sonuna "old" ekle
+    for filename in os.listdir(auto):
+        file_path = os.path.join(auto, filename)
+        if os.path.isfile(file_path):
+            # Yeni dosya adını oluştur
+            new_filename = f"{os.path.splitext(filename)[0]}_old{os.path.splitext(filename)[1]}"
+            new_file_path = os.path.join(auto, new_filename)
+            shutil.move(file_path, new_file_path)             
 
 
 def extract_model_name(full_model_string):
@@ -501,13 +511,15 @@ def extract_model_name(full_model_string):
 
     return cleaned.strip()
 
+COOKIE_PATH = '/content/'
 BASE_PATH = '/content/Music-Source-Separation-Training'
 INPUT_DIR = os.path.join(BASE_PATH, 'input')
+AUTO_ENSEMBLE_TEMP = os.path.join(BASE_PATH, 'auto_ensemble_temp')
 OUTPUT_DIR = '/content/drive/MyDrive/output'
 OLD_OUTPUT_DIR = '/content/drive/MyDrive/old_output'
-AUTO_ENSEMBLE_TEMP = '/content/Music-Source-Separation-Training/auto_ensemble_temp'
 AUTO_ENSEMBLE_OUTPUT = '/content/drive/MyDrive/ensemble_folder'
 INFERENCE_SCRIPT_PATH = '/content/Music-Source-Separation-Training/inference.py'
+VİDEO_TEMP = '/content/Music-Source-Separation-Training/video_temp'
 
 def clear_directory(directory):
     """Deletes all files in the given directory."""
@@ -527,21 +539,69 @@ def create_directory(directory):
         print(f"{directory} directory already exists.")     
 
 def convert_to_wav(file_path):
-    """Converts an audio file to WAV format using ffmpeg if it is not already in WAV format."""
-    if not file_path.lower().endswith('.wav'):
-        # Define the output path
-        wav_path = os.path.splitext(file_path)[0] + '.wav'
+    """Converts the audio file to WAV format and moves it to the input directory."""
+    
+    # Directory paths
+    BASE_DIR = "/content/Music-Source-Separation-Training"
+    WAV_FOLDER = os.path.join(BASE_DIR, "wav_folder")
+    INPUT_DIR = os.path.join(BASE_DIR, "input")
+    
+    # Create directories if they don't exist
+    os.makedirs(WAV_FOLDER, exist_ok=True)
+    os.makedirs(INPUT_DIR, exist_ok=True)
+
+    # Get file information
+    original_filename = os.path.basename(file_path)
+    filename, ext = os.path.splitext(original_filename)
+    
+    # If already a WAV file, return its path directly
+    if ext.lower() == '.wav':
+        return file_path  # Return the original path if it's already a WAV file
+
+    try:
+        # 1. Copy the original file to the wav_folder
+        temp_input = os.path.join(WAV_FOLDER, original_filename)
+        shutil.copy(file_path, temp_input)
         
-        # Use ffmpeg to convert the audio file to WAV format
-        command = ['ffmpeg', '-y', '-i', file_path, '-acodec', 'pcm_s16le', '-ar', '44100', wav_path]
+        # 2. Prepare for WAV conversion
+        wav_output = os.path.join(WAV_FOLDER, f"{filename}.wav")
         
-        try:
-            subprocess.run(command, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-            return wav_path  # Return the path to the converted WAV file
-        except subprocess.CalledProcessError as e:
-            print(f"Error during conversion: {e.stderr.decode().strip()}")  # Print the error message
-            return None  # Return None if conversion fails
-    return file_path
+        # 3. Run FFmpeg command to convert to WAV
+        command = [
+            'ffmpeg', '-y', '-i', temp_input,
+            '-acodec', 'pcm_s16le', '-ar', '44100', wav_output
+        ]
+        subprocess.run(command, check=True, capture_output=True)
+        
+        # 4. Move the converted WAV to the input directory
+        final_output = os.path.join(INPUT_DIR, f"{filename}.wav")
+        
+        # Check if the final output is the same as the wav_output
+        if final_output == wav_output:
+            print(f"Warning: The source and destination are the same file: {final_output}")
+            return final_output  # Return the path if they are the same
+
+        shutil.move(wav_output, final_output)
+        
+        # 5. Clear the input directory after moving the WAV
+        clear_directory(INPUT_DIR)
+        
+        return final_output
+        
+    except subprocess.CalledProcessError as e:
+        error_msg = f"FFmpeg Error ({e.returncode}):\nInput: {e.stderr.decode()}"
+        print(error_msg)
+        return None
+        
+    finally:
+        # Clean up temporary files in wav_folder
+        for f in os.listdir(WAV_FOLDER):
+            file_path = os.path.join(WAV_FOLDER, f)
+            try:
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+            except Exception as e:
+                print(f"Cleanup error: {file_path} - {str(e)}")
 
 def process_audio(input_audio_file, input_audio_path, model, chunk_size, overlap, export_format, use_tta, demud_phaseremix_inst, extract_instrumental, *args, **kwargs):
     # Determine the audio path
@@ -556,9 +616,10 @@ def process_audio(input_audio_file, input_audio_path, model, chunk_size, overlap
     # Convert to WAV if necessary
     wav_path = convert_to_wav(audio_path)
 
-    # Clear the input directory and save the WAV file
-    clear_directory(INPUT_DIR)
-    shutil.copy(wav_path, INPUT_DIR)
+    # Check if wav_path is valid
+    if wav_path is None:
+        print("Failed to convert audio to WAV format.")
+        return [None] * 12  # Error case
 
     # Model adı temizleme
     clean_model = extract_model_name(model)
@@ -1072,7 +1133,12 @@ def process_audio(input_audio_file, input_audio_path, model, chunk_size, overlap
         print(f"Unsupported model: {clean_model}")
         return [None] * 12  # Hata durumu
 
-    return run_command_and_process_files(model_type, config_path, start_check_point, INPUT_DIR, OUTPUT_DIR, dest_path, extract_instrumental, use_tta, demud_phaseremix_inst, clean_model)
+    result = run_command_and_process_files(model_type, config_path, start_check_point, INPUT_DIR, OUTPUT_DIR, wav_path, extract_instrumental, use_tta, demud_phaseremix_inst, clean_model)
+
+    # İşlem tamamlandıktan sonra giriş dizinini temizle
+    clear_directory(INPUT_DIR)
+
+    return result
     
 
 
@@ -1489,12 +1555,16 @@ def create_interface():
             return []
 
     
-    def auto_ensemble_process(audio_input, audio_path, selected_models, chunk_size, overlap, use_tta, extract_instrumental, ensemble_type, weights, progress=gr.Progress()):
+    # Global değişken tanımlamaları
+    BASE_PATH = '/content/Music-Source-Separation-Training'
+    AUTO_ENSEMBLE_TEMP = os.path.join(BASE_PATH, 'auto_ensemble_temp')
+
+    def auto_ensemble_process(audio_input, audio_path, selected_models, chunk_size, overlap, export_format2, use_tta, extract_instrumental, ensemble_type, weights, progress=gr.Progress()):
         try:
             # 1. Giriş doğrulama ve dosya yönetimi
-            if audio_input is not None:  # Dosya yüklendi
+            if audio_input is not None:
                 audio_path = audio_input.name
-            elif audio_path:  # Dosya yolu belirtildi
+            elif audio_path:
                 audio_path = str(audio_path)
             else:
                 return None, "No audio file provided"
@@ -1502,33 +1572,39 @@ def create_interface():
             if not os.path.exists(audio_path):
                 return None, "Input file not found"
 
-            # 2. WAV'a dönüştürme ve temizleme
-            clear_directory(INPUT_DIR)  # INPUT_DIR klasörünü temizle
+            # 2. WAV'a dönüştürme
             wav_path = convert_to_wav(audio_path)
             if wav_path is None:
                 return None, "Failed to convert audio to WAV format."
 
-            shutil.copy(wav_path, INPUT_DIR)
+            print(f"Converted WAV file path: {wav_path}")
 
             # 3. Model işlemleri
             all_outputs = []
             total_models = len(selected_models)
             
-            # Geçici klasörleri temizle
+            # Geçici klasörleri hazırla
+            clear_directory(AUTO_ENSEMBLE_TEMP)
             shutil.rmtree(AUTO_ENSEMBLE_TEMP, ignore_errors=True)
             os.makedirs(AUTO_ENSEMBLE_TEMP, exist_ok=True)
+            os.makedirs(VİDEO_TEMP, exist_ok=True)
             os.makedirs(AUTO_ENSEMBLE_OUTPUT, exist_ok=True)
+
+            # Dosyayı geçici klasöre kopyala
+            shutil.copy(wav_path, os.path.join(VİDEO_TEMP, os.path.basename(wav_path)))
 
             for idx, model in enumerate(selected_models):
                 progress((idx + 1) / total_models, f"Processing {model}...")
                 
-                # Model adı temizleme
                 clean_model = extract_model_name(model)
-                print(f"Processing audio from: {audio_path} using model: {clean_model}")
+                print(f"Processing using model: {clean_model}")
+
+                # Model çıktı klasörü
+                model_output_dir = os.path.join(AUTO_ENSEMBLE_TEMP)
+                os.makedirs(model_output_dir, exist_ok=True)
 
                 model_type, config_path, start_check_point = "", "", ""
-            
-                # Ana sekmedeki model seçim mantığını kullan
+
                 if clean_model == 'VOCALS-InstVocHQ':
                         model_type = 'mdx23c'
                         config_path = 'ckpts/config_vocals_mdx23c.yaml'
@@ -2001,16 +2077,7 @@ def create_interface():
                       download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_mono_anvuew_sdr_20.4029.ckpt')
                       conf_edit(config_path, chunk_size, overlap)
 
-                # Tüm diğer model koşulları buraya aynı girinti seviyesinde eklenmeli
-                # ... [Diğer model koşulları] ...
-
-                else:
-                    print(f"Unsupported model: {clean_model}")
-                    continue
-
-                # Model çıktı klasörü
-                model_output_dir = os.path.join(AUTO_ENSEMBLE_TEMP, clean_model)
-                os.makedirs(AUTO_ENSEMBLE_TEMP, exist_ok=True)
+              
 
                 # Ana sekme komut yapısını kullan
                 cmd = [
@@ -2020,14 +2087,16 @@ def create_interface():
                     "--config_path", config_path,
                     "--start_check_point", start_check_point,
                     "--input_folder", INPUT_DIR,
-                    "--store_dir", AUTO_ENSEMBLE_TEMP,
-                    "--audio_path", wav_path  # WAV dosyasının yolunu kullan
+                    "--store_dir", model_output_dir,
+                    "--audio_path", wav_path  # Doğrudan wav_path kullan
                 ]
 
                 if use_tta:
                     cmd.append("--use_tta")
                 if extract_instrumental:
                     cmd.append("--extract_instrumental")
+
+                print(f"Running command: {' '.join(cmd)}")
 
                 # Hata yakalama ile çalıştırma
                 try:
@@ -2040,7 +2109,7 @@ def create_interface():
                     return None, f"Critical error with {model}: {str(e)}"
                 
                 # Çıktıları topla
-                model_outputs = glob.glob(os.path.join(AUTO_ENSEMBLE_TEMP, "*.wav"))
+                model_outputs = glob.glob(os.path.join(model_output_dir, "*.wav"))
                 all_outputs.extend(model_outputs)
 
             # 4. Ensemble işlemi
@@ -2054,22 +2123,32 @@ def create_interface():
                 "--type", ensemble_type,
                 "--output", ensemble_output_path
             ]
-        
-            if weights.strip():
-                ensemble_cmd += ["--weights", weights]
 
-            subprocess.run(ensemble_cmd, check=True)
-        
-            return ensemble_output_path, "Auto Ensemble Successful!"
+            # Hata ayıklama için komutu yazdır
+            print("Running ensemble command:", " ".join(ensemble_cmd)) 
 
-        except subprocess.CalledProcessError as e:
-            return None, f"Process error: {str(e)}"
+            # Komutu çalıştır ve çıktıyı yakala
+            result = subprocess.run(ensemble_cmd, capture_output=True, text=True)
+            print("Ensemble stdout:", result.stdout)
+            print("Ensemble stderr:", result.stderr)
+
+            if os.path.exists(ensemble_output_path):
+                print(f"✅ Ensemble saved to: {ensemble_output_path}")
+                return ensemble_output_path, "Success!"
+            else:
+                print(f"❌ Failed to save ensemble!")
+                return None, "Ensemble failed: No output file."
+
         except Exception as e:
-            return None, f"Error: {str(e)}"
+            print(f"🔥 Critical error: {str(e)}")
+            return None, str(e)
+        
         finally:
-            shutil.rmtree(AUTO_ENSEMBLE_TEMP, ignore_errors=True)
+            # İşlem tamamlandıktan sonra giriş dizinini temizle
+            shutil.rmtree('/content/Music-Source-Separation-Training/auto_ensemble_temp', ignore_errors=True)
+            clear_directory(AUTO_ENSEMBLE_TEMP)
+            clear_directory(AUTO_ENSEMBLE_OUTPUT)
             gc.collect()
-            torch.cuda.empty_cache()      
 
     main_input_key = "shared_audio_input"
     # Global components
@@ -2169,6 +2248,7 @@ def create_interface():
                         with gr.Accordion("Advanced Settings", open=False):
                             auto_use_tta = gr.Checkbox(label="Use TTA (Test Time Augmentation)", value=False)
                             auto_extract_instrumental = gr.Checkbox(label="Extract Instrumental Version")
+                            
                             auto_overlap = gr.Slider(
                             label="Overlap",
                             minimum=2,
@@ -2338,7 +2418,7 @@ def create_interface():
                         )
 
                         clear_old_output_btn.click(
-                            fn=lambda: ("Old output folder cleared successfully!",),
+                            fn=clear_old_output,
                             outputs=clear_old_output_status
                         )
 
@@ -2397,8 +2477,8 @@ def create_interface():
                                 auto_input_audio_path,
                                 selected_models,
                                 auto_chunk_size,
-                                export_format2,
                                 auto_overlap,
+                                export_format2,
                                 auto_use_tta,
                                 auto_extract_instrumental,
                                 auto_ensemble_type,
@@ -2537,6 +2617,8 @@ def launch_with_share():
                 '/content',
                 '/content/drive/MyDrive/output',
                 '/tmp'
+                '/model_output_dir',
+                'model_output_dir'
             ]
         )
         
