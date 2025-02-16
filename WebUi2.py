@@ -1118,6 +1118,15 @@ def process_audio(input_audio_file, input_audio_path, model, chunk_size, overlap
           download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_mono_anvuew_sdr_20.4029.ckpt')
           conf_edit(config_path, chunk_size, overlap)
 
+    elif clean_model == 'INSTV6N (by Gabox)':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/inst_gabox.yaml'
+          start_check_point = 'ckpts/INSTV6N.ckpt'
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/INSTV6N.ckpt')
+          conf_edit(config_path, chunk_size, overlap)
+
+
 
 
 
@@ -1211,6 +1220,8 @@ def clean_model_name(model):
         'Voc_Fv3 (by Gabox)': 'Voc_Fv3 (by Gabox)',
         'MelBandRoformer4StemFTLarge (SYH99999)': 'MelBandRoformer4StemFTLarge (SYH99999)',
         'dereverb_mel_band_roformer_mono (by anvuew)': 'dereverb_mel_band_roformer_mono (by anvuew)',
+        'INSTV6N (by Gabox)': 'INSTV6N (by Gabox)',
+
         
         # Add more mappings as needed
     }
@@ -1444,7 +1455,8 @@ def create_interface():
             '✅(?) inst_V5 (by Gabox)',
             'INST-VOC-Mel-Roformer a.k.a. duality v2 (by unwa) - Latest version instrumental separation',
             'INST-VOC-Mel-Roformer a.k.a. duality (by unwa) - Previous version',
-            'INST-Separator MDX23C (by aufr33) - Alternative instrumental separation'
+            'INST-Separator MDX23C (by aufr33) - Alternative instrumental separation',
+            'INSTV6N (by Gabox)'
         ],
         "Karaoke & Accompaniment": [
             '✅ KARAOKE-MelBand-Roformer (by aufr33 & viperx) - Advanced karaoke separation'
@@ -2075,6 +2087,14 @@ def create_interface():
                       start_check_point = 'ckpts/dereverb_mel_band_roformer_mono_anvuew_sdr_20.4029.ckpt'
                       download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_anvuew.yaml')
                       download_file('https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_mono_anvuew_sdr_20.4029.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'INSTV6N (by Gabox)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/inst_gabox.yaml'
+                      start_check_point = 'ckpts/INSTV6N.ckpt'
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/INSTV6N.ckpt')
                       conf_edit(config_path, chunk_size, overlap)
 
               
