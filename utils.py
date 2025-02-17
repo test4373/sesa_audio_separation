@@ -301,9 +301,6 @@ def demix(
         model_type: str,
         pbar: bool = False
 ) -> Tuple[List[Dict[str, np.ndarray]], np.ndarray]:
-    # Added code to preserve original filename
-    if not hasattr(config, 'preserve_filename'):
-        config.preserve_filename = True 
     """
     Unified function for audio source separation with support for multiple processing modes.
 
