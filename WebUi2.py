@@ -1597,6 +1597,7 @@ def create_interface():
             
             # Geçici klasörleri hazırla
             clear_directory(AUTO_ENSEMBLE_TEMP)
+            clear_directory(AUTO_ENSEMBLE_OUTPUT)
             shutil.rmtree(AUTO_ENSEMBLE_TEMP, ignore_errors=True)
             os.makedirs(AUTO_ENSEMBLE_TEMP, exist_ok=True)
             os.makedirs(VİDEO_TEMP, exist_ok=True)
@@ -2167,7 +2168,6 @@ def create_interface():
             # İşlem tamamlandıktan sonra giriş dizinini temizle
             shutil.rmtree('/content/Music-Source-Separation-Training/auto_ensemble_temp', ignore_errors=True)
             clear_directory(AUTO_ENSEMBLE_TEMP)
-            clear_directory(AUTO_ENSEMBLE_OUTPUT)
             gc.collect()
 
     main_input_key = "shared_audio_input"
