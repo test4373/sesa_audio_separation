@@ -2,7 +2,6 @@ pip
 setuptools
 wheel
 torchvision
-torchmetrics
 httpx
 gradio
 google-api-python-client
