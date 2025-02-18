@@ -1,5 +1,3 @@
-from enum import auto
-
 import os
 
 os.chdir('/content/Music-Source-Separation-Training')
@@ -20,7 +18,6 @@ import locale
 import shutil
 from datetime import datetime
 import glob
-import subprocess
 import yt_dlp
 import validators
 from pytube import YouTube
@@ -30,7 +27,6 @@ from googleapiclient.http import MediaIoBaseDownload
 import io
 import math
 import hashlib
-import requests
 import re
 import gc
 import psutil
@@ -38,9 +34,10 @@ import concurrent.futures
 from tqdm import tqdm
 from google.oauth2.credentials import Credentials
 import tempfile
-import requests
 from urllib.parse import urlparse
 from urllib.parse import quote
+import gdown
+
 
 os.makedirs('/content/Music-Source-Separation-Training/input', exist_ok=True)
 os.makedirs('/content/Music-Source-Separation-Training/output', exist_ok=True)
@@ -99,20 +96,9 @@ def clear_input_folder():
         shutil.rmtree(input_path)
     os.makedirs(input_path, exist_ok=True)
 
-
-import os
-import shutil
-import time
-import validators
-import yt_dlp
-import gdown
-
 # Özel karakterleri temizlemek için
 def clean_filename(title):
     return re.sub(r'[^\w\-_\. ]', '', title).strip()
-
-import browser_cookie3
-import requests
 
 def download_callback(url, download_type='direct', cookie_file=None):
     try:
