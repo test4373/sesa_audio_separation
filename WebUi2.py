@@ -276,25 +276,27 @@ def tuple_constructor(loader, node):
 yaml.SafeLoader.add_constructor('tag:yaml.org,2002:python/tuple',
 tuple_constructor)
 
+
+
 def conf_edit(config_path, chunk_size, overlap):
     with open(config_path, 'r') as f:
         data = yaml.load(f, Loader=yaml.SafeLoader)
 
     # handle cases where 'use_amp' is missing from config:
     if 'use_amp' not in data.keys():
-        data['training']['use_amp'] = True
+      data['training']['use_amp'] = True
 
-    # Ensure chunk_size and overlap are integers
-    data['audio']['chunk_size'] = int(chunk_size)
-    data['inference']['num_overlap'] = int(overlap)
+    data['audio']['chunk_size'] = chunk_size
+    data['inference']['num_overlap'] = overlap
 
     if data['inference']['batch_size'] == 1:
-        data['inference']['batch_size'] = 2
+      data['inference']['batch_size'] = 2
 
     print("Using custom overlap and chunk_size values:")
     print(f"overlap = {data['inference']['num_overlap']}")
     print(f"chunk_size = {data['audio']['chunk_size']}")
     print(f"batch_size = {data['inference']['batch_size']}")
+
 
     with open(config_path, 'w') as f:
         yaml.dump(data, f, default_flow_style=False, sort_keys=False, Dumper=IndentDumper, allow_unicode=True)
@@ -467,12 +469,12 @@ def move_wav_files2(auto_ensemble_temp):
     os.makedirs(AUTO_ENSEMBLE_TEMP, exist_ok=True)
 
     # Eski dosyaları taşı ve adlarının sonuna "old" ekle
-    for filename in os.listdir(auto):
-        file_path = os.path.join(auto, filename)
+    for filename in os.listdir(VİDEO_TEMP):
+        file_path = os.path.join(VİDEO_TEMP, filename)
         if os.path.isfile(file_path):
             # Yeni dosya adını oluştur
             new_filename = f"{os.path.splitext(filename)[0]}_old{os.path.splitext(filename)[1]}"
-            new_file_path = os.path.join(auto, new_filename)
+            new_file_path = os.path.join(VİDEO_TEMP, new_filename)
             shutil.move(file_path, new_file_path)             
 
 
@@ -1557,7 +1559,9 @@ def create_interface():
     BASE_PATH = '/content/Music-Source-Separation-Training'
     AUTO_ENSEMBLE_TEMP = os.path.join(BASE_PATH, 'auto_ensemble_temp')
 
-    def auto_ensemble_process(audio_input, audio_path, selected_models, chunk_size, overlap, export_format2, use_tta, extract_instrumental, ensemble_type, weights, progress=gr.Progress()):
+    def auto_ensemble_process(audio_input, audio_path, selected_models, chunk_size, overlap, export_format2, 
+                         use_tta, extract_instrumental, ensemble_type, weights, separation_target, 
+                         progress=gr.Progress()):
         try:
             # 1. Giriş doğrulama ve dosya yönetimi
             if audio_input is not None:
@@ -1604,6 +1608,7 @@ def create_interface():
 
                 model_type, config_path, start_check_point = "", "", ""
 
+                # Model yapılandırmasını ayarla
                 if clean_model == 'VOCALS-InstVocHQ':
                         model_type = 'mdx23c'
                         config_path = 'ckpts/config_vocals_mdx23c.yaml'
@@ -2084,18 +2089,31 @@ def create_interface():
                       download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/INSTV6N.ckpt')
                       conf_edit(config_path, chunk_size, overlap)
 
-              
+                # Diğer model konfigürasyonları buraya eklenecek...
+                # elif clean_model == ...:
 
-                # Ana sekme komut yapısını kullan
+                # YAML dosyasından target_instrument'ı oku
+                target_instrument = get_target_instrument(config_path)
+
+                # Hedefe göre filtreleme
+                if separation_target == "Only Vocals":
+                    if target_instrument not in ['vocals', None]:
+                        print(f"Skipping {model} (target: {target_instrument})")
+                        continue
+                elif separation_target == "Only Instrumental":
+                    if target_instrument not in ['instrumental', 'other', None]:
+                        print(f"Skipping {model} (target: {target_instrument})")
+                        continue
+
+                # Modeli çalıştır
                 cmd = [
-                    "python", 
-                    "inference.py",
+                    "python", "inference.py",
                     "--model_type", model_type,
                     "--config_path", config_path,
                     "--start_check_point", start_check_point,
                     "--input_folder", INPUT_DIR,
                     "--store_dir", model_output_dir,
-                    "--audio_path", wav_path  # Doğrudan wav_path kullan
+                    "--audio_path", wav_path
                 ]
 
                 if use_tta:
@@ -2105,13 +2123,12 @@ def create_interface():
 
                 print(f"Running command: {' '.join(cmd)}")
 
-                # Hata yakalama ile çalıştırma
                 try:
                     result = subprocess.run(cmd, capture_output=True, text=True)
-                    print(result.stdout)
                     if result.returncode != 0:
                         print(f"Error: {result.stderr}")
                         return None, f"Model {model} failed: {result.stderr}"
+                    print(result.stdout)
                 except Exception as e:
                     return None, f"Critical error with {model}: {str(e)}"
                 
@@ -2131,30 +2148,41 @@ def create_interface():
                 "--output", ensemble_output_path
             ]
 
-            # Hata ayıklama için komutu yazdır
-            print("Running ensemble command:", " ".join(ensemble_cmd)) 
+            if weights and weights.strip():
+                ensemble_cmd += ["--weights"] + [w.strip() for w in weights.split(",")]
 
-            # Komutu çalıştır ve çıktıyı yakala
+            print("Running ensemble command:", " ".join(ensemble_cmd))
+
             result = subprocess.run(ensemble_cmd, capture_output=True, text=True)
-            print("Ensemble stdout:", result.stdout)
-            print("Ensemble stderr:", result.stderr)
+            if result.returncode != 0:
+                return None, f"Ensemble failed: {result.stderr}"
+            print("Ensemble output:", result.stdout)
 
             if os.path.exists(ensemble_output_path):
                 print(f"✅ Ensemble saved to: {ensemble_output_path}")
                 return ensemble_output_path, "Success!"
             else:
-                print(f"❌ Failed to save ensemble!")
-                return None, "Ensemble failed: No output file."
+                return None, "Ensemble failed: No output file created"
 
         except Exception as e:
             print(f"🔥 Critical error: {str(e)}")
             return None, str(e)
         
         finally:
-            # İşlem tamamlandıktan sonra giriş dizinini temizle
+            # Temizlik işlemleri
             shutil.rmtree('/content/Music-Source-Separation-Training/auto_ensemble_temp', ignore_errors=True)
             clear_directory(AUTO_ENSEMBLE_TEMP)
             gc.collect()
+
+    def get_target_instrument(config_path):
+        """YAML dosyasından target_instrument değerini okur"""
+        try:
+            with open(config_path, 'r') as f:
+                config = yaml.safe_load(f)
+            return config.get('target_instrument', None)
+        except Exception as e:
+            print(f"YAML okuma hatası ({config_path}): {str(e)}")
+            return None
 
     main_input_key = "shared_audio_input"
     # Global components
@@ -2243,122 +2271,179 @@ def create_interface():
             with gr.Tab("Auto Ensemble"):
                 with gr.Row():
                     with gr.Column():
+                        # Yeni Hedef Seçim Bileşeni
+                        separation_target = gr.Radio(
+                            label="🎯 Separation Target",
+                            choices=["Automatic", "Only Vocals", "Only Instrumental"],
+                            value="Automatic",
+                            interactive=True
+                        )
+                        
                         auto_input_audio_file.render()
                         auto_input_audio_path = gr.Textbox(
                             label="Or Enter Audio File Path", 
                             placeholder="e.g., /content/input/audio.wav",
                             key=main_input_key
                         )
-                        
 
-                        with gr.Accordion("Advanced Settings", open=False):
-                            auto_use_tta = gr.Checkbox(label="Use TTA (Test Time Augmentation)", value=False)
-                            auto_extract_instrumental = gr.Checkbox(label="Extract Instrumental Version")
+                        with gr.Accordion("⚙️ Advanced Settings", open=False):
+                            with gr.Row():
+                                auto_use_tta = gr.Checkbox(label="Use TTA", value=False)
+                                auto_extract_instrumental = gr.Checkbox(label="Instrumental Only")
                             
-                            auto_overlap = gr.Slider(
-                            label="Overlap",
-                            minimum=2,
-                            maximum=50,
-                            value=2,
-                            step=1
-                        )
+                            with gr.Row():
+                                auto_overlap = gr.Slider(
+                                    label="Overlap",
+                                    minimum=2,
+                                    maximum=50,
+                                    value=2,
+                                    step=1
+                                )
+                                auto_chunk_size = gr.Dropdown(
+                                    label="Chunk Size",
+                                    choices=[352800, 485100],
+                                    value=352800
+                                )
+                                export_format2 = gr.Dropdown(
+                                    label="Output Format",
+                                    choices=['wav FLOAT', 'flac PCM_16', 'flac PCM_24'],
+                                    value='wav FLOAT'
+                                )
+
+                        # Model Seçim Bölümü
+                        with gr.Group():
+                            gr.Markdown("### 🧠 Model Selection")
+                            with gr.Row():
+                                auto_category_dropdown = gr.Dropdown(
+                                label="Model Category",
+                                choices=list(model_choices.keys()),
+                                value="Vocal Separation"
+                            )
+
+                            # Model seçimi (tek seferde)
+                            auto_model_dropdown = gr.Dropdown(
+                                label="Select Models from Category",
+                                choices=model_choices["Vocal Separation"],
+                                multiselect=True,
+                                max_choices=50,
+                                interactive=True
+                            )
+
+                            # Seçilen modellerin listesi (ayrı kutucuk)
+                            selected_models = gr.Dropdown(
+                                label="Selected Models",
+                                choices=[],
+                                multiselect=True,
+                                interactive=False  # Kullanıcı buraya direkt seçim yapamaz
+                            )
+
                             
-                            auto_chunk_size = gr.Dropdown(
-                            label="Chunk Size",
-                            choices=[352800, 485100],
-                            value=352800
-                        )
+                            with gr.Row():
+                                add_btn = gr.Button("➕ Add Selected", variant="secondary")
+                                clear_btn = gr.Button("🗑️ Clear All", variant="stop")
 
-                            export_format2 = gr.Dropdown(
-                            label="Output Format",
-                            choices=['wav FLOAT', 'flac PCM_16', 'flac PCM_24'],
-                            value='wav FLOAT'
-                        )
+                        # Ensemble Ayarları
+                        with gr.Group():
+                            gr.Markdown("### ⚡ Ensemble Settings")
+                            with gr.Row():
+                                auto_ensemble_type = gr.Dropdown(
+                                    label="Method",
+                                    choices=['avg_wave', 'median_wave', 'min_wave', 'max_wave',
+                                          'avg_fft', 'median_fft', 'min_fft', 'max_fft'],
+                                    value='avg_wave'
+                                )
+                                auto_weights = gr.Textbox(
+                                    label="Weights (comma separated)",
+                                    placeholder="e.g., 1.0, 0.8, 1.2",
+                                    scale=2
+                                )
+                            
+                            gr.Markdown("**Recommendation:** Combine avg_wave with max_fft for best results")
 
-
-                        auto_category_dropdown = gr.Dropdown(
-                            label="Model Category",
-                            choices=list(model_choices.keys()),
-                            value="Vocal Separation"
-                        )
-
-                        # Model seçimi (tek seferde)
-                        auto_model_dropdown = gr.Dropdown(
-                            label="Select Models from Category",
-                            choices=model_choices["Vocal Separation"],
-                            multiselect=True,
-                            max_choices=50,
-                            interactive=True
-                        )
-
-                        # Seçilen modellerin listesi (ayrı kutucuk)
-                        selected_models = gr.Dropdown(
-                            label="Selected Models",
-                            choices=[],
-                            multiselect=True,
-                            interactive=False  # Kullanıcı buraya direkt seçim yapamaz
-                        )
-
-                        auto_ensemble_type = gr.Dropdown(
-                            label="Ensemble Method",
-                            choices=['avg_wave', 'median_wave', 'min_wave', 'max_wave',
-                                   'avg_fft', 'median_fft', 'min_fft', 'max_fft'],
-                            value='avg_wave',
-                            info="my recommendation is avg_wave and max_fft"
-                        )
-                        
-                        auto_weights = gr.Textbox(
-                            label="Model Weights (comma separated)",
-                            placeholder="e.g., 1.0, 0.8, 1.2",
-                            info="Leave blank for equal weights"
-                        )
-
-                        # Butonlar
-                        with gr.Row():
-                            add_btn = gr.Button("➕ Add Selected", variant="secondary")
-                            clear_btn = gr.Button("🗑️ Clear All", variant="stop")
-
-                        # Etkileşimler
-                        def update_models(category):
-                            return gr.Dropdown(choices=model_choices[category])
-
-                        def add_models(new_models, existing_models):
-                            updated = list(set(existing_models + new_models))
-                            return gr.Dropdown(choices=updated, value=updated)
-
-                        def clear_models():
-                            return gr.Dropdown(choices=[], value=[])
-
-                        auto_category_dropdown.change(
-                            fn=update_models,
-                            inputs=auto_category_dropdown,
-                            outputs=auto_model_dropdown
-                        )
-
-                        add_btn.click(
-                            fn=add_models,
-                            inputs=[auto_model_dropdown, selected_models],
-                            outputs=selected_models
-                        )
-
-                        clear_btn.click(
-                            fn=clear_models,
-                            inputs=[],
-                            outputs=selected_models
-                        )
-                      
-                        
-                        auto_process_btn = gr.Button("🎛️ Start Ensemble", variant="primary")
+                        auto_process_btn = gr.Button("🚀 Start Processing", variant="primary")
 
                     with gr.Column():
-                            with gr.Tabs():
-                                with gr.Tab("Original Audio"):
-                                    original_audio2 = gr.Audio(label="original_audio", show_download_button=True)
-                                with gr.Tab("Ensembled Result"):
-                                    auto_output_audio = gr.Audio(label="Ensembled Result", show_download_button=True)
-
-                            auto_status = gr.Textbox(label="Processing Status", interactive=False)            
+                        with gr.Tabs():
+                            with gr.Tab("🔊 Original Audio"):
+                                original_audio2 = gr.Audio(
+                                    label="Input Preview",
+                                    show_download_button=True,
+                                    interactive=False
+                                )
+                            with gr.Tab("🎚️ Ensemble Result"):
+                                auto_output_audio = gr.Audio(
+                                    label="Output Preview",
+                                    show_download_button=True,
+                                    interactive=False
+                                )
                         
+                        auto_status = gr.Textbox(
+                            label="Processing Status",
+                            interactive=False,
+                            placeholder="Waiting for processing...",
+                            elem_classes="status-box"
+                        )
+
+                # Kategori değişim fonksiyonunu güncelleyelim
+                def update_models(category):
+                    return gr.Dropdown(choices=model_choices[category])
+
+                def add_models(new_models, existing_models):
+                    updated = list(set(existing_models + new_models))
+                    return gr.Dropdown(choices=updated, value=updated)
+
+                def clear_models():
+                    return gr.Dropdown(choices=[], value=[])
+
+                # Etkileşimler
+                def update_category(target):
+                    category_map = {
+                        "Only Vocals": "Vocal Separation",
+                        "Only Instrumental": "Instrumental Separation"
+                    }
+                    return category_map.get(target, "Vocal Separation")
+
+                separation_target.change(
+                    fn=update_category,
+                    inputs=separation_target,
+                    outputs=auto_category_dropdown
+                )
+
+                auto_category_dropdown.change(
+                    fn=update_models,
+                    inputs=auto_category_dropdown,
+                    outputs=auto_model_dropdown
+                )
+
+                add_btn.click(
+                     fn=add_models,
+                     inputs=[auto_model_dropdown, selected_models],
+                     outputs=selected_models
+                )
+
+                clear_btn.click(
+                     fn=clear_models,
+                     inputs=[],
+                     outputs=selected_models
+                )
+
+                auto_process_btn.click(
+                    fn=auto_ensemble_process,
+                    inputs=[
+                        auto_input_audio_file,
+                        auto_input_audio_path,
+                        selected_models,
+                        auto_chunk_size,
+                        auto_overlap,
+                        export_format2,
+                        auto_use_tta,
+                        auto_extract_instrumental,
+                        auto_ensemble_type,
+                        auto_weights,
+                        separation_target  # Bu satır eklendi
+                    ],
+                    outputs=[auto_output_audio, auto_status]
+                )                        
 
             # İndirme Sekmesi
             with gr.Tab("Download Sources"):
@@ -2474,23 +2559,6 @@ def create_interface():
                                 original_audio,           # 4. Orijinal ses çıktısı
                                 original_audio2 
                             ]
-                        )
-
-                        auto_process_btn.click(
-                            fn=auto_ensemble_process,
-                            inputs=[
-                                auto_input_audio_file,
-                                auto_input_audio_path,
-                                selected_models,
-                                auto_chunk_size,
-                                auto_overlap,
-                                export_format2,
-                                auto_use_tta,
-                                auto_extract_instrumental,
-                                auto_ensemble_type,
-                                auto_weights
-                            ],
-                            outputs=[auto_output_audio, auto_status]
                         )
 
             
