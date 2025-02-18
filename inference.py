@@ -13,6 +13,7 @@ import soundfile as sf
 import torch.nn as nn
 from datetime import datetime
 import numpy as np
+import librosa
 
 # Using the embedded version of Python can also correctly import the utils module.
 current_dir = os.path.dirname(os.path.abspath(__file__))
