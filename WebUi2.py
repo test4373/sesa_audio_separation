@@ -41,6 +41,7 @@ import gdown
 
 os.makedirs('/content/Music-Source-Separation-Training/input', exist_ok=True)
 os.makedirs('/content/Music-Source-Separation-Training/output', exist_ok=True)
+os.makedirs('/content/drive/MyDrive/output', exist_ok=True)
 os.makedirs('/content/drive/MyDrive/ensemble_folder', exist_ok=True)
 os.makedirs('/content/Music-Source-Separation-Training/old_output', exist_ok=True)
 os.makedirs('/content/Music-Source-Separation-Training/auto_ensemble_temp', exist_ok=True)
@@ -591,15 +592,16 @@ def convert_to_wav(file_path):
             except Exception as e:
                 print(f"Cleanup error: {file_path} - {str(e)}")
 
-def process_audio(input_audio_file, input_audio_path, model, chunk_size, overlap, export_format, use_tta, demud_phaseremix_inst, extract_instrumental, *args, **kwargs):
+def process_audio(input_audio_file, model, chunk_size, overlap, export_format, use_tta, demud_phaseremix_inst, extract_instrumental, *args, **kwargs):
     # Determine the audio path
     if input_audio_file is not None:
         audio_path = input_audio_file.name
-    elif input_audio_path:
-        audio_path = input_audio_path
     else:
         print("No audio file provided.")
         return [None] * 12  # Error case
+
+     # Eski dosyaları taşı
+    move_old_files(OUTPUT_DIR)   
 
     # Convert to WAV if necessary
     wav_path = convert_to_wav(audio_path)
@@ -618,8 +620,6 @@ def process_audio(input_audio_file, input_audio_path, model, chunk_size, overlap
     create_directory(OUTPUT_DIR)
     create_directory(OLD_OUTPUT_DIR)
 
-    # Eski dosyaları taşı
-    move_old_files(OUTPUT_DIR)
 
     # Ses dosyasını kaydetme
     if input_audio_file is not None:
@@ -1559,7 +1559,7 @@ def create_interface():
     BASE_PATH = '/content/Music-Source-Separation-Training'
     AUTO_ENSEMBLE_TEMP = os.path.join(BASE_PATH, 'auto_ensemble_temp')
 
-    def auto_ensemble_process(audio_input, audio_path, selected_models, chunk_size, overlap, export_format2, 
+    def auto_ensemble_process(audio_input, selected_models, chunk_size, overlap, export_format2, 
                          use_tta, extract_instrumental, ensemble_type, weights, separation_target, 
                          progress=gr.Progress()):
         try:
@@ -2190,21 +2190,21 @@ def create_interface():
     auto_input_audio_file = gr.File(visible=True)
     original_audio = gr.Audio(visible=True)
     
-    with gr.Blocks() as demo:
-        gr.Markdown("# 🎵 Music Source Separation Tool")
-
+    with gr.Blocks(theme=gr.themes.Soft(spacing_size="sm", radius_size="none")) as demo:
+        gr.Markdown("""
+        <div style="text-align:center">
+            <h1 style="font-weight:400;margin-bottom:0">🎵 Audio Source Separation</h1>
+            <span style="color:#666">v1.0 - ZFTurbo Based</span>
+        </div>
+        """)
+        
         with gr.Tabs():
-            # Ses Ayırma Sekmesi
+            # Audio Separation Tab
             with gr.Tab("Audio Separation"):
                 with gr.Row():
                     with gr.Column(scale=1):
-                        input_audio_file.render()
-                        input_audio_path = gr.Textbox(
-                            label="Or Enter Audio File Path", 
-                            placeholder="e.g., /content/input/audio.wav",
-                            key=main_input_key
-                        )
-
+                        gr.Markdown("### 🎧 Input Settings")
+                        input_audio_file = gr.File(visible=True)  # Keep the file input
                         model_category = gr.Dropdown(
                             label="Model Category",
                             choices=list(model_choices.keys()),
@@ -2216,45 +2216,18 @@ def create_interface():
                             interactive=True
                         )
 
-                        overlap = gr.Slider(
-                            label="Overlap",
-                            minimum=2,
-                            maximum=50,
-                            step=1,
-                            value=2,
-                            info="Recommended: 2-10 (Higher values increase quality but require more VRAM)"
-                        )
-
-                    with gr.Column(scale=1):
-                        chunk_size = gr.Dropdown(
-                            label="Chunk Size",
-                            choices=[352800, 485100],
-                            value=352800,
-                            info="Don't change unless you have specific requirements"
-                        )
-
-                        with gr.Accordion("Advanced Settings", open=False):
-                            use_tta = gr.Checkbox(label="Use TTA (Test Time Augmentation)", value=False)
-                            use_demud_phaseremix_inst = gr.Checkbox(label="Enable Demud Phase Remix")
-                            extract_instrumental = gr.Checkbox(label="Extract Instrumental Version")
-
-                        export_format = gr.Dropdown(
-                            label="Output Format",
-                            choices=['wav FLOAT', 'flac PCM_16', 'flac PCM_24'],
-                            value='wav FLOAT'
-                        )
-
                         process_btn = gr.Button("🚀 Start Processing", variant="primary")
                         clear_old_output_btn = gr.Button("🧹 Clear Outputs")
                         clear_old_output_status = gr.Textbox(label="Status", interactive=False)
 
                         with gr.Column():
-                            original_audio = gr.Audio(label="original_audio", show_download_button=True)
                             with gr.Tabs():
+                                with gr.Tab("Original"): 
+                                    original_audio = gr.Audio(label="original_audio", show_download_button=True)
                                 with gr.Tab("Vocals"):
-                                    vocals_audio = gr.Audio(label="", show_download_button=True)
+                                    vocals_audio = gr.Audio(label="vocals", show_download_button=True)
                                 with gr.Tab("Instrumental"):
-                                    instrumental_audio = gr.Audio(label="", show_download_button=True)
+                                    instrumental_audio = gr.Audio(label="instrumental", show_download_button=True)
                                 with gr.Tab("Advanced"):
                                     phaseremix_audio = gr.Audio(label="Phase Remix")
                                     drum_audio = gr.Audio(label="Drums")
@@ -2265,13 +2238,46 @@ def create_interface():
                                     music_audio = gr.Audio(label="Music")
                                     dry_audio = gr.Audio(label="Dry")
                                     male_audio = gr.Audio(label="Male")
-                                    female_audio = gr.Audio(label="Female")
+                                    female_audio = gr.Audio(label="Female")    
+
+
+                    with gr.Accordion("⚙️ Expert Settings", open=False):
+
+                        export_format = gr.Dropdown(
+                            label="Output Format",
+                            choices=['wav FLOAT', 'flac PCM_16', 'flac PCM_24'],
+                            value='wav FLOAT'
+                        )
+
+
+                        overlap = gr.Slider(
+                            label="Overlap",
+                            minimum=2,
+                            maximum=50,
+                            step=1,
+                            value=2,
+                            info="Recommended: 2-10 (Higher values increase quality but require more VRAM)"
+                        )
+
+                        chunk_size = gr.Dropdown(
+                            label="Chunk Size",
+                            choices=[352800, 485100],
+                            value=352800,
+                            info="Don't change unless you have specific requirements"
+                        )
+
+                        with gr.Accordion("Advanced Settings", open=False):
+                            use_tta = gr.Checkbox(label="Use TTA (Test Time Augmentation)", value=False)
+                            use_demud_phaseremix_inst = gr.Checkbox(label="Enable Demud Phase Remix")
+                            extract_instrumental = gr.Checkbox(label="Extract Instrumental Version")                    
+                        
+
+
 
             # Oto Ensemble Sekmesi
             with gr.Tab("Auto Ensemble"):
                 with gr.Row():
                     with gr.Column():
-                        # Yeni Hedef Seçim Bileşeni
                         separation_target = gr.Radio(
                             label="🎯 Separation Target",
                             choices=["Automatic", "Only Vocals", "Only Instrumental"],
@@ -2279,12 +2285,7 @@ def create_interface():
                             interactive=True
                         )
                         
-                        auto_input_audio_file.render()
-                        auto_input_audio_path = gr.Textbox(
-                            label="Or Enter Audio File Path", 
-                            placeholder="e.g., /content/input/audio.wav",
-                            key=main_input_key
-                        )
+                        auto_input_audio_file = gr.File(visible=True)  # Keep the file input
 
                         with gr.Accordion("⚙️ Advanced Settings", open=False):
                             with gr.Row():
@@ -2358,7 +2359,7 @@ def create_interface():
                                     scale=2
                                 )
                             
-                            gr.Markdown("**Recommendation:** Combine avg_wave with max_fft for best results")
+                            gr.Markdown("**Recommendation:** Combine avg_wave and max_fft for best results")
 
                         auto_process_btn = gr.Button("🚀 Start Processing", variant="primary")
 
@@ -2394,6 +2395,12 @@ def create_interface():
 
                 def clear_models():
                     return gr.Dropdown(choices=[], value=[])
+
+                demo.css = """
+                .compact { padding: 0.5rem !important; }
+                .status-box { background: #f5f5f5; border-radius: 4px; }
+                .dark-mode { background: #2a2a2a; color: white; }
+                """    
 
                 # Etkileşimler
                 def update_category(target):
@@ -2431,7 +2438,6 @@ def create_interface():
                     fn=auto_ensemble_process,
                     inputs=[
                         auto_input_audio_file,
-                        auto_input_audio_path,
                         selected_models,
                         auto_chunk_size,
                         auto_overlap,
@@ -2500,6 +2506,12 @@ def create_interface():
                         </div>
                         """)
 
+                        demo.css = """
+                        .compact { padding: 0.5rem !important; }
+                        .status-box { background: #f5f5f5; border-radius: 4px; }
+                        .dark-mode { background: #2a2a2a; color: white; }
+                        """
+
 
                         # Event handlers
                         model_category.change(
@@ -2517,7 +2529,6 @@ def create_interface():
                             fn=process_audio,
                             inputs=[
                                 input_audio_file,
-                                input_audio_path,
                                 model_dropdown,
                                 chunk_size,
                                 overlap,
