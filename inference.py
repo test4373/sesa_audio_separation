@@ -103,6 +103,34 @@ def run_folder(model, args, config, device, verbose: bool = False):
         if args.use_tta:
             waveforms_orig = apply_tta(config, model, mix, waveforms_orig, device, args.model_type)
 
+        if args.demud_phaseremix_inst:
+            print(f"Applying phase remix to instrumental for: {shorten_filename(os.path.basename(path))}")
+            
+            # Temel enstrümanı belirle (vokal veya ilk enstrüman)
+            base_instr = 'vocals' if 'vocals' in instruments else instruments[0]
+            instruments.append('phaseremix')
+            # 1. Vokallerin faz maskesini oluştur (NumPy kullanarak)
+            vocal_stft = librosa.stft(waveforms_orig[base_instr])
+            vocal_mag, vocal_phase = librosa.magphase(vocal_stft)
+            
+            # 2. Orijinal mix'in spektrogramını al
+            mix_stft = librosa.stft(mix_orig)
+            mix_mag, mix_phase = librosa.magphase(mix_stft)
+            
+            # 3. Vokal maskesini uygula (NumPy ile işlem yapın)
+            instrumental_mag = mix_mag - (2.5 * vocal_mag)
+            
+            # 4. Negatif değerleri sıfırla (NumPy'nin maximum fonksiyonu)
+            import numpy as np  # Eksikse ekleyin
+            instrumental_mag = np.maximum(instrumental_mag, 0)  # DÜZELTME: nn -> np
+            
+            # 5. Zaman domainine dönüştür
+            instrumental_stft = instrumental_mag * mix_phase
+            instrumental_phaseremix = librosa.istft(instrumental_stft)
+            
+            # 6. Sonucu kaydet
+            waveforms_orig['phaseremix'] = instrumental_phaseremix
+
         if args.extract_instrumental:
             instr = 'vocals' if 'vocals' in instruments else instruments[0]
             waveforms_orig['instrumental'] = mix_orig - waveforms_orig[instr]
@@ -142,6 +170,7 @@ def proc_folder(args):
     parser.add_argument("--model_type", type=str, default='mdx23c', 
                         help="Model type (bandit, bs_roformer, mdx23c, etc.)")
     parser.add_argument("--config_path", type=str, help="Path to config file")
+    parser.add_argument("--demud_phaseremix_inst", action='store_true', help="demud_phaseremix_inst")
     parser.add_argument("--start_check_point", type=str, default='', 
                         help="Initial checkpoint to valid weights")
     parser.add_argument("--input_folder", type=str, help="Folder with mixtures to process")
