@@ -2359,7 +2359,7 @@ def create_interface():
                                     scale=2
                                 )
                             
-                            gr.Markdown("**Recommendation:** Combine avg_wave and max_fft for best results")
+                            gr.Markdown("**Recommendation:** avg_wave and max_fft best results")
 
                         auto_process_btn = gr.Button("🚀 Start Processing", variant="primary")
 
