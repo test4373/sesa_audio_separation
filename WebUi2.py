@@ -591,8 +591,9 @@ def convert_to_wav(file_path):
                     os.remove(file_path)
             except Exception as e:
                 print(f"Cleanup error: {file_path} - {str(e)}")
+       
 
-def process_audio(input_audio_file, model, chunk_size, overlap, export_format, use_tta, demud_phaseremix_inst, extract_instrumental, *args, **kwargs):
+def process_audio(input_audio_file, model, chunk_size, overlap, export_format, use_tta, demud_phaseremix_inst, extract_instrumental, denoise, *args, **kwargs):
     # Determine the audio path
     if input_audio_file is not None:
         audio_path = input_audio_file.name
@@ -1135,6 +1136,7 @@ def process_audio(input_audio_file, model, chunk_size, overlap, export_format, u
     # İşlem tamamlandıktan sonra giriş dizinini temizle
     clear_directory(INPUT_DIR)
 
+    
     return result
     
 
@@ -1480,6 +1482,7 @@ def create_interface():
         ],
     }
 
+
     def update_models(category):
         models = model_choices.get(category, [])
         return gr.Dropdown(
@@ -1560,7 +1563,7 @@ def create_interface():
     AUTO_ENSEMBLE_TEMP = os.path.join(BASE_PATH, 'auto_ensemble_temp')
 
     def auto_ensemble_process(audio_input, selected_models, chunk_size, overlap, export_format2, 
-                         use_tta, extract_instrumental, ensemble_type, weights, separation_target, 
+                         use_tta, extract_instrumental, denoise, ensemble_type, weights, separation_target, 
                          progress=gr.Progress()):
         try:
             # 1. Giriş doğrulama ve dosya yönetimi
@@ -2160,6 +2163,7 @@ def create_interface():
 
             if os.path.exists(ensemble_output_path):
                 print(f"✅ Ensemble saved to: {ensemble_output_path}")
+                
                 return ensemble_output_path, "Success!"
             else:
                 return None, "Ensemble failed: No output file created"
@@ -2184,6 +2188,21 @@ def create_interface():
             print(f"YAML okuma hatası ({config_path}): {str(e)}")
             return None
 
+    def save_and_update_ui(file_obj):
+        try:
+            # Dosyayı kaydet
+            saved_path = save_uploaded_file(file_obj, is_input=True)
+            
+            # Input ve audio component'lerini güncelle
+            return [
+                gr.File(value=saved_path),  # input_audio_file
+                gr.Audio(value=saved_path), # original_audio
+                gr.Audio(value=saved_path)  # original_audio2 (diğer sekme)
+            ]
+        except Exception as e:
+            print(f"Hata: {str(e)}")
+            return [None, None, None]        
+
     main_input_key = "shared_audio_input"
     # Global components
     input_audio_file = gr.File(visible=True)
@@ -2204,7 +2223,7 @@ def create_interface():
                 with gr.Row():
                     with gr.Column(scale=1):
                         gr.Markdown("### 🎧 Input Settings")
-                        input_audio_file = gr.File(visible=True)  # Keep the file input
+                        input_audio_file = gr.File(label="Upload file")  # Keep the file input
                         model_category = gr.Dropdown(
                             label="Model Category",
                             choices=list(model_choices.keys()),
@@ -2222,14 +2241,19 @@ def create_interface():
 
                         with gr.Column():
                             with gr.Tabs():
-                                with gr.Tab("Original"): 
-                                    original_audio = gr.Audio(label="original_audio", show_download_button=True)
+                                with gr.Tab("Original Audio"):
+                                    original_audio = gr.Audio(
+                                        label="Orjinal Ses",
+                                        interactive=False,
+                                        every=1,  # Her 1 saniyede bir güncelle
+                                        elem_id="original_audio_player"
+                                    )
                                 with gr.Tab("Vocals"):
                                     vocals_audio = gr.Audio(label="vocals", show_download_button=True)
                                 with gr.Tab("Instrumental"):
                                     instrumental_audio = gr.Audio(label="instrumental", show_download_button=True)
                                 with gr.Tab("Advanced"):
-                                    phaseremix_audio = gr.Audio(label="Phase Remix")
+                                    phaseremix_audio = gr.Audio(label="Phase Remix")  
                                     drum_audio = gr.Audio(label="Drums")
                                     bass_audio = gr.Audio(label="Bass")
                                     other_audio = gr.Audio(label="Other")
@@ -2269,7 +2293,7 @@ def create_interface():
                         with gr.Accordion("Advanced Settings", open=False):
                             use_tta = gr.Checkbox(label="Use TTA (Test Time Augmentation)", value=False)
                             use_demud_phaseremix_inst = gr.Checkbox(label="Enable Demud Phase Remix")
-                            extract_instrumental = gr.Checkbox(label="Extract Instrumental Version")                    
+                            extract_instrumental = gr.Checkbox(label="Extract Instrumental Version")                   
                         
 
 
@@ -2409,6 +2433,13 @@ def create_interface():
                         "Only Instrumental": "Instrumental Separation"
                     }
                     return category_map.get(target, "Vocal Separation")
+
+                # Otomatik yenileme için olayı bağla
+                input_audio_file.upload(
+                    fn=save_and_update_ui,
+                    inputs=input_audio_file,
+                    outputs=[input_audio_file, original_audio, original_audio2]
+                ) 
 
                 separation_target.change(
                     fn=update_category,
