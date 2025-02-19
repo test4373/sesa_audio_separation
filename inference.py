@@ -120,7 +120,7 @@ def run_folder(model, args, config, device, verbose: bool = False):
             mix_mag, mix_phase = librosa.magphase(mix_stft)
             
             # 3. Vokal maskesini uygula (NumPy ile işlem yapın)
-            instrumental_mag = mix_mag - (2 * vocal_mag)
+            instrumental_mag = mix_mag - (1 * vocal_mag)
             
             # 4. Negatif değerleri sıfırla (NumPy'nin maximum fonksiyonu)
             import numpy as np  # Eksikse ekleyin
