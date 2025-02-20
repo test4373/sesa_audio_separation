@@ -26,28 +26,24 @@ def istft(spec, hl, length):
     return wave
 
 
-def absmax(a, axis=None):
-    """Yeni numpy sürümleriyle uyumlu absmax implementasyonu"""
-    a = np.asarray(a)
-    if a.dtype.kind != 'c':
-        return np.amax(np.abs(a), axis=axis)
-    
-    # Kompleks sayılar için
-    mag = np.abs(a)
-    argmax = np.expand_dims(np.argmax(mag, axis=axis), axis=axis)
-    return np.take_along_axis(a, argmax, axis=axis).squeeze(axis=axis)
+def absmax(a, *, axis):
+    dims = list(a.shape)
+    dims.pop(axis)
+    indices = list(np.ogrid[tuple(slice(0, d) for d in dims)])  # Tuple yerine list
+    argmax = np.abs(a).argmax(axis=axis)
+    insert_pos = (len(a.shape) + axis) % len(a.shape)
+    indices.insert(insert_pos, argmax)
+    return a[tuple(indices)]
 
 
-def absmin(a, axis=None):
-    """Yeni numpy sürümleriyle uyumlu absmin implementasyonu"""
-    a = np.asarray(a)
-    if a.dtype.kind != 'c':
-        return np.amin(np.abs(a), axis=axis)
-    
-    # Kompleks sayılar için
-    mag = np.abs(a)
-    argmin = np.expand_dims(np.argmin(mag, axis=axis), axis=axis)
-    return np.take_along_axis(a, argmin, axis=axis).squeeze(axis=axis)
+def absmin(a, *, axis):
+    dims = list(a.shape)
+    dims.pop(axis)
+    indices = list(np.ogrid[tuple(slice(0, d) for d in dims)])  # Tuple yerine list
+    argmax = np.abs(a).argmin(axis=axis)
+    insert_pos = (len(a.shape) + axis) % len(a.shape)
+    indices.insert(insert_pos, argmax)
+    return a[tuple(indices)]
 
 
 def lambda_max(arr, axis=None, key=None, keepdims=False):
@@ -60,6 +56,7 @@ def lambda_max(arr, axis=None, key=None, keepdims=False):
         return result
     else:
         return arr.flatten()[idxs]
+
 
 def lambda_min(arr, axis=None, key=None, keepdims=False):
     idxs = np.argmin(key(arr), axis)
