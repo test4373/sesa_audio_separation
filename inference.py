@@ -106,32 +106,27 @@ def run_folder(model, args, config, device, verbose: bool = False):
             waveforms_orig = apply_tta(config, model, mix, waveforms_orig, device, args.model_type)
 
         if args.demud_phaseremix_inst:
-            print(f"Applying phase remix to instrumental for: {shorten_filename(os.path.basename(path))}")
-            
-            # Temel enstrümanı belirle (vokal veya ilk enstrüman)
-            base_instr = 'vocals' if 'vocals' in instruments else instruments[0]
-            instruments.append('phaseremix')
-            # 1. Vokallerin faz maskesini oluştur (NumPy kullanarak)
-            vocal_stft = librosa.stft(waveforms_orig[base_instr])
-            vocal_mag, vocal_phase = librosa.magphase(vocal_stft)
-            
-            # 2. Orijinal mix'in spektrogramını al
-            mix_stft = librosa.stft(mix_orig)
-            mix_mag, mix_phase = librosa.magphase(mix_stft)
-            
-            # 3. Vokal maskesini uygula (NumPy ile işlem yapın)
-            instrumental_mag = mix_mag - (1 * vocal_mag)
-            
-            # 4. Negatif değerleri sıfırla (NumPy'nin maximum fonksiyonu)
-            import numpy as np  # Eksikse ekleyin
-            instrumental_mag = np.maximum(instrumental_mag, 0)  # DÜZELTME: nn -> np
-            
-            # 5. Zaman domainine dönüştür
-            instrumental_stft = instrumental_mag * mix_phase
-            instrumental_phaseremix = librosa.istft(instrumental_stft)
-            
-            # 6. Sonucu kaydet
-            waveforms_orig['phaseremix'] = instrumental_phaseremix
+            print(f"Demudding track (phase remix - instrumental): {path}")
+            instr = 'vocals' if 'vocals' in instruments else instruments[0]
+            instruments.append('instrumental_phaseremix')
+            if 'instrumental' not in instruments and 'Instrumental' not in instruments:
+                mix_modified = mix_orig - 2*waveforms_orig[instr]
+                mix_modified_ = mix_modified.copy()
+                
+                waveforms_modified = demix(config, model, mix_modified, device, model_type=args.model_type)
+                if args.use_tta:
+                    waveforms_modified = apply_tta(config, model, mix_modified, waveforms_modified, device, args.model_type)
+                
+                waveforms_orig['instrumental_phaseremix'] = mix_orig + waveforms_modified[instr]
+            else:
+                mix_modified = 2*waveforms_orig[instr] - mix_orig
+                mix_modified_ = mix_modified.copy()
+                
+                waveforms_modified = demix(config, model, mix_modified, device, model_type=args.model_type)
+                if args.use_tta:
+                    waveforms_modified = apply_tta(config, model, mix_modified, waveforms_orig, device, args.model_type)
+                
+                waveforms_orig['instrumental_phaseremix'] = mix_orig + mix_modified_ - waveforms_modified[instr]
 
         if args.extract_instrumental:
             instr = 'vocals' if 'vocals' in instruments else instruments[0]
