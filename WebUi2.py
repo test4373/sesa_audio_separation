@@ -302,14 +302,14 @@ def conf_edit(config_path, chunk_size, overlap):
     with open(config_path, 'w') as f:
         yaml.dump(data, f, default_flow_style=False, sort_keys=False, Dumper=IndentDumper, allow_unicode=True)
         
-def save_uploaded_file2(uploaded_file, is_input=False):
-    """
-    Yüklenen dosyayı belirtilen dizine kaydeder, önceki dosyaları siler.
-    Sadece en son yüklenen dosya dizinde kalır.
-    """
+def save_uploaded_file(uploaded_file, is_input=False, target_dir=None):
     try:
         # Medya dosya uzantıları
-        media_extensions = ['.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a']
+        media_extensions = ['.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a', '.mp4']
+        
+        # Hedef dizini belirle
+        if target_dir is None:
+            target_dir = INPUT_DIR if is_input else VİDEO_TEMP
         
         # Zaman damgası pattern'leri
         timestamp_patterns = [
@@ -346,7 +346,7 @@ def save_uploaded_file2(uploaded_file, is_input=False):
 
         # Hedef dizini belirle (DÜZELTME BURADA)
         target_directory = INPUT_DIR if is_input else OUTPUT_DIR
-        target_path = os.path.join(target_directory, clean_filename)
+        target_path = os.path.join(target_dir, clean_filename)
         
         # Dizini oluştur (yoksa)
         os.makedirs(target_directory, exist_ok=True)
@@ -378,14 +378,14 @@ def save_uploaded_file2(uploaded_file, is_input=False):
 
         clear_memory()
 
-def save_uploaded_file(uploaded_file, is_input=False):
-    """
-    Yüklenen dosyayı belirtilen dizine kaydeder, önceki dosyaları siler.
-    Sadece en son yüklenen dosya dizinde kalır.
-    """
+def save_uploaded_file(uploaded_file, is_input=False, target_dir=None):
     try:
         # Medya dosya uzantıları
-        media_extensions = ['.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a']
+        media_extensions = ['.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a', '.mp4']
+        
+        # Hedef dizini belirle
+        if target_dir is None:
+            target_dir = INPUT_DIR if is_input else OUTPUT_DIR
         
         # Zaman damgası pattern'leri
         timestamp_patterns = [
@@ -509,6 +509,7 @@ OLD_OUTPUT_DIR = '/content/drive/MyDrive/old_output'
 AUTO_ENSEMBLE_OUTPUT = '/content/drive/MyDrive/ensemble_folder'
 INFERENCE_SCRIPT_PATH = '/content/Music-Source-Separation-Training/inference.py'
 VİDEO_TEMP = '/content/Music-Source-Separation-Training/video_temp'
+os.makedirs(VİDEO_TEMP, exist_ok=True)  # Klasörü oluşturduğundan emin ol
 
 def clear_directory(directory):
     """Deletes all files in the given directory."""
@@ -600,6 +601,8 @@ def process_audio(input_audio_file, model, chunk_size, overlap, export_format, u
     else:
         print("No audio file provided.")
         return [None] * 12  # Error case
+
+    clear_directory(INPUT_DIR)    
 
      # Eski dosyaları taşı
     move_old_files(OUTPUT_DIR)   
@@ -1524,7 +1527,7 @@ def create_interface():
             raise
         except Exception as e:
             print(f"Unexpected error during ensemble: {e}")
-            raise
+            raise      
 
     def refresh_audio_files(directory):
         """
@@ -1561,19 +1564,17 @@ def create_interface():
     # Global değişken tanımlamaları
     BASE_PATH = '/content/Music-Source-Separation-Training'
     AUTO_ENSEMBLE_TEMP = os.path.join(BASE_PATH, 'auto_ensemble_temp')
+    model_output_dir = os.path.join(BASE_PATH, 'auto_ensemble_temp')
 
     def auto_ensemble_process(audio_input, selected_models, chunk_size, overlap, export_format2, 
-                         use_tta, extract_instrumental, denoise, ensemble_type, weights, separation_target, 
-                         progress=gr.Progress()):
+                         use_tta, extract_instrumental, ensemble_type, 
+                         progress=gr.Progress(), *args, **kwargs):  # Removed audio_path parameter
         try:
-            # 1. Giriş doğrulama ve dosya yönetimi
-            if audio_input is not None:
-                audio_path = audio_input.name
-            elif audio_path:
-                audio_path = str(audio_path)
-            else:
+            # 1. Input validation
+            if audio_input is None:
                 return None, "No audio file provided"
-
+                
+            audio_path = audio_input.name  # Get path directly from audio_input
             if not os.path.exists(audio_path):
                 return None, "Input file not found"
 
@@ -1594,16 +1595,15 @@ def create_interface():
             shutil.rmtree(AUTO_ENSEMBLE_TEMP, ignore_errors=True)
             os.makedirs(AUTO_ENSEMBLE_TEMP, exist_ok=True)
             os.makedirs(VİDEO_TEMP, exist_ok=True)
-            os.makedirs(AUTO_ENSEMBLE_OUTPUT, exist_ok=True)
+            os.makedirs(AUTO_ENSEMBLE_OUTPUT, exist_ok=True) 
 
-            # Dosyayı geçici klasöre kopyala
-            shutil.copy(wav_path, os.path.join(VİDEO_TEMP, os.path.basename(wav_path)))
+            shutil.copy(wav_path, os.path.join(INPUT_DIR, os.path.basename(wav_path)))
 
             for idx, model in enumerate(selected_models):
                 progress((idx + 1) / total_models, f"Processing {model}...")
                 
                 clean_model = extract_model_name(model)
-                print(f"Processing using model: {clean_model}")
+                print(f"Processing using model: {clean_model}")      
 
                 # Model çıktı klasörü
                 model_output_dir = os.path.join(AUTO_ENSEMBLE_TEMP)
@@ -1611,7 +1611,6 @@ def create_interface():
 
                 model_type, config_path, start_check_point = "", "", ""
 
-                # Model yapılandırmasını ayarla
                 if clean_model == 'VOCALS-InstVocHQ':
                         model_type = 'mdx23c'
                         config_path = 'ckpts/config_vocals_mdx23c.yaml'
@@ -2092,31 +2091,18 @@ def create_interface():
                       download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/INSTV6N.ckpt')
                       conf_edit(config_path, chunk_size, overlap)
 
-                # Diğer model konfigürasyonları buraya eklenecek...
-                # elif clean_model == ...:
+              
 
-                # YAML dosyasından target_instrument'ı oku
-                target_instrument = get_target_instrument(config_path)
-
-                # Hedefe göre filtreleme
-                if separation_target == "Only Vocals":
-                    if target_instrument not in ['vocals', None]:
-                        print(f"Skipping {model} (target: {target_instrument})")
-                        continue
-                elif separation_target == "Only Instrumental":
-                    if target_instrument not in ['instrumental', 'other', None]:
-                        print(f"Skipping {model} (target: {target_instrument})")
-                        continue
-
-                # Modeli çalıştır
+                # Ana sekme komut yapısını kullan
                 cmd = [
-                    "python", "inference.py",
+                    "python", 
+                    "inference.py",
                     "--model_type", model_type,
                     "--config_path", config_path,
                     "--start_check_point", start_check_point,
                     "--input_folder", INPUT_DIR,
                     "--store_dir", model_output_dir,
-                    "--audio_path", wav_path
+                    "--audio_path", wav_path  # Doğrudan wav_path kullan
                 ]
 
                 if use_tta:
@@ -2126,12 +2112,13 @@ def create_interface():
 
                 print(f"Running command: {' '.join(cmd)}")
 
+                # Hata yakalama ile çalıştırma
                 try:
                     result = subprocess.run(cmd, capture_output=True, text=True)
+                    print(result.stdout)
                     if result.returncode != 0:
                         print(f"Error: {result.stderr}")
                         return None, f"Model {model} failed: {result.stderr}"
-                    print(result.stdout)
                 except Exception as e:
                     return None, f"Critical error with {model}: {str(e)}"
                 
@@ -2151,57 +2138,45 @@ def create_interface():
                 "--output", ensemble_output_path
             ]
 
-            if weights and weights.strip():
-                ensemble_cmd += ["--weights"] + [w.strip() for w in weights.split(",")]
+            # Hata ayıklama için komutu yazdır
+            print("Running ensemble command:", " ".join(ensemble_cmd)) 
 
-            print("Running ensemble command:", " ".join(ensemble_cmd))
-
+            # Komutu çalıştır ve çıktıyı yakala
             result = subprocess.run(ensemble_cmd, capture_output=True, text=True)
-            if result.returncode != 0:
-                return None, f"Ensemble failed: {result.stderr}"
-            print("Ensemble output:", result.stdout)
+            print("Ensemble stdout:", result.stdout)
+            print("Ensemble stderr:", result.stderr)
 
             if os.path.exists(ensemble_output_path):
                 print(f"✅ Ensemble saved to: {ensemble_output_path}")
-                
                 return ensemble_output_path, "Success!"
             else:
-                return None, "Ensemble failed: No output file created"
+                print(f"❌ Failed to save ensemble!")
+                return None, "Ensemble failed: No output file."
 
         except Exception as e:
             print(f"🔥 Critical error: {str(e)}")
             return None, str(e)
         
         finally:
-            # Temizlik işlemleri
+            # İşlem tamamlandıktan sonra giriş dizinini temizle
             shutil.rmtree('/content/Music-Source-Separation-Training/auto_ensemble_temp', ignore_errors=True)
             clear_directory(AUTO_ENSEMBLE_TEMP)
+            clear_directory(VİDEO_TEMP)
+            clear_directory(INPUT_DIR)
             gc.collect()
 
-    def get_target_instrument(config_path):
-        """YAML dosyasından target_instrument değerini okur"""
-        try:
-            with open(config_path, 'r') as f:
-                config = yaml.safe_load(f)
-            return config.get('target_instrument', None)
-        except Exception as e:
-            print(f"YAML okuma hatası ({config_path}): {str(e)}")
-            return None
 
-    def save_and_update_ui(file_obj):
+    def handle_file_upload(file_obj, is_auto_ensemble=False):
         try:
-            # Dosyayı kaydet
-            saved_path = save_uploaded_file(file_obj, is_input=True)
-            
-            # Input ve audio component'lerini güncelle
+            target_dir = INPUT_DIR if not is_auto_ensemble else VİDEO_TEMP
+            saved_path = save_uploaded_file(file_obj, is_input=True, target_dir=target_dir)
             return [
-                gr.File(value=saved_path),  # input_audio_file
-                gr.Audio(value=saved_path), # original_audio
-                gr.Audio(value=saved_path)  # original_audio2 (diğer sekme)
+                gr.File(value=saved_path),
+                gr.Audio(value=saved_path)
             ]
         except Exception as e:
             print(f"Hata: {str(e)}")
-            return [None, None, None]        
+            return [None, None]               
 
     main_input_key = "shared_audio_input"
     # Global components
@@ -2302,14 +2277,7 @@ def create_interface():
             with gr.Tab("Auto Ensemble"):
                 with gr.Row():
                     with gr.Column():
-                        separation_target = gr.Radio(
-                            label="🎯 Separation Target",
-                            choices=["Automatic", "Only Vocals", "Only Instrumental"],
-                            value="Automatic",
-                            interactive=True
-                        )
-                        
-                        auto_input_audio_file = gr.File(visible=True)  # Keep the file input
+                        auto_input_audio_file = gr.File(label="Upload file")  # Keep the file input
 
                         with gr.Accordion("⚙️ Advanced Settings", open=False):
                             with gr.Row():
@@ -2377,11 +2345,6 @@ def create_interface():
                                           'avg_fft', 'median_fft', 'min_fft', 'max_fft'],
                                     value='avg_wave'
                                 )
-                                auto_weights = gr.Textbox(
-                                    label="Weights (comma separated)",
-                                    placeholder="e.g., 1.0, 0.8, 1.2",
-                                    scale=2
-                                )
                             
                             gr.Markdown("**Recommendation:** avg_wave and max_fft best results")
 
@@ -2391,10 +2354,11 @@ def create_interface():
                         with gr.Tabs():
                             with gr.Tab("🔊 Original Audio"):
                                 original_audio2 = gr.Audio(
-                                    label="Input Preview",
-                                    show_download_button=True,
-                                    interactive=False
-                                )
+                                        label=" Original Audio",
+                                        interactive=False,
+                                        every=1,  # Her 1 saniyede bir güncelle
+                                        elem_id="original_audio_player"
+                                    )
                             with gr.Tab("🎚️ Ensemble Result"):
                                 auto_output_audio = gr.Audio(
                                     label="Output Preview",
@@ -2436,16 +2400,18 @@ def create_interface():
 
                 # Otomatik yenileme için olayı bağla
                 input_audio_file.upload(
-                    fn=save_and_update_ui,
+                    fn=lambda x: handle_file_upload(x, is_auto_ensemble=False),
                     inputs=input_audio_file,
-                    outputs=[input_audio_file, original_audio, original_audio2]
-                ) 
-
-                separation_target.change(
-                    fn=update_category,
-                    inputs=separation_target,
-                    outputs=auto_category_dropdown
+                    outputs=[input_audio_file, original_audio]
                 )
+
+                # Auto Ensemble sekmesi için
+                auto_input_audio_file.upload(
+                    fn=lambda x: handle_file_upload(x, is_auto_ensemble=True),
+                    inputs=auto_input_audio_file,
+                    outputs=[auto_input_audio_file, original_audio2]
+                )
+
 
                 auto_category_dropdown.change(
                     fn=update_models,
@@ -2476,8 +2442,7 @@ def create_interface():
                         auto_use_tta,
                         auto_extract_instrumental,
                         auto_ensemble_type,
-                        auto_weights,
-                        separation_target  # Bu satır eklendi
+                        gr.State(None)
                     ],
                     outputs=[auto_output_audio, auto_status]
                 )                        
