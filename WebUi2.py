@@ -452,6 +452,27 @@ def save_uploaded_file(uploaded_file, is_input=False, target_dir=None):
         print(f"File save error: {e}")
         return None
 
+def handle_file_upload(file_obj, file_path_input, is_auto_ensemble=False):
+    try:
+        target_dir = INPUT_DIR if not is_auto_ensemble else VİDEO_TEMP
+        
+        # Dosya yolu girilmişse onu kullan
+        if file_path_input and os.path.exists(file_path_input):
+            saved_path = save_uploaded_file(file_path_input, is_input=True, target_dir=target_dir)
+        # Dosya yüklenmişse onu kullan
+        elif file_obj:
+            saved_path = save_uploaded_file(file_obj, is_input=True, target_dir=target_dir)
+        else:
+            return [None, None]
+            
+        return [
+            gr.File(value=saved_path),
+            gr.Audio(value=saved_path)
+        ]
+    except Exception as e:
+        print(f"Hata: {str(e)}")
+        return [None, None]        
+
 def move_old_files(output_folder):
     old_output_folder = os.path.join(BASE_PATH, 'old_output')
     os.makedirs(old_output_folder, exist_ok=True)
@@ -2164,19 +2185,7 @@ def create_interface():
             clear_directory(VİDEO_TEMP)
             clear_directory(INPUT_DIR)
             gc.collect()
-
-
-    def handle_file_upload(file_obj, is_auto_ensemble=False):
-        try:
-            target_dir = INPUT_DIR if not is_auto_ensemble else VİDEO_TEMP
-            saved_path = save_uploaded_file(file_obj, is_input=True, target_dir=target_dir)
-            return [
-                gr.File(value=saved_path),
-                gr.Audio(value=saved_path)
-            ]
-        except Exception as e:
-            print(f"Hata: {str(e)}")
-            return [None, None]               
+             
 
     main_input_key = "shared_audio_input"
     # Global components
@@ -2302,7 +2311,13 @@ def create_interface():
                 with gr.Row():
                     with gr.Column(scale=1):
                         gr.Markdown("### 🎧 Input Settings")
-                        input_audio_file = gr.File(label="Upload file")  # Keep the file input
+                        with gr.Group():
+                            input_audio_file = gr.File(label="Upload file")
+                            file_path_input = gr.Textbox(
+                                label="Or enter file path",
+                                placeholder="Enter full path to audio file",
+                                interactive=True
+                            )
                         model_category = gr.Dropdown(
                             label="Model Category",
                             choices=list(model_choices.keys()),
@@ -2395,7 +2410,13 @@ def create_interface():
             with gr.Tab("Auto Ensemble"):
                 with gr.Row():
                     with gr.Column():
-                        auto_input_audio_file = gr.File(label="Upload file")  # Keep the file input
+                        with gr.Group():
+                            auto_input_audio_file = gr.File(label="Upload file")
+                            auto_file_path_input = gr.Textbox(
+                                label="Or enter file path",
+                                placeholder="Enter full path to audio file",
+                                interactive=True
+                            )
 
                         with gr.Accordion("⚙️ Advanced Settings", open=False):
                             with gr.Row():
@@ -2567,15 +2588,26 @@ def create_interface():
 
                 # Otomatik yenileme için olayı bağla
                 input_audio_file.upload(
-                    fn=lambda x: handle_file_upload(x, is_auto_ensemble=False),
-                    inputs=input_audio_file,
+                    fn=lambda x, y: handle_file_upload(x, y, is_auto_ensemble=False),
+                    inputs=[input_audio_file, file_path_input],
                     outputs=[input_audio_file, original_audio]
                 )
 
-                # Auto Ensemble sekmesi için
+                file_path_input.change(
+                    fn=lambda x, y: handle_file_upload(x, y, is_auto_ensemble=False),
+                    inputs=[input_audio_file, file_path_input],
+                    outputs=[input_audio_file, original_audio]
+                )
+
                 auto_input_audio_file.upload(
-                    fn=lambda x: handle_file_upload(x, is_auto_ensemble=True),
-                    inputs=auto_input_audio_file,
+                    fn=lambda x, y: handle_file_upload(x, y, is_auto_ensemble=True),
+                    inputs=[auto_input_audio_file, auto_file_path_input],
+                    outputs=[auto_input_audio_file, original_audio2]
+                )
+
+                auto_file_path_input.change(
+                    fn=lambda x, y: handle_file_upload(x, y, is_auto_ensemble=True),
+                    inputs=[auto_input_audio_file, auto_file_path_input],
                     outputs=[auto_input_audio_file, original_audio2]
                 )
 
