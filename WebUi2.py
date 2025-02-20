@@ -1452,7 +1452,6 @@ def create_interface():
         ],
         "Instrumental Separation": [
             'INSTV5N (by Gabox)',
-            'denoisedebleed (by Gabox)',
             'inst_gaboxFV6 (by Gabox)',
             '✅ INST-Mel-Roformer v2 (by unwa) - Most recent instrumental separation model',
             '✅ inst_v1e (by unwa)',
@@ -1476,13 +1475,15 @@ def create_interface():
             '✅ KARAOKE-MelBand-Roformer (by aufr33 & viperx) - Advanced karaoke separation'
         ],
         "Noise & Effect Removal": [
+            '',
+            '🔇 DENOISE-MelBand-Roformer-1 (by aufr33) - Basic noise reduction',
+            '🔉 DENOISE-MelBand-Roformer-2 (by aufr33) - Advanced noise reduction',
+            'bleed_suppressor_v1 (by unwa) - dont use it if you dont know what youre doing',
             'dereverb_mel_band_roformer_mono (by anvuew)',
             '👥 CROWD-REMOVAL-MelBand-Roformer (by aufr33) - Crowd noise removal',
             '🏛️ DE-REVERB-MDX23C (by aufr33 & jarredou) - Reverb reduction',
             '🏛️ DE-REVERB-MelBand-Roformer aggr./v2/19.1729 (by anvuew)',
             '🗣️ DE-REVERB-Echo-MelBand-Roformer (by Sucial)',
-            '🔇 DENOISE-MelBand-Roformer-1 (by aufr33) - Basic noise reduction',
-            '🔉 DENOISE-MelBand-Roformer-2 (by aufr33) - Advanced noise reduction',
             'dereverb_mel_band_roformer_less_aggressive_anvuew',
             'dereverb_mel_band_roformer_anvuew'
 
@@ -1496,7 +1497,6 @@ def create_interface():
             '🎬 4STEMS-SCNet_MUSDB18 (by starrytong) - Multi-stem separation',
             '🎼 CINEMATIC-BandIt_Plus (by kwatcharasupat) - Cinematic music analysis',
             'OTHER-BS-Roformer_1053 (by viperx) - Other special models',
-            'bleed_suppressor_v1 (by unwa) - dont use it if you dont know what youre doing',
             '4STEMS-SCNet_XL_MUSDB18 (by ZFTurbo)',
             '4STEMS-SCNet_Large (by starrytong)',
             '4STEMS-BS-Roformer_MUSDB18 (by ZFTurbo)',
@@ -2330,6 +2330,22 @@ def create_interface():
                                 placeholder="Enter full path to audio file",
                                 interactive=True
                             )
+
+                        # Noise reduction tip
+                        gr.Markdown("""
+                        <div style="
+                            background: rgba(245,245,220,0.15);
+                            padding: 1rem;
+                            border-radius: 8px;
+                            border-left: 3px solid #6c757d;
+                            margin: 1rem 0 1.5rem 0;
+                        ">
+                            <b>🔈 Processing Tip:</b> For noisy results, use <code>bleed_suppressor_v1</code> 
+                            or <code>denoisedebleed</code> models in the <i>"Denoise & Effect Removal"</i> 
+                            category to clean the output
+                        </div>
+                        """)
+
                         model_category = gr.Dropdown(
                             label="Model Category",
                             choices=list(model_choices.keys()),
