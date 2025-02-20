@@ -2196,7 +2196,7 @@ def create_interface():
 
     css = """
     .header {
-        background: linear-gradient(135deg, #6b5b95 0%, #feb236 100%);
+        background: #1e1e2f; /* Lacivert renk */
         padding: 2.5rem;
         border-radius: 20px;
         margin-bottom: 2rem;
@@ -2204,23 +2204,30 @@ def create_interface():
         position: relative;
         overflow: hidden;
         border: 1px solid rgba(255,255,255,0.2);
-        animation: header-glow 8s infinite alternate;
-    }
-    @keyframes header-glow {
-        0% { background-position: 0% 50%; }
-        100% { background-position: 100% 50%; }
     }
     .header-title {
-        color: #ffffff !important;
+        color: transparent !important;
         font-family: 'Poppins', sans-serif !important;
         font-weight: 800 !important;
         margin-bottom: 0.5rem !important;
         text-shadow: 2px 2px 10px rgba(0,0,0,0.4);
         font-size: 2.5rem !important;
         letter-spacing: -0.5px;
-        background: linear-gradient(45deg, #ffffff 30%, #ff6f61 100%);
+        background: linear-gradient(45deg, #FFD700 30%, #FFD700 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        animation: text-glow 3s infinite alternate;
+    }
+    @keyframes text-glow {
+        0% {
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0), 0 0 10px rgba(255, 255, 255, 0), 0 0 15px rgba(255, 255, 255, 0);
+        }
+        50% {
+            text-shadow: 0 0 5px rgba(255, 255, 255, 1), 0 0 10px rgba(255, 255, 255, 1), 0 0 15px rgba(255, 255, 255, 1);
+        }
+        100% {
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0), 0 0 10px rgba(255, 255, 255, 0), 0 0 15px rgba(255, 255, 255, 0);
+        }
     }
     .header-subtitle {
         color: #e0e7ff !important;
@@ -2247,14 +2254,14 @@ def create_interface():
     /* Button Effects */
     button {
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        background: linear-gradient(135deg, #4f46e5 0%, #a855f7 100%) !important;
+        background: linear-gradient(135deg, #333333 0%, #555555 100%) !important; /* Siyah ve gri tonları */
         border: none !important;
         color: white !important;
-        border-radius: 12px !important;
-        padding: 12px 28px !important;
+        border-radius: 8px !important; /* Buton köşe yuvarlama */
+        padding: 8px 16px !important; /* Buton boyutları */
         position: relative;
         overflow: hidden !important;
-        font-size: 1rem !important;
+        font-size: 0.9rem !important; /* Buton yazı boyutu */
     }
     button:hover {
         transform: scale(1.05) !important;
@@ -2267,9 +2274,9 @@ def create_interface():
         left: -50%;
         width: 200%;
         height: 200%;
-        background: linear-gradient(45deg, 
+        background: linear-gradient(45deg , 
             transparent 20%, 
-            rgba(255,255,255,0.2) 50%, 
+            rgba(255,255,255,0.5) 50%, 
             transparent 80%);
         animation: button-shine 3s infinite linear;
     }
@@ -2286,12 +2293,17 @@ def create_interface():
         padding: 1rem;
         font-family: 'Poppins', sans-serif;
     }
+
+    /* Light Animation */
+    .header {
+        background-color: #1e1e2f !important; /* Lacivert renk */
+    }
     """
 
     with gr.Blocks(
         theme=gr.themes.Soft(
-            primary_hue="violet",
-            secondary_hue="pink",
+            primary_hue="gray",
+            secondary_hue="slate",
             font=[gr.themes.GoogleFont("Poppins"), "Arial", "sans-serif"]
         ),
         css=css
@@ -2301,7 +2313,7 @@ def create_interface():
             <div class="header">
                 <div class="header-title">🌀 By Sir Joseph</div>
                 <div class="header-subtitle">Source owner: ZFTurbo</div>
-                <div class="version-badge ">Version 3.0</div>
+                <div class="version-badge">Version 3.0</div>
             </div>
             """)
         
