@@ -2184,13 +2184,117 @@ def create_interface():
     auto_input_audio_file = gr.File(visible=True)
     original_audio = gr.Audio(visible=True)
     
-    with gr.Blocks(theme=gr.themes.Soft(spacing_size="sm", radius_size="none")) as demo:
-        gr.Markdown("""
-        <div style="text-align:center">
-            <h1 style="font-weight:400;margin-bottom:0">🎵 Audio Source Separation</h1>
-            <span style="color:#666">v1.0 - ZFTurbo Based</span>
-        </div>
-        """)
+
+    css = """
+    .header {
+        background: linear-gradient(135deg, #6b5b95 0%, #feb236 100%);
+        padding: 2.5rem;
+        border-radius: 20px;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.2);
+        animation: header-glow 8s infinite alternate;
+    }
+    @keyframes header-glow {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 100% 50%; }
+    }
+    .header-title {
+        color: #ffffff !important;
+        font-family: 'Poppins', sans-serif !important;
+        font-weight: 800 !important;
+        margin-bottom: 0.5rem !important;
+        text-shadow: 2px 2px 10px rgba(0,0,0,0.4);
+        font-size: 2.5rem !important;
+        letter-spacing: -0.5px;
+        background: linear-gradient(45deg, #ffffff 30%, #ff6f61 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .header-subtitle {
+        color: #e0e7ff !important;
+        font-size: 1.4rem !important;
+        font-weight: 400 !important;
+        letter-spacing: 0.5px;
+    }
+    .version-badge {
+        background: rgba(255,255,255,0.15) !important;
+        padding: 0.5rem 1.5rem !important;
+        border-radius: 24px !important;
+        font-size: 1rem !important;
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(255,255,255,0.25);
+        color: #f0abfc !important;
+        margin-top: 1rem !important;
+        transition: all 0.3s ease;
+    }
+    .version-badge:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(79,70,229,0.4);
+    }
+
+    /* Button Effects */
+    button {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        background: linear-gradient(135deg, #4f46e5 0%, #a855f7 100%) !important;
+        border: none !important;
+        color: white !important;
+        border-radius: 12px !important;
+        padding: 12px 28px !important;
+        position: relative;
+        overflow: hidden !important;
+        font-size: 1rem !important;
+    }
+    button:hover {
+        transform: scale(1.05) !important;
+        box-shadow: 0 10px 40px rgba(99, 102, 241, 0.5) !important;
+    }
+    button::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(45deg, 
+            transparent 20%, 
+            rgba(255,255,255,0.2) 50%, 
+            transparent 80%);
+        animation: button-shine 3s infinite linear;
+    }
+    @keyframes button-shine {
+        0% { transform: rotate(0deg) translateX(-50%); }
+        100% { transform: rotate(360deg) translateX(-50%); }
+    }
+
+    /* Background Effects */
+    body {
+        background: linear-gradient(135deg, #1e1e2f 0%, #2a2a40 100%);
+        min-height: 100vh;
+        margin: 0;
+        padding: 1rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    """
+
+    with gr.Blocks(
+        theme=gr.themes.Soft(
+            primary_hue="violet",
+            secondary_hue="pink",
+            font=[gr.themes.GoogleFont("Poppins"), "Arial", "sans-serif"]
+        ),
+        css=css
+    ) as demo:
+        with gr.Column():
+            gr.Markdown("""
+            <div class="header">
+                <div class="header-title">🌀 By Sir Joseph</div>
+                <div class="header-subtitle">Source owner: ZFTurbo</div>
+                <div class="version-badge ">Version 3.0</div>
+            </div>
+            """)
         
         with gr.Tabs():
             # Audio Separation Tab
@@ -2213,62 +2317,76 @@ def create_interface():
                         process_btn = gr.Button("🚀 Start Processing", variant="primary")
                         clear_old_output_btn = gr.Button("🧹 Clear Outputs")
                         clear_old_output_status = gr.Textbox(label="Status", interactive=False)
-
-                        with gr.Column():
-                            with gr.Tabs():
-                                with gr.Tab("Original Audio"):
-                                    original_audio = gr.Audio(
-                                        label="Orjinal Ses",
-                                        interactive=False,
-                                        every=1,  # Her 1 saniyede bir güncelle
-                                        elem_id="original_audio_player"
-                                    )
-                                with gr.Tab("Vocals"):
-                                    vocals_audio = gr.Audio(label="vocals", show_download_button=True)
-                                with gr.Tab("Instrumental"):
-                                    instrumental_audio = gr.Audio(label="instrumental", show_download_button=True)
-                                with gr.Tab("Advanced"):
-                                    phaseremix_audio = gr.Audio(label="Phase Remix")  
-                                    drum_audio = gr.Audio(label="Drums")
-                                    bass_audio = gr.Audio(label="Bass")
-                                    other_audio = gr.Audio(label="Other")
-                                    effects_audio = gr.Audio(label="Effects")
-                                    speech_audio = gr.Audio(label="Speech")
-                                    music_audio = gr.Audio(label="Music")
-                                    dry_audio = gr.Audio(label="Dry")
-                                    male_audio = gr.Audio(label="Male")
-                                    female_audio = gr.Audio(label="Female")    
+    
 
 
-                    with gr.Accordion("⚙️ Expert Settings", open=False):
+                    with gr.Column():
+                        with gr.Tabs():
+                            with gr.Tab("Original Audio"):
+                                original_audio = gr.Audio(
+                                    label="Original",
+                                    interactive=False,
+                                    every=1,
+                                    elem_id="original_audio_player"
+                                )
+                            with gr.Tab("Vocals"):
+                                vocals_audio = gr.Audio(label="vocals", show_download_button=True)
+                            with gr.Tab("Instrumental"):
+                                instrumental_audio = gr.Audio(label="instrumental", show_download_button=True)
+                            with gr.Tab("Advanced"):
+                                phaseremix_audio = gr.Audio(label="Phase Remix")  
+                                drum_audio = gr.Audio(label="Drums")
+                                bass_audio = gr.Audio(label="Bass")
+                                other_audio = gr.Audio(label="Other")
+                                effects_audio = gr.Audio(label="Effects")
+                                speech_audio = gr.Audio(label="Speech")
+                                music_audio = gr.Audio(label="Music")
+                                dry_audio = gr.Audio(label="Dry")
+                                male_audio = gr.Audio(label="Male")
+                                female_audio = gr.Audio(label="Female")
 
-                        export_format = gr.Dropdown(
-                            label="Output Format",
-                            choices=['wav FLOAT', 'flac PCM_16', 'flac PCM_24'],
-                            value='wav FLOAT'
-                        )
+                        # Expert Settings Accordion
+                        with gr.Accordion("⚙️ Expert Settings", open=False):
+                            with gr.Group():
+                                export_format = gr.Dropdown(
+                                    label="Output Format",
+                                    choices=['wav FLOAT', 'flac PCM_16', 'flac PCM_24'],
+                                    value='wav FLOAT'
+                                )
+                                
+                                overlap = gr.Slider(
+                                    label="Overlap",
+                                    minimum=2,
+                                    maximum=50,
+                                    step=1,
+                                    value=2,
+                                    info="Recommended: 2-10 (Higher values increase quality but require more VRAM)"
+                                )
+                                
+                                chunk_size = gr.Dropdown(
+                                    label="Chunk Size",
+                                    choices=[352800, 485100],
+                                    value=352800,
+                                    info="Don't change unless you have specific requirements"
+                                )
 
-
-                        overlap = gr.Slider(
-                            label="Overlap",
-                            minimum=2,
-                            maximum=50,
-                            step=1,
-                            value=2,
-                            info="Recommended: 2-10 (Higher values increase quality but require more VRAM)"
-                        )
-
-                        chunk_size = gr.Dropdown(
-                            label="Chunk Size",
-                            choices=[352800, 485100],
-                            value=352800,
-                            info="Don't change unless you have specific requirements"
-                        )
-
-                        with gr.Accordion("Advanced Settings", open=False):
-                            use_tta = gr.Checkbox(label="Use TTA (Test Time Augmentation)", value=False)
-                            use_demud_phaseremix_inst = gr.Checkbox(label="Enable Demud Phase Remix")
-                            extract_instrumental = gr.Checkbox(label="Extract Instrumental Version")                   
+                            # Advanced Settings Sub-Accordion
+                            with gr.Accordion("🔧 Advanced Processing Options", open=False):
+                                use_tta = gr.Checkbox(
+                                    label="Use TTA (Test Time Augmentation)", 
+                                    value=False,
+                                    info="Improves quality but increases processing time"
+                                )
+                                
+                                use_demud_phaseremix_inst = gr.Checkbox(
+                                    label="Enable Demud Phase Remix",
+                                    info="Advanced phase correction for instrumental tracks"
+                                )
+                                
+                                extract_instrumental = gr.Checkbox(
+                                    label="Extract Instrumental Version",
+                                    info="Generate separate instrumental track"
+                                )                   
                         
 
 
@@ -2305,7 +2423,7 @@ def create_interface():
 
                         # Model Seçim Bölümü
                         with gr.Group():
-                            gr.Markdown("### 🧠 Model Selection")
+                            gr.Markdown("### 🧠 Model Selection") 
                             with gr.Row():
                                 auto_category_dropdown = gr.Dropdown(
                                 label="Model Category",
@@ -2373,6 +2491,61 @@ def create_interface():
                             elem_classes="status-box"
                         )
 
+                        gr.Markdown("""
+                            <div style="
+                                background: rgba(110, 142, 251, 0.1);
+                                padding: 1.2rem;
+                                border-radius: 12px;
+                                border-left: 4px solid #6e8efb;
+                                margin: 1rem 0;
+                                backdrop-filter: blur(3px);
+                                border: 1px solid rgba(255,255,255,0.2);
+                            ">
+                                <div style="display: flex; align-items: start; gap: 1rem;">
+                                    <div style="
+                                        font-size: 1.4em;
+                                        color: #6e8efb;
+                                        margin-top: -2px;
+                                    ">⚠️</div>
+                                    <div style="color: #2d3748;">
+                                        <h4 style="
+                                            margin: 0 0 0.8rem 0;
+                                            color: #4a5568;
+                                            font-weight: 600;
+                                            font-size: 1.1rem;
+                                        ">
+                                            Model Selection Guidelines
+                                        </h4>
+                                        <ul style="
+                                            margin: 0;
+                                            padding-left: 1.2rem;
+                                            color: #4a5568;
+                                            line-height: 1.6;
+                                        ">
+                                            <li><strong>Avoid cross-category mixing:</strong> Combining vocal and instrumental models may create unwanted blends</li>
+                                            <li><strong>Special model notes:</strong>
+                                                <ul style="padding-left: 1.2rem; margin: 0.5rem 0;">
+                                                    <li>Duality models (v1/v2) - Output both stems</li>
+                                                    <li>MDX23C Separator - Hybrid results</li>
+                                                </ul>
+                                            </li>
+                                            <li><strong>Best practice:</strong> Use 3-5 similar models from same category</li>
+                                        </ul>
+                                        <div style="
+                                            margin-top: 1rem;
+                                            padding: 0.8rem;
+                                            background: rgba(167, 119, 227, 0.1);
+                                            border-radius: 8px;
+                                            color: #6e8efb;
+                                            font-size: 0.9rem;
+                                        ">
+                                            💡 Pro Tip: Start with "VOCALS-MelBand-Roformer BigBeta5e" + "VOCALS-BS-Roformer_1297" combination
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            """)
+
                 # Kategori değişim fonksiyonunu güncelleyelim
                 def update_models(category):
                     return gr.Dropdown(choices=model_choices[category])
@@ -2382,13 +2555,7 @@ def create_interface():
                     return gr.Dropdown(choices=updated, value=updated)
 
                 def clear_models():
-                    return gr.Dropdown(choices=[], value=[])
-
-                demo.css = """
-                .compact { padding: 0.5rem !important; }
-                .status-box { background: #f5f5f5; border-radius: 4px; }
-                .dark-mode { background: #2a2a2a; color: white; }
-                """    
+                    return gr.Dropdown(choices=[], value=[]) 
 
                 # Etkileşimler
                 def update_category(target):
@@ -2501,12 +2668,6 @@ def create_interface():
 
                         </div>
                         """)
-
-                        demo.css = """
-                        .compact { padding: 0.5rem !important; }
-                        .status-box { background: #f5f5f5; border-radius: 4px; }
-                        .dark-mode { background: #2a2a2a; color: white; }
-                        """
 
 
                         # Event handlers
