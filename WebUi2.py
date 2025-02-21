@@ -621,7 +621,7 @@ def process_audio(input_audio_file, model, chunk_size, overlap, export_format, u
         audio_path = input_audio_file.name
     else:
         print("No audio file provided.")
-        return [None] * 12  # Error case
+        return [None] * 14  # Error case
 
     clear_directory(INPUT_DIR)    
 
@@ -634,7 +634,7 @@ def process_audio(input_audio_file, model, chunk_size, overlap, export_format, u
     # Check if wav_path is valid
     if wav_path is None:
         print("Failed to convert audio to WAV format.")
-        return [None] * 12  # Error case
+        return [None] * 14  # Error case
 
     # Model adı temizleme
     clean_model = extract_model_name(model)
@@ -654,7 +654,7 @@ def process_audio(input_audio_file, model, chunk_size, overlap, export_format, u
 
     if not dest_path:
         print("Failed to save file")
-        return [None] * 12
+        return [None] * 14
 
     # Model yapılandırması
     model_type, config_path, start_check_point = "", "", ""
@@ -1153,7 +1153,7 @@ def process_audio(input_audio_file, model, chunk_size, overlap, export_format, u
 
     else:
         print(f"Unsupported model: {clean_model}")
-        return [None] * 12  # Hata durumu
+        return [None] * 14  # Hata durumu
 
     result = run_command_and_process_files(model_type, config_path, start_check_point, INPUT_DIR, OUTPUT_DIR, wav_path, extract_instrumental, use_tta, demud_phaseremix_inst, clean_model)
 
@@ -1402,6 +1402,8 @@ def run_command_and_process_files(model_type, config_path, start_check_point, IN
         dry_file = find_file('dry')
         male_file = find_file('male')
         female_file = find_file('female')
+        bleed_file = find_file('bleed')
+        karaoke_file = find_file('karaoke')
         
 
         # Bulunan dosyaları döndür
@@ -1417,13 +1419,15 @@ def run_command_and_process_files(model_type, config_path, start_check_point, IN
             music_file or None,
             dry_file or None,
             male_file or None,
-            female_file or None
+            female_file or None,
+            bleed_file or None,
+            karaoke_file or None
             
         )
 
     except Exception as e:
         print(f"An error occurred: {e}")
-        return (None,) * 12
+        return (None,) * 14
 
        
 
@@ -2195,22 +2199,33 @@ def create_interface():
     
 
     css = """
+    /* ---------- GENEL TEMA ---------- */
+    body {
+        background: linear-gradient(135deg, #1e1e2f 0%, #2a2a40 100%);
+        min-height: 100vh;
+        margin: 0;
+        padding: 1rem;
+        font-family: 'Poppins', sans-serif;
+        color: #e0e7ff;
+    }
+
+    /* ---------- HEADER STYLES ---------- */
     .header {
-        background: #1e1e2f; /* Lacivert renk */
+        background: #1e1e2f;
         padding: 2.5rem;
         border-radius: 20px;
         margin-bottom: 2rem;
         box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        border: 1px solid rgba(255,255,255,0.2);
         position: relative;
         overflow: hidden;
-        border: 1px solid rgba(255,255,255,0.2);
     }
+
     .header-title {
         color: transparent !important;
         font-family: 'Poppins', sans-serif !important;
         font-weight: 800 !important;
         margin-bottom: 0.5rem !important;
-        text-shadow: 2px 2px 10px rgba(0,0,0,0.4);
         font-size: 2.5rem !important;
         letter-spacing: -0.5px;
         background: linear-gradient(45deg, #FFD700 30%, #FFD700 100%);
@@ -2218,23 +2233,14 @@ def create_interface():
         -webkit-text-fill-color: transparent;
         animation: text-glow 3s infinite alternate;
     }
-    @keyframes text-glow {
-        0% {
-            text-shadow: 0 0 5px rgba(255, 255, 255, 0), 0 0 10px rgba(255, 255, 255, 0), 0 0 15px rgba(255, 255, 255, 0);
-        }
-        50% {
-            text-shadow: 0 0 5px rgba(255, 255, 255, 1), 0 0 10px rgba(255, 255, 255, 1), 0 0 15px rgba(255, 255, 255, 1);
-        }
-        100% {
-            text-shadow: 0 0 5px rgba(255, 255, 255, 0), 0 0 10px rgba(255, 255, 255, 0), 0 0 15px rgba(255, 255, 255, 0);
-        }
-    }
+
     .header-subtitle {
         color: #e0e7ff !important;
         font-size: 1.4rem !important;
         font-weight: 400 !important;
         letter-spacing: 0.5px;
     }
+
     .version-badge {
         background: rgba(255,255,255,0.15) !important;
         padding: 0.5rem 1.5rem !important;
@@ -2246,27 +2252,30 @@ def create_interface():
         margin-top: 1rem !important;
         transition: all 0.3s ease;
     }
+
     .version-badge:hover {
         transform: translateY(-3px);
         box-shadow: 0 6px 20px rgba(79,70,229,0.4);
     }
 
-    /* Button Effects */
+    /* ---------- BUTTON STYLES ---------- */
     button {
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        background: linear-gradient(135deg, #333333 0%, #555555 100%) !important; /* Siyah ve gri tonları */
+        background: linear-gradient(135deg, #333333 0%, #555555 100%) !important;
         border: none !important;
         color: white !important;
-        border-radius: 8px !important; /* Buton köşe yuvarlama */
-        padding: 8px 16px !important; /* Buton boyutları */
+        border-radius: 8px !important;
+        padding: 8px 16px !important;
         position: relative;
         overflow: hidden !important;
-        font-size: 0.9rem !important; /* Buton yazı boyutu */
+        font-size: 0.9rem !important;
     }
+
     button:hover {
         transform: scale(1.05) !important;
         box-shadow: 0 10px 40px rgba(99, 102, 241, 0.5) !important;
     }
+
     button::before {
         content: '';
         position: absolute;
@@ -2274,29 +2283,168 @@ def create_interface():
         left: -50%;
         width: 200%;
         height: 200%;
-        background: linear-gradient(45deg , 
+        background: linear-gradient(45deg, 
             transparent 20%, 
             rgba(255,255,255,0.5) 50%, 
             transparent 80%);
         animation: button-shine 3s infinite linear;
     }
+
+    /* ---------- FORM ELEMANLARI ---------- */
+    /* Yatay Mini Yükleme */
+    .compact-upload.horizontal {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        max-width: 400px !important;
+        height: 40px !important;
+        padding: 0 12px !important;
+        border: 1px solid rgba(255,255,255,0.15) !important;
+        background: rgba(255,255,255,0.03) !important;
+        border-radius: 6px !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .compact-upload.horizontal:hover {
+        border-color: rgba(255,255,255,0.3) !important;
+        background: rgba(255,255,255,0.05) !important;
+    }
+
+    .compact-upload.horizontal .w-full {
+        flex: 1 1 auto !important;
+        min-width: 120px !important;
+        margin: 0 !important;
+    }
+
+    .compact-upload.horizontal button {
+        padding: 4px 12px !important;
+        font-size: 0.75em !important;
+        height: 28px !important;
+        min-width: 80px !important;
+        border-radius: 4px !important;
+        background: linear-gradient(135deg, #3b3b5a 0%, #2a2a40 100%) !important;
+        border: 1px solid rgba(255,255,255,0.2) !important;
+    }
+
+    .compact-upload.horizontal .text-gray-500 {
+        font-size: 0.7em !important;
+        color: rgba(255,255,255,0.6) !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        max-width: 180px !important;
+    }
+
+    /* Ekstra Dar Versiyon */
+    .compact-upload.horizontal.x-narrow {
+        max-width: 320px !important;
+        height: 36px !important;
+        padding: 0 10px !important;
+        gap: 6px !important;
+    }
+    
+    .compact-upload.horizontal.x-narrow button {
+        padding: 3px 10px !important;
+        font-size: 0.7em !important;
+        height: 26px !important;
+        min-width: 70px !important;
+    }
+    
+    .compact-upload.horizontal.x-narrow .text-gray-500 {
+        font-size: 0.65em !important;
+        max-width: 140px !important;
+    }
+
+    /* ---------- SEKMELER İÇİN ORTAK STİLLER ---------- */
+    .gr-tab {
+        background: rgba(255,255,255,0.1) !important;
+        border-radius: 12px 12px 0 0 !important;
+        margin: 0 5px !important;
+    }
+
+    .gr-tab-selected {
+        background: #2a2a40 !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+    }
+
+    /* ---------- MANUEL ENSEMBLE ÖZEL STİLLERİ ---------- */
+    .compact-header {
+        font-size: 0.95em !important;
+        margin: 0.8rem 0 0.5rem 0 !important;
+        color: #e0e7ff !important;
+    }
+
+    .compact-grid {
+        gap: 0.4rem !important;
+        max-height: 50vh;
+        overflow-y: auto;
+        padding: 10px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 12px;
+    }
+
+    .compact-dropdown {
+        --padding: 8px 12px !important;
+        --radius: 10px !important;
+        border: 1px solid rgba(255,255,255,0.2) !important;
+        background: rgba(0,0,0,0.3) !important;
+    }
+
+    .tooltip-icon {
+        font-size: 1.4em !important;
+        color: #718096 !important;
+        cursor: help;
+        margin-left: 0.5rem !important;
+    }
+
+    .log-box {
+        font-family: 'Fira Code', monospace !important;
+        font-size: 0.85em !important;
+        background-color: rgba(0,0,0,0.3) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        border-radius: 8px;
+        padding: 1rem !important;
+    }
+
+    /* ---------- ANİMASYONLAR ---------- */
+    @keyframes text-glow {
+        0% { text-shadow: 0 0 5px rgba(255,255,255,0); }
+        50% { text-shadow: 0 0 5px rgba(255,255,255,1); }
+        100% { text-shadow: 0 0 5px rgba(255,255,255,0); }
+    }
+
     @keyframes button-shine {
         0% { transform: rotate(0deg) translateX(-50%); }
         100% { transform: rotate(360deg) translateX(-50%); }
     }
 
-    /* Background Effects */
-    body {
-        background: linear-gradient(135deg, #1e1e2f 0%, #2a2a40 100%);
-        min-height: 100vh;
-        margin: 0;
-        padding: 1rem;
-        font-family: 'Poppins', sans-serif;
-    }
+    /* ---------- RESPONSIVE AYARLAR ---------- */
+    @media (max-width: 768px) {
+        .header {
+            padding: 1.5rem;
+        }
+        
+        .header-title {
+            font-size: 1.8rem !important;
+        }
+        
+        .compact-grid {
+            max-height: 40vh;
+        }
 
-    /* Light Animation */
-    .header {
-        background-color: #1e1e2f !important; /* Lacivert renk */
+        .compact-upload.horizontal {
+            max-width: 100% !important;
+            width: 100% !important;
+        }
+        
+        .compact-upload.horizontal .text-gray-500 {
+            max-width: 100px !important;
+        }
+        
+        .compact-upload.horizontal.x-narrow {
+            height: 40px !important;
+            padding: 0 8px !important;
+        }
     }
     """
 
@@ -2316,120 +2464,111 @@ def create_interface():
                 <div class="version-badge">Version 3.0</div>
             </div>
             """)
-        
         with gr.Tabs():
-            # Audio Separation Tab
-            with gr.Tab("Audio Separation"):
-                with gr.Row():
-                    with gr.Column(scale=1):
-                        gr.Markdown("### 🎧 Input Settings")
-                        with gr.Group():
-                            input_audio_file = gr.File(label="Upload file")
-                            file_path_input = gr.Textbox(
-                                label="Or enter file path",
-                                placeholder="Enter full path to audio file",
-                                interactive=True
-                            )
+            with gr.Tab("Audio Separation", elem_id="separation_tab"):
+                with gr.Row(equal_height=True):
+                    # Sol Panel - Kontroller
+                    with gr.Column(scale=1, min_width=380):
+                        with gr.Accordion("📥 Input & Model", open=True):
+                            with gr.Tabs():
+                                with gr.Tab("🖥 Upload"):
+                                    input_audio_file = gr.File(
+                                        file_types=[".wav", ".mp3", ".m4a", ",mp4", ".mkv", ".flac"],
+                                        elem_classes=["compact-upload", "horizontal", "x-narrow"],
+                                        label="",
+                                        scale=1
+                                    )
 
-                        # Noise reduction tip
-                        gr.Markdown("""
-                        <div style="
-                            background: rgba(245,245,220,0.15);
-                            padding: 1rem;
-                            border-radius: 8px;
-                            border-left: 3px solid #6c757d;
-                            margin: 1rem 0 1.5rem 0;
-                        ">
-                            <b>🔈 Processing Tip:</b> For noisy results, use <code>bleed_suppressor_v1</code> 
-                            or <code>denoisedebleed</code> models in the <i>"Denoise & Effect Removal"</i> 
-                            category to clean the output
-                        </div>
-                        """)
-
-                        model_category = gr.Dropdown(
-                            label="Model Category",
-                            choices=list(model_choices.keys()),
-                            value="Vocal Separation"
-                        )
-
-                        model_dropdown = gr.Dropdown(
-                            label="Select Model",
-                            interactive=True
-                        )
-
-                        process_btn = gr.Button("🚀 Start Processing", variant="primary")
-                        clear_old_output_btn = gr.Button("🧹 Clear Outputs")
-                        clear_old_output_status = gr.Textbox(label="Status", interactive=False)
-    
-
-
-                    with gr.Column():
-                        with gr.Tabs():
-                            with gr.Tab("Original Audio"):
-                                original_audio = gr.Audio(
-                                    label="Original",
-                                    interactive=False,
-                                    every=1,
-                                    elem_id="original_audio_player"
+                                with gr.Tab("📂 Path"):
+                                    file_path_input = gr.Textbox(placeholder="/path/to/audio.wav")
+             
+                            
+                            with gr.Row():
+                                model_category = gr.Dropdown(
+                                    label="Category",
+                                    choices=list(model_choices.keys()),
+                                    value="Vocal Separation"
                                 )
-                            with gr.Tab("Vocals"):
-                                vocals_audio = gr.Audio(label="vocals", show_download_button=True)
-                            with gr.Tab("Instrumental"):
-                                instrumental_audio = gr.Audio(label="instrumental", show_download_button=True)
-                            with gr.Tab("Advanced"):
-                                phaseremix_audio = gr.Audio(label="Phase Remix")  
-                                drum_audio = gr.Audio(label="Drums")
-                                bass_audio = gr.Audio(label="Bass")
-                                other_audio = gr.Audio(label="Other")
-                                effects_audio = gr.Audio(label="Effects")
-                                speech_audio = gr.Audio(label="Speech")
-                                music_audio = gr.Audio(label="Music")
-                                dry_audio = gr.Audio(label="Dry")
-                                male_audio = gr.Audio(label="Male")
-                                female_audio = gr.Audio(label="Female")
+                                model_dropdown = gr.Dropdown(label="Model")
 
-                        # Expert Settings Accordion
-                        with gr.Accordion("⚙️ Expert Settings", open=False):
-                            with gr.Group():
+                        with gr.Accordion("⚙ Settings", open=False):
+                            with gr.Row():
                                 export_format = gr.Dropdown(
-                                    label="Output Format",
+                                    label="Format",
                                     choices=['wav FLOAT', 'flac PCM_16', 'flac PCM_24'],
                                     value='wav FLOAT'
                                 )
-                                
-                                overlap = gr.Slider(
-                                    label="Overlap",
-                                    minimum=2,
-                                    maximum=50,
-                                    step=1,
-                                    value=2,
-                                    info="Recommended: 2-10 (Higher values increase quality but require more VRAM)"
-                                )
-                                
                                 chunk_size = gr.Dropdown(
                                     label="Chunk Size",
                                     choices=[352800, 485100],
                                     value=352800,
                                     info="Don't change unless you have specific requirements"
                                 )
+                            
+                            with gr.Row():
+                                overlap = gr.Slider(2, 50, step=1, label="Overlap")
+                                info="Recommended: 2-10 (Higher values increase quality but require more VRAM)"
+                                use_tta = gr.Checkbox(label="TTA Boost")
+                                info="Improves quality but increases processing time"
 
-                            # Advanced Settings Sub-Accordion
-                            with gr.Accordion("🔧 Advanced Processing Options", open=False):
-                                use_tta = gr.Checkbox(
-                                    label="Use TTA (Test Time Augmentation)", 
-                                    value=False,
-                                    info="Improves quality but increases processing time"
-                                )
-                                
-                                use_demud_phaseremix_inst = gr.Checkbox(
-                                    label="Enable Demud Phase Remix",
-                                    info="Advanced phase correction for instrumental tracks"
-                                )
-                                
-                                extract_instrumental = gr.Checkbox(
-                                    label="Extract Instrumental Version",
-                                    info="Generate separate instrumental track"
-                                )                   
+                            with gr.Row():
+                                use_demud_phaseremix_inst = gr.Checkbox(label="Phase Fix")
+                                info="Advanced phase correction for instrumental tracks"
+                                extract_instrumental = gr.Checkbox(label="Instrumental")
+
+                        with gr.Row():
+                            process_btn = gr.Button("🚀 Process", variant="primary")
+                            clear_old_output_btn = gr.Button("🧹 Reset", variant="secondary")
+                            clear_old_output_status = gr.Textbox(label="Status", interactive=False)
+
+                    # Sağ Panel - Sonuçlar
+                    with gr.Column(scale=2, min_width=800):
+                        with gr.Tabs():
+                            with gr.Tab("🎧 Main"):
+                                with gr.Column():
+                                    original_audio = gr.Audio(label="Original", interactive=False)
+                                    with gr.Row():
+                                        vocals_audio = gr.Audio(label="Vocals", show_download_button=True)
+                                        instrumental_audio = gr.Audio(label="Instrumental", show_download_button=True)
+
+                            with gr.Tab("🔍 Details"):
+                                with gr.Column():
+                                    with gr.Row():
+                                        male_audio = gr.Audio(label="Male")
+                                        female_audio = gr.Audio(label="Female")
+                                        speech_audio = gr.Audio(label="Speech")
+                                    with gr.Row():
+                                        drum_audio = gr.Audio(label="Drums")
+                                        bass_audio = gr.Audio(label="Bass")
+                                    with gr.Row():
+                                        other_audio = gr.Audio(label="Other")
+                                        effects_audio = gr.Audio(label="Effects")
+
+                            with gr.Tab("⚙ Advanced"):
+                                with gr.Column():
+                                    with gr.Row():
+                                        phaseremix_audio = gr.Audio(label="Phase Remix")
+                                        dry_audio = gr.Audio(label="Dry")
+                                    with gr.Row():
+                                        music_audio = gr.Audio(label="Music")
+                                        karaoke_audio = gr.Audio(label="Karaoke")
+                                        bleed_audio = gr.Audio(label="Bleed") 
+                       
+                            with gr.Row():
+                        
+                                gr.Markdown("""
+                                <div style="
+                                    background: rgba(245,245,220,0.15);
+                                    padding: 1rem;
+                                    border-radius: 8px;
+                                    border-left: 3px solid #6c757d;
+                                    margin: 1rem 0 1.5rem 0;
+                                ">
+                                    <b>🔈 Processing Tip:</b> For noisy results, use <code>bleed_suppressor_v1</code> 
+                                    or <code>denoisedebleed</code> models in the <i>"Denoise & Effect Removal"</i> 
+                                    category to clean the output
+                                </div>
+                                """)                                        
                         
 
 
@@ -2758,8 +2897,8 @@ def create_interface():
                             ],
                             outputs=[
                                 vocals_audio, instrumental_audio, phaseremix_audio,
-                                drum_audio, bass_audio, other_audio, effects_audio,
-                                speech_audio, music_audio, dry_audio, male_audio, female_audio
+                                drum_audio, karaoke_audio, bass_audio, other_audio, effects_audio,
+                                speech_audio, bleed_audio, music_audio, dry_audio, male_audio, female_audio
                             ]
                         )
 
@@ -2790,118 +2929,131 @@ def create_interface():
                         )
 
             
-            with gr.Tab("Manuel Ensemble"):
-                gr.Markdown("# 🎵 Manuel Ensemble Tool")
-                
-                with gr.Row():
-                    with gr.Column():
-                        refresh_btn = gr.Button("🔄 Refresh Audio Files")
-
-                        ensemble_type = gr.Dropdown(
-                            label="Ensemble Algorithm",
-                            choices=[
-                                'avg_wave',
-                                'median_wave',
-                                'min_wave',
-                                'max_wave',
-                                'avg_fft',
-                                'median_fft',
-                                'min_fft',
-                                'max_fft'
-                            ],
-                            value='avg_wave'
-                        )
-                        
-                        file_dropdowns = []
-                        audio_files = refresh_audio_files('/content/drive/MyDrive/output')
-                        
-                        for i in range(10):
-                            file_dropdown = gr.Dropdown(
-                                label=f"Audio File {i+1}",
-                                choices=['None'] + audio_files,
-                                value='None'
+            with gr.Tab("🎚️ Manuel Ensemble"):
+                with gr.Row(equal_height=True):
+                    # Sol Panel - Giriş ve Ayarlar
+                    with gr.Column(scale=1, min_width=400):
+                        with gr.Accordion("📂 Input Sources", open=True):
+                            with gr.Row():
+                                refresh_btn = gr.Button("🔄 Refresh", variant="secondary", size="sm")
+                                ensemble_type = gr.Dropdown(
+                                label="Ensemble Algorithm",
+                                choices=[
+                                    'avg_wave',
+                                    'median_wave',
+                                    'min_wave',
+                                    'max_wave',
+                                    'avg_fft',
+                                    'median_fft',
+                                    'min_fft',
+                                    'max_fft'
+                                ],
+                                value='avg_wave'
                             )
-                            file_dropdowns.append(file_dropdown)
-                        
-                        def update_audio_dropdowns():
-                            updated_files = refresh_audio_files('/content/drive/MyDrive/output')
-                            return [
-                                gr.Dropdown(choices=['None'] + updated_files, value='None')
-                                for _ in range(10)
-                            ]
-                        
-                        refresh_btn.click(
-                            fn=update_audio_dropdowns,
-                            outputs=file_dropdowns
-                        )
-                        
-                        weights_input = gr.Textbox(
-                            label="Weights (comma-separated, optional)",
-                            placeholder="e.g., 1.0, 1.2, 0.8"
-                        )
-                    
-                    with gr.Column():
-                        ensemble_output_audio = gr.Audio(label="Ensembled Audio")
-                        ensemble_status = gr.Textbox(label="Status")
+                            
+                            # Dosya listesini belirli bir yoldan al
+                            file_path = "/content/drive/MyDrive/output"  # Sabit yol
+                            initial_files = glob.glob(f"{file_path}/*.wav") + glob.glob("/content/Music-Source-Separation-Training/old_output/*.wav")
+                            
+                            gr.Markdown("### Select Audio Files")
+                            file_dropdown = gr.Dropdown(
+                                choices=initial_files,
+                                label="Available Files",
+                                multiselect=True,
+                                interactive=True,
+                                elem_id="file-dropdown"
+                            )
+                            
+                            weights_input = gr.Textbox(
+                                label="Custom Weights (comma separated)",
+                                placeholder="Example: 0.8, 1.2, 1.0, ...",
+                                info="Leave empty for equal weights"
+                            )
 
-                        ensemble_process_btn = gr.Button("Ensemble Audio")
-                    
-                    def ensemble_audio_fn(file_1, file_2, file_3, file_4, file_5, 
-                                          file_6, file_7, file_8, file_9, file_10, 
-                                          ensemble_type, weights_input):
-                        try:
-                            file_dropdowns = [
-                                file_1, file_2, file_3, file_4, file_5,
-                                file_6, file_7, file_8, file_9, file_10
-                            ]
+                    # Sağ Panel - Sonuçlar
+                    with gr.Column(scale=2, min_width=800):
+                        with gr.Tabs():
+                            with gr.Tab("🎧 Result Preview"):
+                                ensemble_output_audio = gr.Audio(
+                                    label="Ensembled Output",
+                                    interactive=False,
+                                    show_download_button=True,
+                                    elem_id="output-audio"
+                                )
                             
-                            files = []
-                            paths_to_check = [
-                                '/content/drive/MyDrive/output',
-                                '/content/Music-Source-Separation-Training/old_output'
-                            ]
-        
-                            for f in file_dropdowns:
-                                if f != 'None':
-                                    for path in paths_to_check:
-                                        full_path = os.path.join(path, f)
-                                        if os.path.exists(full_path):
-                                            files.append(full_path)
-                                            break
-        
-                            if len(files) < 2:
-                                return None, "Select at least 2 files for ensemble"
-        
-                            if weights_input and weights_input.strip():
-                                weights = [float(w.strip()) for w in weights_input.split(',')]
-                                if len(weights) != len(files):
-                                    return None, "Weights must match number of selected files"
-                            else:
-                                weights = None
-                            
-                            output_path = "/content/drive/MyDrive/ensemble_folder/ensembled_audio.wav"
-                            
-                            ensemble_args = [
-                                "--files"] + files + [
-                                "--type", ensemble_type,
-                                "--output", output_path
-                            ]
-                            
-                            if weights:
-                                ensemble_args.extend(["--weights"] + [str(w) for w in weights])
-                            
-                            ensemble_files(ensemble_args)
-                            
-                            return output_path, "Ensemble successful!"
+                            with gr.Tab("📋 Processing Log"):
+                                ensemble_status = gr.Textbox(
+                                    label="Processing Details",
+                                    interactive=False,
+                                    elem_id="log-box"
+                                )
+
+                            with gr.Row(): 
+
+                                ensemble_process_btn = gr.Button(
+                                    "⚡ Process Ensemble", 
+                                    variant="primary",
+                                    size="sm",  # Boyutu küçülttüm
+                                    elem_id="process-btn"
+                                )
+
+                # Etkileşimler
+                def update_file_list():
+                    files = glob.glob(f"{file_path}/*.wav") + glob.glob("/content/Music-Source-Separation-Training/old_output/*.wav")
+                    return gr.Dropdown(choices=files)
+
+                refresh_btn.click(
+                    fn=update_file_list,
+                    outputs=file_dropdown
+                )
+                
+                def ensemble_audio_fn(files, method, weights):
+                    try:
+                        if len(files) < 2:
+                            return None, "⚠️ Minimum 2 files required"
                         
-                        except Exception as e:
-                            return None, f"Error: {str(e)}"
-                    
-                    ensemble_process_btn.click(
-                        fn=ensemble_audio_fn,
-                        inputs=file_dropdowns + [ensemble_type, weights_input],
-                        outputs=[ensemble_output_audio, ensemble_status]
-                    )
+                        # Dosya yollarını kontrol et
+                        valid_files = [f for f in files if os.path.exists(f)]
+                        
+                        if len(valid_files) < 2:
+                            return None, "❌ Valid files not found"
+                        
+                        # Create output directory if needed
+                        output_dir = "/content/drive/MyDrive/ensembles"
+                        os.makedirs(output_dir, exist_ok=True)  # This line fixes the error
+                        
+                        # Create output path
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        output_path = f"{output_dir}/ensemble_{timestamp}.wav"
+                        
+                        # Ensemble işlemi
+                        ensemble_args = [
+                            "--files", *valid_files,
+                            "--type", method.lower().replace(' ', '_'),
+                            "--output", output_path
+                        ]
+                        
+                        if weights and weights.strip():
+                            weights_list = [str(w) for w in map(float, weights.split(','))]
+                            ensemble_args += ["--weights", *weights_list]
+                        
+                        result = subprocess.run(
+                            ["python", "ensemble.py"] + ensemble_args,
+                            capture_output=True,
+                            text=True
+                        )
+                        
+                        log = f"✅ Success!\n{result.stdout}" if not result.stderr else f"❌ Error!\n{result.stderr}"
+                        return output_path, log
+
+                    except Exception as e:
+                        return None, f"⛔ Critical Error: {str(e)}"
+
+                ensemble_process_btn.click(
+                    fn=ensemble_audio_fn,
+                    inputs=[file_dropdown, ensemble_type, weights_input],
+                    outputs=[ensemble_output_audio, ensemble_status]
+                )
 
     return demo
 
