@@ -841,8 +841,8 @@ def process_audio(input_audio_file, model, chunk_size, overlap, export_format, u
             model_type = 'mel_band_roformer'
             config_path = 'ckpts/config_bleed_suppressor_v1.yaml'
             start_check_point = 'ckpts/bleed_suppressor_v1.ckpt'
-            download_file('https://shared.multimedia.workers.dev/download/1/other/bleed_suppressor_v1.ckpt')
-            download_file('https://shared.multimedia.workers.dev/download/1/other/config_bleed_suppressor_v1.yaml')
+            download_file('https://huggingface.co/ASesYusuf1/MODELS/resolve/main/bleed_suppressor_v1.ckpt')
+            download_file('https://huggingface.co/ASesYusuf1/MODELS/resolve/main/config_bleed_suppressor_v1.yaml')
             conf_edit(config_path, chunk_size, overlap)
 
     elif clean_model == 'VOCALS-MelBand-Roformer (by Becruily)':
@@ -1814,8 +1814,8 @@ def create_interface():
                         model_type = 'mel_band_roformer'
                         config_path = 'ckpts/config_bleed_suppressor_v1.yaml'
                         start_check_point = 'ckpts/bleed_suppressor_v1.ckpt'
-                        download_file('https://shared.multimedia.workers.dev/download/1/other/bleed_suppressor_v1.ckpt')
-                        download_file('https://shared.multimedia.workers.dev/download/1/other/config_bleed_suppressor_v1.yaml')
+                        download_file('https://huggingface.co/ASesYusuf1/MODELS/resolve/main/bleed_suppressor_v1.ckpt')
+                        download_file('https://huggingface.co/ASesYusuf1/MODELS/resolve/main/config_bleed_suppressor_v1.yaml')
                         conf_edit(config_path, chunk_size, overlap)
 
                 elif clean_model == 'VOCALS-MelBand-Roformer (by Becruily)':
