@@ -1475,7 +1475,7 @@ def create_interface():
             '✅ KARAOKE-MelBand-Roformer (by aufr33 & viperx) - Advanced karaoke separation'
         ],
         "Noise & Effect Removal": [
-            '',
+            'denoisedebleed (by Gabox)',
             '🔇 DENOISE-MelBand-Roformer-1 (by aufr33) - Basic noise reduction',
             '🔉 DENOISE-MelBand-Roformer-2 (by aufr33) - Advanced noise reduction',
             'bleed_suppressor_v1 (by unwa) - dont use it if you dont know what youre doing',
@@ -1599,6 +1599,8 @@ def create_interface():
             if not os.path.exists(audio_path):
                 return None, "Input file not found"
 
+            shutil.copy(wav_path, os.path.join(VİDEO_TEMP, os.path.basename(wav_path)))    
+
             # 2. WAV'a dönüştürme
             wav_path = convert_to_wav(audio_path)
             if wav_path is None:
@@ -1618,8 +1620,6 @@ def create_interface():
             os.makedirs(VİDEO_TEMP, exist_ok=True)
             os.makedirs(AUTO_ENSEMBLE_OUTPUT, exist_ok=True) 
 
-            shutil.copy(wav_path, os.path.join(INPUT_DIR, os.path.basename(wav_path)))
-
             for idx, model in enumerate(selected_models):
                 progress((idx + 1) / total_models, f"Processing {model}...")
                 
@@ -1627,7 +1627,7 @@ def create_interface():
                 print(f"Processing using model: {clean_model}")      
 
                 # Model çıktı klasörü
-                model_output_dir = os.path.join(AUTO_ENSEMBLE_TEMP)
+                model_output_dir = os.path.join(AUTO_ENSEMBLE_TEMP, clean_model)
                 os.makedirs(model_output_dir, exist_ok=True)
 
                 model_type, config_path, start_check_point = "", "", ""
