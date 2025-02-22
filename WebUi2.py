@@ -45,6 +45,7 @@ os.makedirs('/content/drive/MyDrive/output', exist_ok=True)
 os.makedirs('/content/drive/MyDrive/ensemble_folder', exist_ok=True)
 os.makedirs('/content/Music-Source-Separation-Training/old_output', exist_ok=True)
 os.makedirs('/content/Music-Source-Separation-Training/auto_ensemble_temp', exist_ok=True)
+os.makedirs('/content/Music-Source-Separation-Training/wav_folder', exist_ok=True)
 
 def clear_old_output():
     old_output_folder = os.path.join(BASE_PATH, 'old_output')
@@ -90,12 +91,42 @@ def update_progress(progress=gr.Progress()):
     return track_progress
 
 
-def clear_input_folder():
-    # Folder cleanup process
-    input_path = "/content/Music-Source-Separation-Training/input"
-    if os.path.exists(input_path):
-        shutil.rmtree(input_path)
-    os.makedirs(input_path, exist_ok=True)
+def clear_input_folder(audio_path_to_keep=None):
+    """
+    Input klasörünü temizlerken belirli bir ses dosyasını korur.
+    
+    Args:
+        audio_path_to_keep (str, optional): Korunacak dosyanın tam yolu. 
+                                          None verilirse tüm dosyalar silinir.
+    """
+    input_folder = "/content/Music-Source-Separation-Training/input"
+    try:
+        if not os.path.exists(input_folder):
+            return "❌ Input folder does not exist"
+
+        # Korunacak dosyanın adını al
+        keep_filename = os.path.basename(audio_path_to_keep) if audio_path_to_keep else None
+
+        for filename in os.listdir(input_folder):
+            file_path = os.path.join(input_folder, filename)
+            
+            # Aynı dosyaysa atla
+            if audio_path_to_keep and file_path == audio_path_to_keep:
+                continue
+                
+            # Dosya/klasör silme işlemi
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                print(f"{file_path} silinemedi: {e}")
+
+        return "✅ Input klasörü başarıyla temizlendi!"
+    
+    except Exception as e:
+        return f"🔥 Hata: {str(e)}"
 
 # Özel karakterleri temizlemek için
 def clean_filename(title):
@@ -452,7 +483,26 @@ def save_uploaded_file(uploaded_file, is_input=False, target_dir=None):
         print(f"File save error: {e}")
         return None
 
+
+def clear_temp_folder(folder_path):
+    try:
+        # Klasördeki tüm dosya ve alt klasörleri sil
+        for filename in os.listdir(folder_path):
+            file_path = os.path.join(folder_path, filename)
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)  # Dosya veya sembolik link silme
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)  # Klasör ve içeriğini silme
+        print(f"✅ {folder_path} folder cleaned!")
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+
+# Kullanım örneği
+clear_temp_folder("/tmp")        
+
 def handle_file_upload(file_obj, file_path_input, is_auto_ensemble=False):
+    clear_temp_folder("/tmp")
+    clear_input_folder()    
     try:
         target_dir = INPUT_DIR if not is_auto_ensemble else VİDEO_TEMP
         
@@ -461,7 +511,9 @@ def handle_file_upload(file_obj, file_path_input, is_auto_ensemble=False):
             saved_path = save_uploaded_file(file_path_input, is_input=True, target_dir=target_dir)
         # Dosya yüklenmişse onu kullan
         elif file_obj:
-            saved_path = save_uploaded_file(file_obj, is_input=True, target_dir=target_dir)
+            # Gradio'dan gelen dosya yolunu al
+            temp_path = file_obj.name  # Gradio'nun geçici dosya yolu
+            saved_path = save_uploaded_file(temp_path, is_input=True, target_dir=target_dir)
         else:
             return [None, None]
             
@@ -471,8 +523,9 @@ def handle_file_upload(file_obj, file_path_input, is_auto_ensemble=False):
         ]
     except Exception as e:
         print(f"Hata: {str(e)}")
-        return [None, None]        
+        return [None, None]
 
+        
 def move_old_files(output_folder):
     old_output_folder = os.path.join(BASE_PATH, 'old_output')
     os.makedirs(old_output_folder, exist_ok=True)
@@ -486,17 +539,17 @@ def move_old_files(output_folder):
             new_file_path = os.path.join(old_output_folder, new_filename)
             shutil.move(file_path, new_file_path) 
 
-def move_wav_files2(auto_ensemble_temp):
-    AUTO_ENSEMBLE_TEMP = os.path.join(AUTO_ENSEMBLE_TEMP, 'auto_ensemble_temp')
-    os.makedirs(AUTO_ENSEMBLE_TEMP, exist_ok=True)
+def move_wav_files2(INPUT_DIR):
+    ENSEMBLE_DIR = os.path.join(BASE_PATH, 'ensemble')
+    os.makedirs(ENSEMBLE_DIR, exist_ok=True)
 
     # Eski dosyaları taşı ve adlarının sonuna "old" ekle
-    for filename in os.listdir(VİDEO_TEMP):
-        file_path = os.path.join(VİDEO_TEMP, filename)
+    for filename in os.listdir(INPUT_DIR):
+        file_path = os.path.join(INPUT_DIR, filename)
         if os.path.isfile(file_path):
             # Yeni dosya adını oluştur
             new_filename = f"{os.path.splitext(filename)[0]}_old{os.path.splitext(filename)[1]}"
-            new_file_path = os.path.join(VİDEO_TEMP, new_filename)
+            new_file_path = os.path.join(ENSEMBLE_DIR, new_filename)
             shutil.move(file_path, new_file_path)             
 
 
@@ -530,6 +583,7 @@ OLD_OUTPUT_DIR = '/content/drive/MyDrive/old_output'
 AUTO_ENSEMBLE_OUTPUT = '/content/drive/MyDrive/ensemble_folder'
 INFERENCE_SCRIPT_PATH = '/content/Music-Source-Separation-Training/inference.py'
 VİDEO_TEMP = '/content/Music-Source-Separation-Training/video_temp'
+ENSEMBLE_DIR = '/content/Music-Source-Separation-Training/ensemble'
 os.makedirs(VİDEO_TEMP, exist_ok=True)  # Klasörü oluşturduğundan emin ol
 
 def clear_directory(directory):
@@ -550,18 +604,12 @@ def create_directory(directory):
         print(f"{directory} directory already exists.")     
 
 def convert_to_wav(file_path):
-    """Converts the audio file to WAV format and moves it to the input directory."""
+    """Converts the audio file to WAV format and moves it to the ensemble directory."""
     
-    # Directory paths
     BASE_DIR = "/content/Music-Source-Separation-Training"
-    WAV_FOLDER = os.path.join(BASE_DIR, "wav_folder")
-    INPUT_DIR = os.path.join(BASE_DIR, "input")
-    
-    # Create directories if they don't exist
-    os.makedirs(WAV_FOLDER, exist_ok=True)
-    os.makedirs(INPUT_DIR, exist_ok=True)
+    ENSEMBLE_DIR = os.path.join(BASE_DIR, "ensemble")  # Define the ensemble directory
+    os.makedirs(ENSEMBLE_DIR, exist_ok=True)  # Create the ensemble directory if it doesn't exist
 
-    # Get file information
     original_filename = os.path.basename(file_path)
     filename, ext = os.path.splitext(original_filename)
     
@@ -570,93 +618,71 @@ def convert_to_wav(file_path):
         return file_path  # Return the original path if it's already a WAV file
 
     try:
-        # 1. Copy the original file to the wav_folder
-        temp_input = os.path.join(WAV_FOLDER, original_filename)
-        shutil.copy(file_path, temp_input)
+        # Prepare for WAV conversion
+        wav_output = os.path.join(ENSEMBLE_DIR, f"{filename}.wav")  # Save to ensemble directory
         
-        # 2. Prepare for WAV conversion
-        wav_output = os.path.join(WAV_FOLDER, f"{filename}.wav")
-        
-        # 3. Run FFmpeg command to convert to WAV
+        # Run FFmpeg command to convert to WAV
         command = [
-            'ffmpeg', '-y', '-i', temp_input,
+            'ffmpeg', '-y', '-i', file_path,
             '-acodec', 'pcm_s16le', '-ar', '44100', wav_output
         ]
         subprocess.run(command, check=True, capture_output=True)
-        
-        # 4. Move the converted WAV to the input directory
-        final_output = os.path.join(INPUT_DIR, f"{filename}.wav")
-        
-        # Check if the final output is the same as the wav_output
-        if final_output == wav_output:
-            print(f"Warning: The source and destination are the same file: {final_output}")
-            return final_output  # Return the path if they are the same
 
-        shutil.move(wav_output, final_output)
-        
-        # 5. Clear the input directory after moving the WAV
-        clear_directory(INPUT_DIR)
-        
-        return final_output
+        return wav_output  # Return the path of the converted WAV file
         
     except subprocess.CalledProcessError as e:
-        error_msg = f"FFmpeg Error ({e.returncode}):\nInput: {e.stderr.decode()}"
+        error_msg = f"FFmpeg Error ({e.returncode}): {e.stderr.decode()}"
         print(error_msg)
         return None
-        
-    finally:
-        # Clean up temporary files in wav_folder
-        for f in os.listdir(WAV_FOLDER):
-            file_path = os.path.join(WAV_FOLDER, f)
-            try:
-                if os.path.isfile(file_path):
-                    os.remove(file_path)
-            except Exception as e:
-                print(f"Cleanup error: {file_path} - {str(e)}")
+    except Exception as e:
+        print(f"Error during conversion: {str(e)}")
+        return None
+
+def send_audio_file(file_path):
+    try:
+        if not os.path.exists(file_path):
+            print(f"File not found: {file_path}")
+            return None, "File not found"
+
+        with open(file_path, 'rb') as f:
+            data = f.read()
+            print(f"Sending file: {file_path}, Size: {len(data)} bytes")
+            return data, "Success"
+    except Exception as e:
+        print(f"Error sending file: {e}")
+        return None, str(e)        
        
 
-def process_audio(input_audio_file, model, chunk_size, overlap, export_format, use_tta, demud_phaseremix_inst, extract_instrumental, denoise, *args, **kwargs):
+def process_audio(input_audio_file, model, chunk_size, overlap, export_format, use_tta, demud_phaseremix_inst, extract_instrumental, clean_model, *args, **kwargs):
+    clear_temp_folder("/tmp")
     # Determine the audio path
     if input_audio_file is not None:
-        audio_path = input_audio_file.name
+        # Ensure input directory exists
+        create_directory(INPUT_DIR)
+        # Save the uploaded file to INPUT_DIR
+        audio_path = os.path.join(INPUT_DIR, input_audio_file.name)
+        with open(audio_path, 'wb') as f:
+            f.write(input_audio_file.getbuffer())  # Save the uploaded file
     else:
-        print("No audio file provided.")
-        return [None] * 14  # Error case
+        # Check for existing files in INPUT_DIR
+        create_directory(INPUT_DIR)  # Ensure the directory exists
+        existing_files = os.listdir(INPUT_DIR)
+        if existing_files:
+            # Use the first existing file
+            audio_path = os.path.join(INPUT_DIR, existing_files[0])
+        else:
+            print("No audio file provided and no existing file in input directory.")
+            return [None] * 14  # Error case
 
-    clear_directory(INPUT_DIR)    
-
-     # Eski dosyaları taşı
-    move_old_files(OUTPUT_DIR)   
-
-    # Convert to WAV if necessary
-    wav_path = convert_to_wav(audio_path)
-
-    # Check if wav_path is valid
-    if wav_path is None:
-        print("Failed to convert audio to WAV format.")
-        return [None] * 14  # Error case
-
-    # Model adı temizleme
+    # Clean model name
     clean_model = extract_model_name(model)
     print(f"Processing audio from: {audio_path} using model: {clean_model}")
 
-    # Gerekli dizinleri oluştur
-    create_directory(INPUT_DIR)
+    # Create necessary directories
     create_directory(OUTPUT_DIR)
     create_directory(OLD_OUTPUT_DIR)
 
-
-    # Ses dosyasını kaydetme
-    if input_audio_file is not None:
-        dest_path = save_uploaded_file(input_audio_file, is_input=True)
-    else:
-        dest_path = audio_path  # Kullanıcının girdiği dosya yolunu kullan
-
-    if not dest_path:
-        print("Failed to save file")
-        return [None] * 14
-
-    # Model yapılandırması
+    # Model configuration (remaining code)
     model_type, config_path, start_check_point = "", "", ""
 
     if clean_model == 'VOCALS-InstVocHQ':
@@ -1155,14 +1181,12 @@ def process_audio(input_audio_file, model, chunk_size, overlap, export_format, u
         print(f"Unsupported model: {clean_model}")
         return [None] * 14  # Hata durumu
 
-    result = run_command_and_process_files(model_type, config_path, start_check_point, INPUT_DIR, OUTPUT_DIR, wav_path, extract_instrumental, use_tta, demud_phaseremix_inst, clean_model)
+    result = run_command_and_process_files(model_type, config_path, start_check_point, INPUT_DIR, OUTPUT_DIR, extract_instrumental, use_tta, demud_phaseremix_inst, clean_model)
 
-    # İşlem tamamlandıktan sonra giriş dizinini temizle
-    clear_directory(INPUT_DIR)
+    # İşlem tamamlandıktan sonra giriş dizinini temizle 
+    move_old_files(OUTPUT_DIR)
 
-    
-    return result
-    
+    return result    
 
 
 def clean_model_name(model):
@@ -1306,7 +1330,7 @@ def clean_filename(filename):
     
     return clean_base, detected_type, ext
 
-def run_command_and_process_files(model_type, config_path, start_check_point, INPUT_DIR, OUTPUT_DIR, dest_path, extract_instrumental, use_tta, demud_phaseremix_inst, clean_model):
+def run_command_and_process_files(model_type, config_path, start_check_point, INPUT_DIR, OUTPUT_DIR, extract_instrumental, use_tta, demud_phaseremix_inst, clean_model):
     try:
         # Komut parçalarını oluştur
         cmd_parts = [
@@ -1315,8 +1339,7 @@ def run_command_and_process_files(model_type, config_path, start_check_point, IN
             "--config_path", config_path,
             "--start_check_point", start_check_point,
             "--input_folder", INPUT_DIR,
-            "--store_dir", OUTPUT_DIR,
-            "--audio_path", dest_path  # İşlenecek ses dosyasının yolu
+            "--store_dir", OUTPUT_DIR,  # İşlenecek ses dosyasının yolu
         ]
 
         # Opsiyonel parametreleri ekle
@@ -1593,36 +1616,26 @@ def create_interface():
 
     def auto_ensemble_process(audio_input, selected_models, chunk_size, overlap, export_format2, 
                          use_tta, extract_instrumental, ensemble_type, 
-                         progress=gr.Progress(), *args, **kwargs):  # Removed audio_path parameter
+                         progress=gr.Progress(), *args, **kwargs):
         try:
-            # 1. Input validation
-            if audio_input is None:
-                return None, "No audio file provided"
-                
-            audio_path = audio_input.name  # Get path directly from audio_input
-            if not os.path.exists(audio_path):
-                return None, "Input file not found"
+            # Ensure the ensemble directory exists
+            move_wav_files2(INPUT_DIR)
+            create_directory(ENSEMBLE_DIR)
+            clear_temp_folder("/tmp")
 
-            shutil.copy(wav_path, os.path.join(VİDEO_TEMP, os.path.basename(wav_path)))    
+            # Handle audio input
+            if audio_input is not None:
+                temp_path = audio_input.name  # Gradio'nun geçici dosya yolu
+                audio_path = os.path.join(ENSEMBLE_DIR, os.path.basename(temp_path))
+            else:
+                existing_files = os.listdir(ENSEMBLE_DIR)
+                if not existing_files:
+                    return None, "❌ No audio file found"
+                audio_path = os.path.join(ENSEMBLE_DIR, existing_files[0])
 
-            # 2. WAV'a dönüştürme
-            wav_path = convert_to_wav(audio_path)
-            if wav_path is None:
-                return None, "Failed to convert audio to WAV format."
-
-            print(f"Converted WAV file path: {wav_path}")
-
-            # 3. Model işlemleri
+            # Model processing
             all_outputs = []
             total_models = len(selected_models)
-            
-            # Geçici klasörleri hazırla
-            clear_directory(AUTO_ENSEMBLE_TEMP)
-            clear_directory(AUTO_ENSEMBLE_OUTPUT)
-            shutil.rmtree(AUTO_ENSEMBLE_TEMP, ignore_errors=True)
-            os.makedirs(AUTO_ENSEMBLE_TEMP, exist_ok=True)
-            os.makedirs(VİDEO_TEMP, exist_ok=True)
-            os.makedirs(AUTO_ENSEMBLE_OUTPUT, exist_ok=True) 
 
             for idx, model in enumerate(selected_models):
                 progress((idx + 1) / total_models, f"Processing {model}...")
@@ -1630,7 +1643,7 @@ def create_interface():
                 clean_model = extract_model_name(model)
                 print(f"Processing using model: {clean_model}")      
 
-                # Model çıktı klasörü
+                # Model output directory
                 model_output_dir = os.path.join(AUTO_ENSEMBLE_TEMP, clean_model)
                 os.makedirs(model_output_dir, exist_ok=True)
 
@@ -2125,9 +2138,8 @@ def create_interface():
                     "--model_type", model_type,
                     "--config_path", config_path,
                     "--start_check_point", start_check_point,
-                    "--input_folder", INPUT_DIR,
+                    "--input_folder", ENSEMBLE_DIR,
                     "--store_dir", model_output_dir,
-                    "--audio_path", wav_path  # Doğrudan wav_path kullan
                 ]
 
                 if use_tta:
@@ -2179,15 +2191,14 @@ def create_interface():
                 return None, "Ensemble failed: No output file."
 
         except Exception as e:
-            print(f"🔥 Critical error: {str(e)}")
-            return None, str(e)
+            return None, f"❌ Error: {str(e)}" 
         
         finally:
             # İşlem tamamlandıktan sonra giriş dizinini temizle
             shutil.rmtree('/content/Music-Source-Separation-Training/auto_ensemble_temp', ignore_errors=True)
+            shutil.rmtree('/content/Music-Source-Separation-Training/ensemble', ignore_errors=True)
             clear_directory(AUTO_ENSEMBLE_TEMP)
             clear_directory(VİDEO_TEMP)
-            clear_directory(INPUT_DIR)
             gc.collect()
              
 
@@ -2473,7 +2484,7 @@ def create_interface():
                             with gr.Tabs():
                                 with gr.Tab("🖥 Upload"):
                                     input_audio_file = gr.File(
-                                        file_types=[".wav", ".mp3", ".m4a", ",mp4", ".mkv", ".flac"],
+                                        file_types=[".wav", ".mp3", ".m4a", ".mp4", ".mkv", ".flac"],
                                         elem_classes=["compact-upload", "horizontal", "x-narrow"],
                                         label="",
                                         scale=1
@@ -2777,7 +2788,6 @@ def create_interface():
                     inputs=[auto_input_audio_file, auto_file_path_input],
                     outputs=[auto_input_audio_file, original_audio2]
                 )
-
 
                 auto_category_dropdown.change(
                     fn=update_models,
