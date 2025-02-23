@@ -90,44 +90,6 @@ def update_progress(progress=gr.Progress()):
         progress(percent/100)
     return track_progress
 
-
-def clear_input_folder(audio_path_to_keep=None):
-    """
-    Input klasörünü temizlerken belirli bir ses dosyasını korur.
-    
-    Args:
-        audio_path_to_keep (str, optional): Korunacak dosyanın tam yolu. 
-                                          None verilirse tüm dosyalar silinir.
-    """
-    input_folder = "/content/Music-Source-Separation-Training/input"
-    try:
-        if not os.path.exists(input_folder):
-            return "❌ Input folder does not exist"
-
-        # Korunacak dosyanın adını al
-        keep_filename = os.path.basename(audio_path_to_keep) if audio_path_to_keep else None
-
-        for filename in os.listdir(input_folder):
-            file_path = os.path.join(input_folder, filename)
-            
-            # Aynı dosyaysa atla
-            if audio_path_to_keep and file_path == audio_path_to_keep:
-                continue
-                
-            # Dosya/klasör silme işlemi
-            try:
-                if os.path.isfile(file_path) or os.path.islink(file_path):
-                    os.unlink(file_path)
-                elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)
-            except Exception as e:
-                print(f"{file_path} silinemedi: {e}")
-
-        return "✅ Input klasörü başarıyla temizlendi!"
-    
-    except Exception as e:
-        return f"🔥 Hata: {str(e)}"
-
 # Özel karakterleri temizlemek için
 def clean_filename(title):
     return re.sub(r'[^\w\-_\. ]', '', title).strip()
@@ -140,7 +102,11 @@ def download_callback(url, download_type='direct', cookie_file=None):
         COOKIE_PATH = os.path.join(BASE_PATH, "cookies.txt")
         
         # Input klasörünü temizle ve yeniden oluştur
-        clear_input_folder()
+        clear_temp_folder(
+            "/tmp",
+            exclude_items=["gradio", "config.json"]
+        )
+        clear_directory(INPUT_DIR)
         os.makedirs(INPUT_DIR, exist_ok=True)
 
         # 2. URL DOĞRULAMA
@@ -484,25 +450,80 @@ def save_uploaded_file(uploaded_file, is_input=False, target_dir=None):
         return None
 
 
-def clear_temp_folder(folder_path):
+def clear_temp_folder(folder_path, exclude_items=None):
+    """
+    Safely clears contents of a directory while preserving specified items
+    
+    Args:
+        folder_path (str): Path to directory to clean
+        exclude_items (list): Items to preserve (e.g., ['gradio', 'important.log'])
+        
+    Returns:
+        bool: True if successful, False if failed
+    """
     try:
-        # Klasördeki tüm dosya ve alt klasörleri sil
-        for filename in os.listdir(folder_path):
-            file_path = os.path.join(folder_path, filename)
-            if os.path.isfile(file_path) or os.path.islink(file_path):
-                os.unlink(file_path)  # Dosya veya sembolik link silme
-            elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)  # Klasör ve içeriğini silme
-        print(f"✅ {folder_path} folder cleaned!")
-    except Exception as e:
-        print(f"❌ Error: {str(e)}")
+        # Validate directory existence
+        if not os.path.exists(folder_path):
+            print(f"⚠️ Directory does not exist: {folder_path}")
+            return False
+            
+        if not os.path.isdir(folder_path):
+            print(f"⚠️ Path is not a directory: {folder_path}")
+            return False
 
-# Kullanım örneği
-clear_temp_folder("/tmp")        
+        # Initialize exclusion list
+        exclude_items = exclude_items or []
+        preserved_items = []
+
+        # Process directory contents
+        for item_name in os.listdir(folder_path):
+            item_path = os.path.join(folder_path, item_name)
+            
+            # Skip excluded items
+            if item_name in exclude_items:
+                preserved_items.append(item_path)
+                continue
+                
+            try:
+                # Delete files and symlinks
+                if os.path.isfile(item_path) or os.path.islink(item_path):
+                    os.unlink(item_path)
+                    print(f"🗑️ File removed: {item_path}")
+                    
+                # Delete directories
+                elif os.path.isdir(item_path):
+                    shutil.rmtree(item_path)
+                    print(f"🗂️ Directory removed: {item_path}")
+                    
+            except PermissionError as pe:
+                print(f"🔒 Permission denied: {item_path} ({str(pe)})")
+                continue
+                
+            except Exception as e:
+                print(f"⚠️ Error deleting {item_path}: {str(e)}")
+                continue
+
+        # Print summary
+        print(f"\n✅ Cleaning completed: {folder_path}")
+        print(f"Total preserved items: {len(preserved_items)}")
+        if preserved_items:
+            print("Preserved items:")
+            for item in preserved_items:
+                print(f"  - {item}")
+                
+        return True
+
+    except Exception as e:
+        print(f"❌ Critical error: {str(e)}")
+        return False
+
 
 def handle_file_upload(file_obj, file_path_input, is_auto_ensemble=False):
-    clear_temp_folder("/tmp")
-    clear_input_folder()    
+    clear_temp_folder(
+        "/tmp",
+        exclude_items=["gradio", "config.json"]
+    )    
+    clear_directory(INPUT_DIR)    
     try:
         target_dir = INPUT_DIR if not is_auto_ensemble else VİDEO_TEMP
         
@@ -654,15 +675,9 @@ def send_audio_file(file_path):
        
 
 def process_audio(input_audio_file, model, chunk_size, overlap, export_format, use_tta, demud_phaseremix_inst, extract_instrumental, clean_model, *args, **kwargs):
-    clear_temp_folder("/tmp")
     # Determine the audio path
     if input_audio_file is not None:
-        # Ensure input directory exists
-        create_directory(INPUT_DIR)
-        # Save the uploaded file to INPUT_DIR
-        audio_path = os.path.join(INPUT_DIR, input_audio_file.name)
-        with open(audio_path, 'wb') as f:
-            f.write(input_audio_file.getbuffer())  # Save the uploaded file
+        audio_path = input_audio_file.name
     else:
         # Check for existing files in INPUT_DIR
         create_directory(INPUT_DIR)  # Ensure the directory exists
@@ -674,6 +689,7 @@ def process_audio(input_audio_file, model, chunk_size, overlap, export_format, u
             print("No audio file provided and no existing file in input directory.")
             return [None] * 14  # Error case
 
+    move_old_files(OUTPUT_DIR)
     # Clean model name
     clean_model = extract_model_name(model)
     print(f"Processing audio from: {audio_path} using model: {clean_model}")
@@ -1184,7 +1200,7 @@ def process_audio(input_audio_file, model, chunk_size, overlap, export_format, u
     result = run_command_and_process_files(model_type, config_path, start_check_point, INPUT_DIR, OUTPUT_DIR, extract_instrumental, use_tta, demud_phaseremix_inst, clean_model)
 
     # İşlem tamamlandıktan sonra giriş dizinini temizle 
-    move_old_files(OUTPUT_DIR)
+    clear_directory(INPUT_DIR)
 
     return result    
 
@@ -1621,7 +1637,6 @@ def create_interface():
             # Ensure the ensemble directory exists
             move_wav_files2(INPUT_DIR)
             create_directory(ENSEMBLE_DIR)
-            clear_temp_folder("/tmp")
 
             # Handle audio input
             if audio_input is not None:
