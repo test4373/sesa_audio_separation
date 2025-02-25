@@ -1189,6 +1189,14 @@ def process_audio(input_audio_file, model, chunk_size, overlap, export_format, u
           download_file('https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/KaraokeGabox.ckpt')
           conf_edit(config_path, chunk_size, overlap)
 
+    elif clean_model == 'FullnessVocalModel (by Amane)':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/config.yaml'
+          start_check_point = 'ckpts/FullnessVocalModel.ckpt'
+          download_file('https://huggingface.co/Aname-Tommy/MelBandRoformers/blob/main/config.yaml')
+          download_file('https://huggingface.co/Aname-Tommy/MelBandRoformers/blob/main/FullnessVocalModel.ckpt')
+          conf_edit(config_path, chunk_size, overlap)
+
 
 
 
@@ -1284,6 +1292,7 @@ def clean_model_name(model):
         'dereverb_mel_band_roformer_mono (by anvuew)': 'dereverb_mel_band_roformer_mono (by anvuew)',
         'INSTV6N (by Gabox)': 'INSTV6N (by Gabox)',
         'KaraokeGabox': 'KaraokeGabox',
+        'FullnessVocalModel (by Amane)': 'FullnessVocalModel (by Amane)',
         
         # Add more mappings as needed
     }
@@ -1482,6 +1491,7 @@ def create_interface():
     # Let's define the model options in advance
     model_choices = {
         "Vocal Separation": [
+            'FullnessVocalModel (by Amane)',
             'Voc_Fv3 (by Gabox)',
             'VOCALS-BS-Roformer_1297 (by viperx)',
             'VOCALS-BS-Roformer_1296 (by viperx)',
@@ -2159,6 +2169,14 @@ def create_interface():
                       start_check_point = 'ckpts/KaraokeGabox.ckpt'
                       download_file('https://github.com/deton24/Colab-for-new-MDX_UVR_models/releases/download/v1.0.0/config_mel_band_roformer_karaoke.yaml')
                       download_file('https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/KaraokeGabox.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'FullnessVocalModel (by Amane)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/config.yaml'
+                      start_check_point = 'ckpts/FullnessVocalModel.ckpt'
+                      download_file('https://huggingface.co/Aname-Tommy/MelBandRoformers/blob/main/config.yaml')
+                      download_file('https://huggingface.co/Aname-Tommy/MelBandRoformers/blob/main/FullnessVocalModel.ckpt')
                       conf_edit(config_path, chunk_size, overlap)
 
               
