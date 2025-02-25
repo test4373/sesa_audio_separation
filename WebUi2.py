@@ -1181,6 +1181,14 @@ def process_audio(input_audio_file, model, chunk_size, overlap, export_format, u
           download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/INSTV6N.ckpt')
           conf_edit(config_path, chunk_size, overlap)
 
+    elif clean_model == 'KaraokeGabox':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/config_mel_band_roformer_karaoke.yaml'
+          start_check_point = 'ckpts/KaraokeGabox.ckpt'
+          download_file('https://github.com/deton24/Colab-for-new-MDX_UVR_models/releases/download/v1.0.0/config_mel_band_roformer_karaoke.yaml')
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/KaraokeGabox.ckpt')
+          conf_edit(config_path, chunk_size, overlap)
+
 
 
 
@@ -1275,7 +1283,7 @@ def clean_model_name(model):
         'MelBandRoformer4StemFTLarge (SYH99999)': 'MelBandRoformer4StemFTLarge (SYH99999)',
         'dereverb_mel_band_roformer_mono (by anvuew)': 'dereverb_mel_band_roformer_mono (by anvuew)',
         'INSTV6N (by Gabox)': 'INSTV6N (by Gabox)',
-
+        'KaraokeGabox': 'KaraokeGabox',
         
         # Add more mappings as needed
     }
@@ -1515,7 +1523,8 @@ def create_interface():
             'INSTV6N (by Gabox)'
         ],
         "Karaoke & Accompaniment": [
-            '✅ KARAOKE-MelBand-Roformer (by aufr33 & viperx) - Advanced karaoke separation'
+            '✅ KARAOKE-MelBand-Roformer (by aufr33 & viperx) - Advanced karaoke separation',
+            'KaraokeGabox'
         ],
         "Noise & Effect Removal": [
             'denoisedebleed (by Gabox)',
@@ -2142,6 +2151,14 @@ def create_interface():
                       start_check_point = 'ckpts/INSTV6N.ckpt'
                       download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
                       download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/INSTV6N.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)
+
+                elif clean_model == 'KaraokeGabox':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/config_mel_band_roformer_karaoke.yaml'
+                      start_check_point = 'ckpts/KaraokeGabox.ckpt'
+                      download_file('https://github.com/deton24/Colab-for-new-MDX_UVR_models/releases/download/v1.0.0/config_mel_band_roformer_karaoke.yaml')
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/KaraokeGabox.ckpt')
                       conf_edit(config_path, chunk_size, overlap)
 
               
