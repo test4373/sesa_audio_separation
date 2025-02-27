@@ -417,23 +417,16 @@ def save_uploaded_file(uploaded_file, is_input=False, target_dir=None):
         else:
             clean_filename = original_filename
 
-        # Hedef dizini belirle (DÜZELTME BURADA)
+        # Hedef dizini belirle
         target_directory = INPUT_DIR if is_input else OUTPUT_DIR
         target_path = os.path.join(target_directory, clean_filename)
         
         # Dizini oluştur (yoksa)
         os.makedirs(target_directory, exist_ok=True)
         
-        # Dizindeki TÜM önceki dosyaları sil
-        for filename in os.listdir(target_directory):
-            file_path = os.path.join(target_directory, filename)
-            try:
-                if os.path.isfile(file_path) or os.path.islink(file_path):
-                    os.unlink(file_path)
-                elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)
-            except Exception as e:
-                print(f"{file_path} Not deleted: {e}")
+        # Eğer dosya zaten varsa, sil
+        if os.path.exists(target_path):
+            os.remove(target_path)
 
         # Yeni dosyayı kaydet
         if hasattr(uploaded_file, 'read'):
@@ -519,33 +512,43 @@ def clear_temp_folder(folder_path, exclude_items=None):
 
 
 def handle_file_upload(file_obj, file_path_input, is_auto_ensemble=False):
-    clear_temp_folder(
-        "/tmp",
-        exclude_items=["gradio", "config.json"]
-    )    
-    clear_directory(INPUT_DIR)    
     try:
-        target_dir = INPUT_DIR if not is_auto_ensemble else VİDEO_TEMP
+        BASE_PATH = "/content/Music-Source-Separation-Training"
+        INPUT_DIR = os.path.join(BASE_PATH, "input")
         
-        # Dosya yolu girilmişse onu kullan
-        if file_path_input and os.path.exists(file_path_input):
-            saved_path = save_uploaded_file(file_path_input, is_input=True, target_dir=target_dir)
-        # Dosya yüklenmişse onu kullan
-        elif file_obj:
-            # Gradio'dan gelen dosya yolunu al
-            temp_path = file_obj.name  # Gradio'nun geçici dosya yolu
-            saved_path = save_uploaded_file(temp_path, is_input=True, target_dir=target_dir)
-        else:
-            return [None, None]
-            
-        return [
-            gr.File(value=saved_path),
-            gr.Audio(value=saved_path)
-        ]
-    except Exception as e:
-        print(f"Hata: {str(e)}")
-        return [None, None]
+        # Yeni: Önceki dosyaları kontrol et
+        existing_files = os.listdir(INPUT_DIR)
+        new_file = None
 
+        # Dosya yolu girilmişse
+        if file_path_input and os.path.exists(file_path_input):
+            new_file = file_path_input
+        # Dosya yüklenmişse
+        elif file_obj:
+            new_file = file_obj.name  # Gradio'nun geçici dosya yolu
+
+        # Yeni dosya yoksa mevcut dosyayı koru
+        if not new_file and existing_files:
+            kept_file = os.path.join(INPUT_DIR, existing_files[0])
+            return [
+                gr.File(value=kept_file),
+                gr.Audio(value=kept_file)
+            ]
+
+        # Yeni dosya varsa temizle ve yükle
+        if new_file:
+            clear_directory(INPUT_DIR)  # Sadece yeni dosya geldiğinde temizle
+            saved_path = save_uploaded_file(new_file, is_input=True)
+            return [
+                gr.File(value=saved_path),
+                gr.Audio(value=saved_path)
+            ]
+
+        return [None, None]
+    
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return [None, None]
         
 def move_old_files(output_folder):
     old_output_folder = os.path.join(BASE_PATH, 'old_output')
@@ -606,6 +609,7 @@ INFERENCE_SCRIPT_PATH = '/content/Music-Source-Separation-Training/inference.py'
 VİDEO_TEMP = '/content/Music-Source-Separation-Training/video_temp'
 ENSEMBLE_DIR = '/content/Music-Source-Separation-Training/ensemble'
 os.makedirs(VİDEO_TEMP, exist_ok=True)  # Klasörü oluşturduğundan emin ol
+Backup = '/content/backup'
 
 def clear_directory(directory):
     """Deletes all files in the given directory."""
@@ -671,10 +675,10 @@ def send_audio_file(file_path):
             return data, "Success"
     except Exception as e:
         print(f"Error sending file: {e}")
-        return None, str(e)        
+        return None, str(e)   
        
 
-def process_audio(input_audio_file, model, chunk_size, overlap, export_format, use_tta, demud_phaseremix_inst, extract_instrumental, clean_model, *args, **kwargs):
+def process_audio(input_audio_file, model, chunk_size, overlap, export_format, use_tta, demud_phaseremix_inst, extract_instrumental, clean_model, *args, **kwargs): 
     # Determine the audio path
     if input_audio_file is not None:
         audio_path = input_audio_file.name
@@ -689,14 +693,16 @@ def process_audio(input_audio_file, model, chunk_size, overlap, export_format, u
             print("No audio file provided and no existing file in input directory.")
             return [None] * 14  # Error case
 
-    move_old_files(OUTPUT_DIR)
-    # Clean model name
-    clean_model = extract_model_name(model)
-    print(f"Processing audio from: {audio_path} using model: {clean_model}")
-
     # Create necessary directories
     create_directory(OUTPUT_DIR)
     create_directory(OLD_OUTPUT_DIR)
+
+    # Move old files to the OLD_OUTPUT_DIR
+    move_old_files(OUTPUT_DIR)
+
+    # Clean model name
+    clean_model = extract_model_name(model)
+    print(f"Processing audio from: {audio_path} using model: {clean_model}")
 
     # Model configuration (remaining code)
     model_type, config_path, start_check_point = "", "", ""
@@ -1197,6 +1203,14 @@ def process_audio(input_audio_file, model, chunk_size, overlap, export_format, u
           download_file('https://huggingface.co/Aname-Tommy/MelBandRoformers/blob/main/FullnessVocalModel.ckpt')
           conf_edit(config_path, chunk_size, overlap)
 
+    elif clean_model == 'Inst_GaboxV7 (by Gabox)':
+          model_type = 'mel_band_roformer'
+          config_path = 'ckpts/inst_gabox.yaml'
+          start_check_point = 'ckpts/Inst_GaboxV7.ckpt'
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/V7/Inst_GaboxV7.ckpt')
+          conf_edit(config_path, chunk_size, overlap)      
+
 
 
 
@@ -1216,7 +1230,6 @@ def process_audio(input_audio_file, model, chunk_size, overlap, export_format, u
     result = run_command_and_process_files(model_type, config_path, start_check_point, INPUT_DIR, OUTPUT_DIR, extract_instrumental, use_tta, demud_phaseremix_inst, clean_model)
 
     # İşlem tamamlandıktan sonra giriş dizinini temizle 
-    clear_directory(INPUT_DIR)
 
     return result    
 
@@ -1268,31 +1281,32 @@ def clean_model_name(model):
         'inst_gaboxFV1 (by Gabox)': 'InstGaboxFV1',
         'dereverb_mel_band_roformer_less_aggressive_anvuew': 'DereverbMelBandRoformerLessAggressive',
         'dereverb_mel_band_roformer_anvuew': 'DereverbMelBandRoformer',
-        'VOCALS-Male Female-BS-RoFormer Male Female Beta 7_2889 (by aufr33)': 'MaleFemale-BS-RoFormer(by aufr33)',
-        'VOCALS-MelBand-Roformer (by Becruily)': 'Vocals-MelBand-Roformer(by Becruily)',
+        'VOCALS-Male Female-BS-RoFormer Male Female Beta 7_2889 (by aufr33)': 'MaleFemale-BS-RoFormer-(by aufr33)',
+        'VOCALS-MelBand-Roformer (by Becruily)': 'Vocals-MelBand-Roformer-(by Becruily)',
         'VOCALS-MelBand-Roformer Kim FT 2 (by Unwa)': 'Vocals-MelBand-Roformer-KİM-FT-2(by Unwa)',
         'voc_gaboxMelRoformer (by Gabox)': 'voc_gaboxMelRoformer',
         'voc_gaboxBSroformer (by Gabox)': 'voc_gaboxBSroformer',
         'voc_gaboxMelRoformerFV1 (by Gabox)': 'voc_gaboxMelRoformerFV1',
         'voc_gaboxMelRoformerFV2 (by Gabox)': 'voc_gaboxMelRoformerFV2',
-        'SYH99999/MelBandRoformerSYHFTB1 (by Amane)': 'MelBandRoformerSYHFTB1',
-        'inst_V5 (by Gabox)': 'INSTV5 (by Gabox)',
-        'inst_Fv4Noise (by Gabox)': 'Inst_Fv4Noise (by Gabox)',
-        'Intrumental_Gabox (by Gabox)': 'Intrumental_Gabox (by Gabox)',
-        'inst_GaboxFv3 (by Gabox)': 'INST_GaboxFv3 (by Gabox)',
+        'SYH99999/MelBandRoformerSYHFTB1(by Amane)': 'MelBandRoformerSYHFTB1',
+        'inst_V5 (by Gabox)': 'INSTV5-(by Gabox)',
+        'inst_Fv4Noise (by Gabox)': 'Inst_Fv4Noise-(by Gabox)',
+        'Intrumental_Gabox (by Gabox)': 'Intrumental_Gabox-(by Gabox)',
+        'inst_GaboxFv3 (by Gabox)': 'INST_GaboxFv3-(by Gabox)',
         'SYH99999/MelBandRoformerSYHFTB1_Model1 (by Amane)': 'MelBandRoformerSYHFTB1_model1',
         'SYH99999/MelBandRoformerSYHFTB1_Model2 (by Amane)': 'MelBandRoformerSYHFTB1_model2',
         'SYH99999/MelBandRoformerSYHFTB1_Model3 (by Amane)': 'MelBandRoformerSYHFTB1_model3',
-        'VOCALS-MelBand-Roformer Kim FT 2 Blendless (by unwa)': 'VOCALS-MelBand-Roformer Kim FT 2 Blendless (by unwa)',
-        'inst_gaboxFV6 (by Gabox)': 'inst_gaboxFV6 (by Gabox)',
-        'denoisedebleed (by Gabox)': 'denoisedebleed (by Gabox)',
-        'INSTV5N (by Gabox)': 'INSTV5N (by Gabox)',
-        'Voc_Fv3 (by Gabox)': 'Voc_Fv3 (by Gabox)',
-        'MelBandRoformer4StemFTLarge (SYH99999)': 'MelBandRoformer4StemFTLarge (SYH99999)',
-        'dereverb_mel_band_roformer_mono (by anvuew)': 'dereverb_mel_band_roformer_mono (by anvuew)',
-        'INSTV6N (by Gabox)': 'INSTV6N (by Gabox)',
+        'VOCALS-MelBand-Roformer Kim FT 2 Blendless (by unwa)': 'VOCALS-MelBand-Roformer-Kim-FT-2-Blendless-(by unwa)',
+        'inst_gaboxFV6 (by Gabox)': 'inst_gaboxFV6-(by Gabox)',
+        'denoisedebleed (by Gabox)': 'denoisedebleed-(by Gabox)',
+        'INSTV5N (by Gabox)': 'INSTV5N_(by Gabox)',
+        'Voc_Fv3 (by Gabox)': 'Voc_Fv3_(by Gabox)',
+        'MelBandRoformer4StemFTLarge (SYH99999)': 'MelBandRoformer4StemFTLarge_(SYH99999)',
+        'dereverb_mel_band_roformer_mono (by anvuew)': 'dereverb_mel_band_roformer_mono_(by anvuew)',
+        'INSTV6N (by Gabox)': 'INSTV6N_(by Gabox)',
         'KaraokeGabox': 'KaraokeGabox',
-        'FullnessVocalModel (by Amane)': 'FullnessVocalModel (by Amane)',
+        'FullnessVocalModel (by Amane)': 'FullnessVocalModel',
+        'Inst_GaboxV7 (by Gabox)': 'Inst_GaboxV7_(by Gabox)',
         
         # Add more mappings as needed
     }
@@ -1512,6 +1526,7 @@ def create_interface():
             'VOCALS-MelBand-Roformer Kim FT 2 Blendless (by unwa)'
         ],
         "Instrumental Separation": [
+            'Inst_GaboxV7 (by Gabox)',
             'INSTV5N (by Gabox)',
             'inst_gaboxFV6 (by Gabox)',
             '✅ INST-Mel-Roformer v2 (by unwa) - Most recent instrumental separation model',
@@ -2179,6 +2194,14 @@ def create_interface():
                       download_file('https://huggingface.co/Aname-Tommy/MelBandRoformers/blob/main/FullnessVocalModel.ckpt')
                       conf_edit(config_path, chunk_size, overlap)
 
+                elif clean_model == 'Inst_GaboxV7 (by Gabox)':
+                      model_type = 'mel_band_roformer'
+                      config_path = 'ckpts/inst_gabox.yaml'
+                      start_check_point = 'ckpts/Inst_GaboxV7.ckpt'
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/V7/Inst_GaboxV7.ckpt')
+                      conf_edit(config_path, chunk_size, overlap)        
+
               
 
                 # Ana sekme komut yapısını kullan
@@ -2208,47 +2231,65 @@ def create_interface():
                         return None, f"Model {model} failed: {result.stderr}"
                 except Exception as e:
                     return None, f"Critical error with {model}: {str(e)}"
-                
-                # Çıktıları topla
+
+                    # Çıktı dosyalarını topla
                 model_outputs = glob.glob(os.path.join(model_output_dir, "*.wav"))
                 all_outputs.extend(model_outputs)
 
-            # 4. Ensemble işlemi
-            if len(all_outputs) < 2:
-                return None, "At least 2 models required for ensemble"
+                    # 3. Çıktı dosyalarını kontrol et
+                output_files = glob.glob(os.path.join(model_output_dir, "*.wav"))
+                if not output_files:
+                    raise FileNotFoundError(f"{model} çıktı üretemedi")
+                    
+                model_outputs.extend(output_files)
+                
 
-            ensemble_output_path = os.path.join(AUTO_ENSEMBLE_OUTPUT, f"ensemble_{int(time.time())}.wav")
+            # 4. Dosya bekletme ve kontrol
+            def wait_for_files(files, timeout=300):
+                start = time.time()
+                while time.time() - start < timeout:
+                    missing = [f for f in files if not os.path.exists(f)]
+                    if not missing: return True
+                    time.sleep(5)
+                raise TimeoutError(f"Eksik dosyalar: {missing[:3]}...")
+
+            wait_for_files(model_outputs)
+
+            # 5. Ensemble komutunu güvenli oluştur
+            quoted_files = [f'"{f}"' for f in model_outputs]
+            timestamp = str(int(time.time()))
+            output_path = os.path.join(AUTO_ENSEMBLE_OUTPUT, f"ensemble_{timestamp}.wav")
+            
             ensemble_cmd = [
                 "python", "ensemble.py",
-                "--files", *all_outputs,
+                "--files", *quoted_files,
                 "--type", ensemble_type,
-                "--output", ensemble_output_path
+                "--output", f'"{output_path}"'
             ]
 
-            # Hata ayıklama için komutu yazdır
-            print("Running ensemble command:", " ".join(ensemble_cmd)) 
+            # 6. Komutu çalıştır
+            result = subprocess.run(
+                " ".join(ensemble_cmd),
+                shell=True,
+                capture_output=True,
+                text=True,
+                check=True
+            )
 
-            # Komutu çalıştır ve çıktıyı yakala
-            result = subprocess.run(ensemble_cmd, capture_output=True, text=True)
-            print("Ensemble stdout:", result.stdout)
-            print("Ensemble stderr:", result.stderr)
-
-            if os.path.exists(ensemble_output_path):
-                print(f"✅ Ensemble saved to: {ensemble_output_path}")
-                return ensemble_output_path, "Success!"
-            else:
-                print(f"❌ Failed to save ensemble!")
-                return None, "Ensemble failed: No output file."
+            # 7. Son kontrol
+            if not os.path.exists(output_path):
+                raise RuntimeError("Ensemble dosyası oluşturulamadı")
+                
+            return output_path, "✅ Başarılı!"
 
         except Exception as e:
-            return None, f"❌ Error: {str(e)}" 
+            return None, f"❌ Hata: {str(e)}"
         
         finally:
-            # İşlem tamamlandıktan sonra giriş dizinini temizle
-            shutil.rmtree('/content/Music-Source-Separation-Training/auto_ensemble_temp', ignore_errors=True)
+            # Temizlik
             shutil.rmtree('/content/Music-Source-Separation-Training/ensemble', ignore_errors=True)
-            clear_directory(AUTO_ENSEMBLE_TEMP)
             clear_directory(VİDEO_TEMP)
+            clear_directory(ENSEMBLE_DIR)
             gc.collect()
              
 
@@ -2262,69 +2303,91 @@ def create_interface():
     css = """
     /* ---------- GENEL TEMA ---------- */
     body {
-        background: linear-gradient(135deg, #1e1e2f 0%, #2a2a40 100%);
+        background: url('/content/logo.jpg') no-repeat center center fixed; /* Arka plan için hafif mikrofon resmi */
+        background-size: cover;
+        background-color: #2d0b0b; /* Koyu kırmızı arka plan, resim için yedek */
         min-height: 100vh;
         margin: 0;
         padding: 1rem;
         font-family: 'Poppins', sans-serif;
-        color: #e0e7ff;
+        color: #ff4040; /* Kırmızı metin, metalik tonlara uyum için */
     }
 
-    /* ---------- HEADER STYLES ---------- */
-    .header {
-        background: #1e1e2f;
-        padding: 2.5rem;
-        border-radius: 20px;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        border: 1px solid rgba(255,255,255,0.2);
-        position: relative;
-        overflow: hidden;
+    /* Arka plan resmi şeffaf yap, ama arayüzü kaplasın */
+    body::after {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(45, 11, 11, 0.8); /* Koyu kırmızı şeffaf overlay */
+        z-index: -1;
     }
 
-    .header-title {
-        color: transparent !important;
+    /* ---------- LOGO ve BAŞLIK STİLLERİ ---------- */
+    .logo-container {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        display: flex;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .logo-svg {
+        width: 120px;
+        height: auto;
+        filter: brightness(1.2) saturate(1.5); /* Metalik kırmızı ton */
+        animation: metallic-red-shine 3s infinite alternate;
+    }
+
+    .header-title-text {
+        margin-left: 1rem;
+        color: #ff4040 !important; /* Kırmızı metalik metin */
         font-family: 'Poppins', sans-serif !important;
         font-weight: 800 !important;
-        margin-bottom: 0.5rem !important;
-        font-size: 2.5rem !important;
+        font-size: 2rem !important;
         letter-spacing: -0.5px;
-        background: linear-gradient(45deg, #FFD700 30%, #FFD700 100%);
+        background: linear-gradient(45deg, #ff4040 30%, #ff6b6b 100%); /* Kırmızı gradyan */
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         animation: text-glow 3s infinite alternate;
     }
 
-    .header-subtitle {
-        color: #e0e7ff !important;
-        font-size: 1.4rem !important;
-        font-weight: 400 !important;
-        letter-spacing: 0.5px;
+    /* Metalik kırmızı parlama animasyonu */
+    @keyframes metallic-red-shine {
+        0% { filter: brightness(1) saturate(1) drop-shadow(0 0 5px #ff4040); }
+        50% { filter: brightness(1.3) saturate(1.7) drop-shadow(0 0 15px #ff6b6b); }
+        100% { filter: brightness(1) saturate(1) drop-shadow(0 0 5px #ff4040); }
     }
 
-    .version-badge {
-        background: rgba(255,255,255,0.15) !important;
-        padding: 0.5rem 1.5rem !important;
-        border-radius: 24px !important;
-        font-size: 1rem !important;
-        backdrop-filter: blur(15px);
-        border: 1px solid rgba(255,255,255,0.25);
-        color: #f0abfc !important;
-        margin-top: 1rem !important;
-        transition: all 0.3s ease;
+    @keyframes text-glow {
+        0% { text-shadow: 0 0 5px rgba(255, 64, 64, 0); }
+        50% { text-shadow: 0 0 15px rgba(255, 107, 107, 1); }
+        100% { text-shadow: 0 0 5px rgba(255, 64, 64, 0); }
     }
 
-    .version-badge:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 20px rgba(79,70,229,0.4);
+    /* ---------- HEADER STİLLERİ ---------- */
+    .header {
+        background: rgba(45, 11, 11, 0.9); /* Şeffaf kırmızı arka plan */
+        padding: 2.5rem;
+        border-radius: 20px;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+        border: 1px solid rgba(255, 64, 64, 0.5); /* Kırmızı sınır */
+        position: relative;
+        overflow: hidden;
+        padding-left: 260px; /* Logo ve metin için genişletildi */
+        z-index: 1;
     }
 
-    /* ---------- BUTTON STYLES ---------- */
+    /* ---------- DUGME ve YÜKLEME ALANI STİLLERİ ---------- */
     button {
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        background: linear-gradient(135deg, #333333 0%, #555555 100%) !important;
+        background: linear-gradient(135deg, #800000 0%, #ff4040 100%) !important; /* Koyu kırmızı-kırmızı gradyan */
         border: none !important;
-        color: white !important;
+        color: #ffffff !important;
         border-radius: 8px !important;
         padding: 8px 16px !important;
         position: relative;
@@ -2334,7 +2397,7 @@ def create_interface():
 
     button:hover {
         transform: scale(1.05) !important;
-        box-shadow: 0 10px 40px rgba(99, 102, 241, 0.5) !important;
+        box-shadow: 0 10px 40px rgba(255, 64, 64, 0.5) !important; /* Kırmızı gölge */
     }
 
     button::before {
@@ -2346,13 +2409,12 @@ def create_interface():
         height: 200%;
         background: linear-gradient(45deg, 
             transparent 20%, 
-            rgba(255,255,255,0.5) 50%, 
+            rgba(255,255,255,0.3) 50%, 
             transparent 80%);
         animation: button-shine 3s infinite linear;
     }
 
-    /* ---------- FORM ELEMANLARI ---------- */
-    /* Yatay Mini Yükleme */
+    /* Resim ve Ses Yükleme Alanı Stili */
     .compact-upload.horizontal {
         display: inline-flex !important;
         align-items: center !important;
@@ -2360,21 +2422,23 @@ def create_interface():
         max-width: 400px !important;
         height: 40px !important;
         padding: 0 12px !important;
-        border: 1px solid rgba(255,255,255,0.15) !important;
-        background: rgba(255,255,255,0.03) !important;
-        border-radius: 6px !important;
+        border: 1px solid rgba(255, 64, 64, 0.5) !important; /* Kırmızı sınır */
+        background: rgba(255, 64, 64, 0.1) !important; /* Kırmızı tonlu arka plan */
+        border-radius: 8px !important;
         transition: all 0.2s ease !important;
+        color: #ffffff !important;
     }
 
     .compact-upload.horizontal:hover {
-        border-color: rgba(255,255,255,0.3) !important;
-        background: rgba(255,255,255,0.05) !important;
+        border-color: rgba(255, 107, 107, 0.7) !important;
+        background: rgba(255, 64, 64, 0.2) !important;
     }
 
     .compact-upload.horizontal .w-full {
         flex: 1 1 auto !important;
         min-width: 120px !important;
         margin: 0 !important;
+        color: #ffffff !important;
     }
 
     .compact-upload.horizontal button {
@@ -2383,8 +2447,9 @@ def create_interface():
         height: 28px !important;
         min-width: 80px !important;
         border-radius: 4px !important;
-        background: linear-gradient(135deg, #3b3b5a 0%, #2a2a40 100%) !important;
-        border: 1px solid rgba(255,255,255,0.2) !important;
+        background: linear-gradient(135deg, #800000 0%, #ff4040 100%) !important;
+        border: 1px solid rgba(255, 64, 64, 0.2) !important;
+        color: #ffffff !important;
     }
 
     .compact-upload.horizontal .text-gray-500 {
@@ -2403,14 +2468,14 @@ def create_interface():
         padding: 0 10px !important;
         gap: 6px !important;
     }
-    
+
     .compact-upload.horizontal.x-narrow button {
         padding: 3px 10px !important;
         font-size: 0.7em !important;
         height: 26px !important;
         min-width: 70px !important;
     }
-    
+
     .compact-upload.horizontal.x-narrow .text-gray-500 {
         font-size: 0.65em !important;
         max-width: 140px !important;
@@ -2418,21 +2483,23 @@ def create_interface():
 
     /* ---------- SEKMELER İÇİN ORTAK STİLLER ---------- */
     .gr-tab {
-        background: rgba(255,255,255,0.1) !important;
+        background: rgba(255, 64, 64, 0.1) !important;
         border-radius: 12px 12px 0 0 !important;
         margin: 0 5px !important;
+        color: #ff4040 !important;
     }
 
     .gr-tab-selected {
-        background: #2a2a40 !important;
+        background: #800000 !important; /* Koyu kırmızı */
         box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+        color: #ffffff !important;
     }
 
     /* ---------- MANUEL ENSEMBLE ÖZEL STİLLERİ ---------- */
     .compact-header {
         font-size: 0.95em !important;
         margin: 0.8rem 0 0.5rem 0 !important;
-        color: #e0e7ff !important;
+        color: #ffffff !important; /* Beyaz metin */
     }
 
     .compact-grid {
@@ -2453,7 +2520,7 @@ def create_interface():
 
     .tooltip-icon {
         font-size: 1.4em !important;
-        color: #718096 !important;
+        color: #ffffff !important; /* Görünürlük için beyaz */
         cursor: help;
         margin-left: 0.5rem !important;
     }
@@ -2469,9 +2536,9 @@ def create_interface():
 
     /* ---------- ANİMASYONLAR ---------- */
     @keyframes text-glow {
-        0% { text-shadow: 0 0 5px rgba(255,255,255,0); }
-        50% { text-shadow: 0 0 5px rgba(255,255,255,1); }
-        100% { text-shadow: 0 0 5px rgba(255,255,255,0); }
+        0% { text-shadow: 0 0 5px rgba(192,192,192,0); }
+        50% { text-shadow: 0 0 5px rgba(192,192,192,1); }
+        100% { text-shadow: 0 0 5px rgba(192,192,192,0); }
     }
 
     @keyframes button-shine {
@@ -2506,25 +2573,45 @@ def create_interface():
             height: 40px !important;
             padding: 0 8px !important;
         }
+
+        .logo-container {
+            width: 80px; /* Mobil cihazlarda daha küçük logo */
+            top: 0.5rem;
+            left: 0.5rem;
+        }
     }
     """
 
     with gr.Blocks(
         theme=gr.themes.Soft(
-            primary_hue="gray",
-            secondary_hue="slate",
+            primary_hue="red",  # "Crimson" yerine "red" kullanıyoruz
+            secondary_hue="red",  # "Crimson" yerine "red" kullanıyoruz
             font=[gr.themes.GoogleFont("Poppins"), "Arial", "sans-serif"]
         ),
         css=css
     ) as demo:
         with gr.Column():
-            gr.Markdown("""
-            <div class="header">
-                <div class="header-title">🌀 By Sir Joseph</div>
-                <div class="header-subtitle">Source owner: ZFTurbo</div>
-                <div class="version-badge">Version 3.0</div>
+            # Mikrofon logosu ve başlık
+            logo_html = """
+            <div class="logo-container">
+                <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-svg">
+                    <ellipse cx="60" cy="40" rx="25" ry="20" fill="#ff4040" stroke="#ff6b6b" stroke-width="2"/> <!-- Kırmızı mikrofon başlığı -->
+                    <rect x="58" y="60" width="4" height="40" fill="#ff4040" stroke="#ff6b6b" stroke-width="2"/> <!-- Kırmızı sap -->
+                    <circle cx="60" cy="100" r="5" fill="#ff4040" stroke="#ff6b6b" stroke-width="1"/> <!-- Alt detay -->
+                </svg>
+                <span class="header-title-text">Gecekondu Production Presents</span>
             </div>
-            """)
+            """
+            gr.HTML(logo_html)
+
+            with gr.Column():
+                gr.Markdown("""
+                <div class="header">
+                    <div class="header-title">Audio Separation Tool</div>
+                    <div class="header-subtitle">Powered by ZFTurbo</div>
+                    <div class="version-badge">Version 3.0</div>
+                </div>
+                """)
         with gr.Tabs():
             with gr.Tab("Audio Separation", elem_id="separation_tab"):
                 with gr.Row(equal_height=True):
