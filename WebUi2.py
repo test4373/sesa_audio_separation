@@ -2301,19 +2301,18 @@ def create_interface():
     
 
     css = """
-    /* ---------- GENEL TEMA ---------- */
+    /* Genel Tema */
     body {
-        background: url('/content/logo.jpg') no-repeat center center fixed; /* Arka plan için hafif mikrofon resmi */
+        background: url('/content/logo.jpg') no-repeat center center fixed;
         background-size: cover;
-        background-color: #2d0b0b; /* Koyu kırmızı arka plan, resim için yedek */
+        background-color: #2d0b0b; /* Koyu kırmızı, dublaj stüdyosuna uygun */
         min-height: 100vh;
         margin: 0;
         padding: 1rem;
         font-family: 'Poppins', sans-serif;
-        color: #ff4040; /* Kırmızı metin, metalik tonlara uyum için */
+        color: #C0C0C0; /* Metalik gümüş metin, profesyonel görünüm */
     }
 
-    /* Arka plan resmi şeffaf yap, ama arayüzü kaplasın */
     body::after {
         content: '';
         position: fixed;
@@ -2321,38 +2320,35 @@ def create_interface():
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(45, 11, 11, 0.8); /* Koyu kırmızı şeffaf overlay */
+        background: rgba(45, 11, 11, 0.9); /* Daha koyu kırmızı overlay */
         z-index: -1;
     }
 
-    /* ---------- LOGO ve BAŞLIK STİLLERİ ---------- */
+    /* Logo Stilleri */
     .logo-container {
         position: absolute;
         top: 1rem;
-        left: 1rem;
+        left: 50%;
+        transform: translateX(-50%);
         display: flex;
         align-items: center;
-        z-index: 1000;
+        z-index: 2000; /* Diğer öğelerden üstte, mutlaka görünür */
     }
 
-    .logo-svg {
+    .logo-img {
         width: 120px;
         height: auto;
-        filter: brightness(1.2) saturate(1.5); /* Metalik kırmızı ton */
-        animation: metallic-red-shine 3s infinite alternate;
     }
 
-    .header-title-text {
-        margin-left: 1rem;
-        color: #ff4040 !important; /* Kırmızı metalik metin */
-        font-family: 'Poppins', sans-serif !important;
-        font-weight: 800 !important;
-        font-size: 2rem !important;
-        letter-spacing: -0.5px;
-        background: linear-gradient(45deg, #ff4040 30%, #ff6b6b 100%); /* Kırmızı gradyan */
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        animation: text-glow 3s infinite alternate;
+    /* Başlık Stilleri */
+    .header-text {
+        text-align: center;
+        padding: 80px 20px 20px; /* Logo için alan bırak */
+        color: #ff4040; /* Kırmızı, dublaj temasına uygun */
+        font-size: 2.5rem; /* Daha etkileyici ve büyük başlık */
+        font-weight: 900; /* Daha kalın ve dramatik */
+        text-shadow: 0 0 10px rgba(255, 64, 64, 0.5); /* Kırmızı gölge efekti */
+        z-index: 1500; /* Tablerden üstte, logonun altında */
     }
 
     /* Metalik kırmızı parlama animasyonu */
@@ -2362,32 +2358,31 @@ def create_interface():
         100% { filter: brightness(1) saturate(1) drop-shadow(0 0 5px #ff4040); }
     }
 
-    @keyframes text-glow {
-        0% { text-shadow: 0 0 5px rgba(255, 64, 64, 0); }
-        50% { text-shadow: 0 0 15px rgba(255, 107, 107, 1); }
-        100% { text-shadow: 0 0 5px rgba(255, 64, 64, 0); }
+    /* Dublaj temalı stil */
+    .dubbing-theme {
+        background: linear-gradient(to bottom, #800000, #2d0b0b); /* Koyu kırmızı gradyan */
+        border-radius: 15px;
+        padding: 1rem;
+        box-shadow: 0 10px 20px rgba(255, 64, 64, 0.3); /* Kırmızı gölge */
     }
 
-    /* ---------- HEADER STİLLERİ ---------- */
-    .header {
-        background: rgba(45, 11, 11, 0.9); /* Şeffaf kırmızı arka plan */
-        padding: 2.5rem;
-        border-radius: 20px;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-        border: 1px solid rgba(255, 64, 64, 0.5); /* Kırmızı sınır */
+    /* Footer Stilleri (Tablerin Üstünde, Şeffaf) */
+    .footer {
+        text-align: center;
+        padding: 10px;
+        color: #ff4040; /* Kırmızı metin, dublaj temasına uygun */
+        font-size: 14px;
+        margin-top: 20px;
         position: relative;
-        overflow: hidden;
-        padding-left: 260px; /* Logo ve metin için genişletildi */
-        z-index: 1;
+        z-index: 1001; /* Tablerden üstte, logodan düşük */
     }
 
-    /* ---------- DUGME ve YÜKLEME ALANI STİLLERİ ---------- */
+    /* Düğme ve Yükleme Alanı Stilleri */
     button {
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        background: linear-gradient(135deg, #800000 0%, #ff4040 100%) !important; /* Koyu kırmızı-kırmızı gradyan */
-        border: none !important;
-        color: #ffffff !important;
+        background: #800000 !important; /* Koyu kırmızı, dublaj temasına uygun */
+        border: 1px solid #ff4040 !important; /* Kırmızı sınır */
+        color: #C0C0C0 !important; /* Metalik gümüş metin */
         border-radius: 8px !important;
         padding: 8px 16px !important;
         position: relative;
@@ -2397,7 +2392,8 @@ def create_interface():
 
     button:hover {
         transform: scale(1.05) !important;
-        box-shadow: 0 10px 40px rgba(255, 64, 64, 0.5) !important; /* Kırmızı gölge */
+        box-shadow: 0 10px 40px rgba(255, 64, 64, 0.7) !important; /* Daha belirgin kırmızı gölge */
+        background: #ff4040 !important; /* Daha açık kırmızı hover efekti */
     }
 
     button::before {
@@ -2409,7 +2405,7 @@ def create_interface():
         height: 200%;
         background: linear-gradient(45deg, 
             transparent 20%, 
-            rgba(255,255,255,0.3) 50%, 
+            rgba(192, 192, 192, 0.3) 50%, /* Metalik gümüş ton */
             transparent 80%);
         animation: button-shine 3s infinite linear;
     }
@@ -2422,23 +2418,23 @@ def create_interface():
         max-width: 400px !important;
         height: 40px !important;
         padding: 0 12px !important;
-        border: 1px solid rgba(255, 64, 64, 0.5) !important; /* Kırmızı sınır */
-        background: rgba(255, 64, 64, 0.1) !important; /* Kırmızı tonlu arka plan */
+        border: 1px solid #ff4040 !important; /* Kırmızı sınır */
+        background: rgba(128, 0, 0, 0.5) !important; /* Koyu kırmızı, şeffaf */
         border-radius: 8px !important;
         transition: all 0.2s ease !important;
-        color: #ffffff !important;
+        color: #C0C0C0 !important; /* Metalik gümüş metin */
     }
 
     .compact-upload.horizontal:hover {
-        border-color: rgba(255, 107, 107, 0.7) !important;
-        background: rgba(255, 64, 64, 0.2) !important;
+        border-color: #ff6b6b !important; /* Daha açık kırmızı */
+        background: rgba(128, 0, 0, 0.7) !important; /* Daha koyu kırmızı hover */
     }
 
     .compact-upload.horizontal .w-full {
         flex: 1 1 auto !important;
         min-width: 120px !important;
         margin: 0 !important;
-        color: #ffffff !important;
+        color: #C0C0C0 !important; /* Metalik gümüş */
     }
 
     .compact-upload.horizontal button {
@@ -2447,14 +2443,14 @@ def create_interface():
         height: 28px !important;
         min-width: 80px !important;
         border-radius: 4px !important;
-        background: linear-gradient(135deg, #800000 0%, #ff4040 100%) !important;
-        border: 1px solid rgba(255, 64, 64, 0.2) !important;
-        color: #ffffff !important;
+        background: #800000 !important; /* Koyu kırmızı */
+        border: 1px solid #ff4040 !important; /* Kırmızı sınır */
+        color: #C0C0C0 !important; /* Metalik gümüş */
     }
 
     .compact-upload.horizontal .text-gray-500 {
         font-size: 0.7em !important;
-        color: rgba(255,255,255,0.6) !important;
+        color: rgba(192, 192, 192, 0.6) !important; /* Şeffaf metalik gümüş */
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
@@ -2481,25 +2477,28 @@ def create_interface():
         max-width: 140px !important;
     }
 
-    /* ---------- SEKMELER İÇİN ORTAK STİLLER ---------- */
+    /* Sekmeler İçin Ortak Stiller */
     .gr-tab {
-        background: rgba(255, 64, 64, 0.1) !important;
+        background: rgba(128, 0, 0, 0.5) !important; /* Koyu kırmızı, şeffaf */
         border-radius: 12px 12px 0 0 !important;
         margin: 0 5px !important;
-        color: #ff4040 !important;
+        color: #C0C0C0 !important; /* Metalik gümüş */
+        border: 1px solid #ff4040 !important; /* Kırmızı sınır */
+        z-index: 1500; /* Logo’nun altında, diğer öğelerden üstte */
     }
 
     .gr-tab-selected {
         background: #800000 !important; /* Koyu kırmızı */
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
-        color: #ffffff !important;
+        box-shadow: 0 4px 12px rgba(255, 64, 64, 0.7) !important; /* Daha belirgin kırmızı gölge */
+        color: #ffffff !important; /* Beyaz metin (seçili sekme için kontrast) */
+        border: 1px solid #ff6b6b !important; /* Daha açık kırmızı */
     }
 
-    /* ---------- MANUEL ENSEMBLE ÖZEL STİLLERİ ---------- */
+    /* Manuel Ensemble Özel Stilleri */
     .compact-header {
         font-size: 0.95em !important;
         margin: 0.8rem 0 0.5rem 0 !important;
-        color: #ffffff !important; /* Beyaz metin */
+        color: #C0C0C0 !important; /* Metalik gümüş metin */
     }
 
     .compact-grid {
@@ -2507,20 +2506,22 @@ def create_interface():
         max-height: 50vh;
         overflow-y: auto;
         padding: 10px;
-        background: rgba(255,255,255,0.05);
+        background: rgba(128, 0, 0, 0.3) !important; /* Koyu kırmızı, şeffaf */
         border-radius: 12px;
+        border: 1px solid #ff4040 !important; /* Kırmızı sınır */
     }
 
     .compact-dropdown {
         --padding: 8px 12px !important;
         --radius: 10px !important;
-        border: 1px solid rgba(255,255,255,0.2) !important;
-        background: rgba(0,0,0,0.3) !important;
+        border: 1px solid #ff4040 !important; /* Kırmızı sınır */
+        background: rgba(128, 0, 0, 0.5) !important; /* Koyu kırmızı, şeffaf */
+        color: #C0C0C0 !important; /* Metalik gümüş metin */
     }
 
     .tooltip-icon {
         font-size: 1.4em !important;
-        color: #ffffff !important; /* Görünürlük için beyaz */
+        color: #C0C0C0 !important; /* Metalik gümüş */
         cursor: help;
         margin-left: 0.5rem !important;
     }
@@ -2528,17 +2529,18 @@ def create_interface():
     .log-box {
         font-family: 'Fira Code', monospace !important;
         font-size: 0.85em !important;
-        background-color: rgba(0,0,0,0.3) !important;
-        border: 1px solid rgba(255,255,255,0.1) !important;
+        background-color: rgba(128, 0, 0, 0.3) !important; /* Koyu kırmızı, şeffaf */
+        border: 1px solid #ff4040 !important; /* Kırmızı sınır */
         border-radius: 8px;
         padding: 1rem !important;
+        color: #C0C0C0 !important; /* Metalik gümüş metin */
     }
 
-    /* ---------- ANİMASYONLAR ---------- */
+    /* Animasyonlar */
     @keyframes text-glow {
-        0% { text-shadow: 0 0 5px rgba(192,192,192,0); }
-        50% { text-shadow: 0 0 5px rgba(192,192,192,1); }
-        100% { text-shadow: 0 0 5px rgba(192,192,192,0); }
+        0% { text-shadow: 0 0 5px rgba(192, 192, 192, 0); }
+        50% { text-shadow: 0 0 15px rgba(192, 192, 192, 1); }
+        100% { text-shadow: 0 0 5px rgba(192, 192, 192, 0); }
     }
 
     @keyframes button-shine {
@@ -2546,16 +2548,8 @@ def create_interface():
         100% { transform: rotate(360deg) translateX(-50%); }
     }
 
-    /* ---------- RESPONSIVE AYARLAR ---------- */
+    /* Responsive Ayarlar */
     @media (max-width: 768px) {
-        .header {
-            padding: 1.5rem;
-        }
-        
-        .header-title {
-            font-size: 1.8rem !important;
-        }
-        
         .compact-grid {
             max-height: 40vh;
         }
@@ -2576,42 +2570,36 @@ def create_interface():
 
         .logo-container {
             width: 80px; /* Mobil cihazlarda daha küçük logo */
-            top: 0.5rem;
-            left: 0.5rem;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .header-text {
+            padding: 60px 20px 20px; /* Mobil için daha az boşluk */
+            font-size: 1.8rem; /* Mobil için biraz daha küçük başlık */
         }
     }
     """
 
-    with gr.Blocks(
-        theme=gr.themes.Soft(
-            primary_hue="red",  # "Crimson" yerine "red" kullanıyoruz
-            secondary_hue="red",  # "Crimson" yerine "red" kullanıyoruz
-            font=[gr.themes.GoogleFont("Poppins"), "Arial", "sans-serif"]
-        ),
-        css=css
-    ) as demo:
+    # Arayüz tasarımı
+    with gr.Blocks(theme=gr.themes.Soft(), css=css) as demo:
         with gr.Column():
-            # Mikrofon logosu ve başlık
+            # Logo (PNG olarak, dublaj temasına uygun)
             logo_html = """
             <div class="logo-container">
-                <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-svg">
-                    <ellipse cx="60" cy="40" rx="25" ry="20" fill="#ff4040" stroke="#ff6b6b" stroke-width="2"/> <!-- Kırmızı mikrofon başlığı -->
-                    <rect x="58" y="60" width="4" height="40" fill="#ff4040" stroke="#ff6b6b" stroke-width="2"/> <!-- Kırmızı sap -->
-                    <circle cx="60" cy="100" r="5" fill="#ff4040" stroke="#ff6b6b" stroke-width="1"/> <!-- Alt detay -->
-                </svg>
-                <span class="header-title-text">Gecekondu Production Presents</span>
+                <img src="/content/gk_logo.png" alt="" class="logo-img">
             </div>
             """
             gr.HTML(logo_html)
 
-            with gr.Column():
-                gr.Markdown("""
-                <div class="header">
-                    <div class="header-title">Audio Separation Tool</div>
-                    <div class="header-subtitle">Powered by ZFTurbo</div>
-                    <div class="version-badge">Version 3.0</div>
-                </div>
-                """)
+            # Başlık (Etkileyici ve dublaj temalı)
+            gr.HTML("""
+            <div class="header-text">
+                Gecekondu Dubbing Production
+            </div>
+            """)
+            
         with gr.Tabs():
             with gr.Tab("Audio Separation", elem_id="separation_tab"):
                 with gr.Row(equal_height=True):
@@ -3201,6 +3189,12 @@ def create_interface():
                     inputs=[file_dropdown, ensemble_type, weights_input],
                     outputs=[ensemble_output_audio, ensemble_status]
                 )
+        
+        gr.HTML("""
+        <div class="footer">
+            Presented by Gecekondu Production
+        </div>
+        """)
 
     return demo
 
