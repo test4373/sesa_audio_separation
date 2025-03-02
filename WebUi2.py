@@ -46,6 +46,9 @@ os.makedirs('/content/drive/MyDrive/ensemble_folder', exist_ok=True)
 os.makedirs('/content/Music-Source-Separation-Training/old_output', exist_ok=True)
 os.makedirs('/content/Music-Source-Separation-Training/auto_ensemble_temp', exist_ok=True)
 os.makedirs('/content/Music-Source-Separation-Training/wav_folder', exist_ok=True)
+shutil.rmtree('/content/Music-Source-Separation-Training/ensemble', ignore_errors=True)
+shutil.rmtree('/content/Music-Source-Separation-Training/auto_ensemble_temp', ignore_errors=True)
+
 
 def clear_old_output():
     old_output_folder = os.path.join(BASE_PATH, 'old_output')
@@ -65,6 +68,7 @@ def clear_old_output():
         return error_msg
     
     print("All files in old_output have been deleted.")
+
 
 def shorten_filename(filename, max_length=30):
     """
@@ -87,7 +91,8 @@ def shorten_filename(filename, max_length=30):
 
 def update_progress(progress=gr.Progress()):
     def track_progress(percent):
-        progress(percent/100)
+        progress
+        (percent/100)
     return track_progress
 
 # Özel karakterleri temizlemek için
@@ -1208,7 +1213,7 @@ def process_audio(input_audio_file, model, chunk_size, overlap, export_format, u
           config_path = 'ckpts/inst_gabox.yaml'
           start_check_point = 'ckpts/Inst_GaboxV7.ckpt'
           download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
-          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/V7/Inst_GaboxV7.ckpt')
+          download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/Inst_GaboxV7.ckpt')
           conf_edit(config_path, chunk_size, overlap)      
 
 
@@ -2199,7 +2204,7 @@ def create_interface():
                       config_path = 'ckpts/inst_gabox.yaml'
                       start_check_point = 'ckpts/Inst_GaboxV7.ckpt'
                       download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml')
-                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/V7/Inst_GaboxV7.ckpt')
+                      download_file('https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/Inst_GaboxV7.ckpt')
                       conf_edit(config_path, chunk_size, overlap)        
 
               
@@ -2288,6 +2293,7 @@ def create_interface():
         finally:
             # Temizlik
             shutil.rmtree('/content/Music-Source-Separation-Training/ensemble', ignore_errors=True)
+            shutil.rmtree('/content/Music-Source-Separation-Training/ensemble', ignore_errors=True)
             clear_directory(VİDEO_TEMP)
             clear_directory(ENSEMBLE_DIR)
             gc.collect()
@@ -2342,6 +2348,7 @@ def create_interface():
 
     /* Başlık Stilleri */
     .header-text {
+      
         text-align: center;
         padding: 80px 20px 20px; /* Logo için alan bırak */
         color: #ff4040; /* Kırmızı, dublaj temasına uygun */
