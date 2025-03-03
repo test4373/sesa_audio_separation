@@ -178,8 +178,15 @@ def generate_random_port():
     return random.randint(1000, 9000)
 
 def update_file_list():
-                    files = glob.glob(f"{os.path.join(Path.home(), 'Music-Source-Separation', 'output')}/*.wav") + glob.glob(os.path.join(BASE_DIR, 'Music-Source-Separation-Training', 'old_output', '*.wav'))
-                    return gr.Dropdown(choices=files)
+    # OUTPUT_DIR ve OLD_OUTPUT_DIR'dan .wav dosyalarını al
+    output_files = glob.glob(os.path.join(OUTPUT_DIR, "*.wav"))  # BASE_DIR/output
+    old_output_files = glob.glob(os.path.join(OLD_OUTPUT_DIR, "*.wav"))  # helpers.py'dan geliyor, gerekirse dinamik yaparız
+    
+    # Dosya listesini birleştir
+    files = output_files + old_output_files
+    
+    # Gradio Dropdown için seçenekleri döndür
+    return gr.Dropdown(choices=files)
 
 
 def save_uploaded_file(uploaded_file, is_input=False, target_dir=None):
