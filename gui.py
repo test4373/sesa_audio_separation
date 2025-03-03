@@ -4,7 +4,7 @@ import glob
 import subprocess
 from datetime import datetime
 from model import get_model_config, MODEL_CONFIGS
-from processing import process_audio, auto_ensemble_process
+from processing import process_audio, auto_ensemble_process, ensemble_audio_fn
 
 # Model seçimini kategorize hale getirmek için fonksiyon
 def update_model_dropdown(category):
