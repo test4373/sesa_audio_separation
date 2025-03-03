@@ -5,9 +5,84 @@ from helpers import clear_old_output, INPUT_DIR, OUTPUT_DIR, generate_random_por
 
 # Model kategorileri ve seçenekleri (örnek, tam listeyi orijinal kodunuzdan alabilirsiniz)
 model_choices = {
-    "Vocal Separation": ["VOCALS-InstVocHQ", "VOCALS-MelBand-Roformer"],
-    "Instrumental Separation": ["INST-Mel-Roformer v1"],
-}
+        "Vocal Separation": [
+            'FullnessVocalModel (by Amane)',
+            'Voc_Fv3 (by Gabox)',
+            'VOCALS-BS-Roformer_1297 (by viperx)',
+            'VOCALS-BS-Roformer_1296 (by viperx)',
+            '✅ VOCALS-Mel-Roformer big beta 4 (by unwa) - Melspectrogram based high performance',
+            'VOCALS-BS-RoformerLargev1 (by unwa) - Comprehensive model',
+            'VOCALS-InstVocHQ - General purpose model',
+            'VOCALS-MelBand-Roformer (by KimberleyJSN) - Alternative model',
+            'VOCALS-VitLarge23 (by ZFTurbo) - Transformer-based model',
+            'VOCALS-MelBand-Roformer Kim FT (by Unwa)',
+            'VOCALS-MelBand-Roformer (by Becruily)',
+            '✅ VOCALS-Melband-Roformer BigBeta5e (by unwa)',
+            'VOCALS-Male Female-BS-RoFormer Male Female Beta 7_2889 (by aufr33)',
+            'VOCALS-MelBand-Roformer Kim FT 2 (by Unwa)',
+            'voc_gaboxMelRoforner (by Gabox)',
+            'voc_gaboxBSroformer (by Gabox)',
+            'voc_gaboxMelRoformerFV1 (by Gabox)',
+            'voc_gaboxMelRoformerFV2 (by Gabox)',
+            'VOCALS-MelBand-Roformer Kim FT 2 Blendless (by unwa)'
+        ],
+        "Instrumental Separation": [
+            'Inst_GaboxV7 (by Gabox)',
+            'INSTV5N (by Gabox)',
+            'inst_gaboxFV6 (by Gabox)',
+            '✅ INST-Mel-Roformer v2 (by unwa) - Most recent instrumental separation model',
+            '✅ inst_v1e (by unwa)',
+            '✅ INST-Mel-Roformer v1 (by unwa) - Old instrumental separation model',
+            'INST-MelBand-Roformer (by Becruily)',
+            'inst_gaboxFV2 (by Gabox)',
+            'inst_gaboxFV1 (by Gabox)',
+            'inst_gaboxBV2 (by Gabox)',
+            'inst_gaboxBV1 (by Gabox)',
+            'inst_gabox (by Gabox)',
+            '✅(?) inst_GaboxFv3 (by Gabox)',
+            'Intrumental_Gabox (by Gabox)',
+            '✅(?) inst_Fv4Noise (by Gabox)',
+            '✅(?) inst_V5 (by Gabox)',
+            'INST-VOC-Mel-Roformer a.k.a. duality v2 (by unwa) - Latest version instrumental separation',
+            'INST-VOC-Mel-Roformer a.k.a. duality (by unwa) - Previous version',
+            'INST-Separator MDX23C (by aufr33) - Alternative instrumental separation',
+            'INSTV6N (by Gabox)'
+        ],
+        "Karaoke & Accompaniment": [
+            '✅ KARAOKE-MelBand-Roformer (by aufr33 & viperx) - Advanced karaoke separation',
+            'KaraokeGabox'
+        ],
+        "Noise & Effect Removal": [
+            'denoisedebleed (by Gabox)',
+            '🔇 DENOISE-MelBand-Roformer-1 (by aufr33) - Basic noise reduction',
+            '🔉 DENOISE-MelBand-Roformer-2 (by aufr33) - Advanced noise reduction',
+            'bleed_suppressor_v1 (by unwa) - dont use it if you dont know what youre doing',
+            'dereverb_mel_band_roformer_mono (by anvuew)',
+            '👥 CROWD-REMOVAL-MelBand-Roformer (by aufr33) - Crowd noise removal',
+            '🏛️ DE-REVERB-MDX23C (by aufr33 & jarredou) - Reverb reduction',
+            '🏛️ DE-REVERB-MelBand-Roformer aggr./v2/19.1729 (by anvuew)',
+            '🗣️ DE-REVERB-Echo-MelBand-Roformer (by Sucial)',
+            'dereverb_mel_band_roformer_less_aggressive_anvuew',
+            'dereverb_mel_band_roformer_anvuew'
+
+
+        ],
+        "Drum Separation": [
+            '✅ DRUMSEP-MDX23C_DrumSep_6stem (by aufr33 & jarredou) - Detailed drum separation'
+        ],
+        "Multi-Stem & Other Models": [
+            'MelBandRoformer4StemFTLarge (SYH99999)',
+            '🎬 4STEMS-SCNet_MUSDB18 (by starrytong) - Multi-stem separation',
+            '🎼 CINEMATIC-BandIt_Plus (by kwatcharasupat) - Cinematic music analysis',
+            'OTHER-BS-Roformer_1053 (by viperx) - Other special models',
+            '4STEMS-SCNet_XL_MUSDB18 (by ZFTurbo)',
+            '4STEMS-SCNet_Large (by starrytong)',
+            '4STEMS-BS-Roformer_MUSDB18 (by ZFTurbo)',
+            'SYH99999/MelBandRoformerSYHFTB1_Model1 (by Amane)',
+            'SYH99999/MelBandRoformerSYHFTB1_Model2 (by Amane)',
+            'SYH99999/MelBandRoformerSYHFTB1_Model3 (by Amane)'
+        ],
+    }
 
 def create_interface():
     css = """body { background-color: #2d0b0b; color: #C0C0C0; font-family: 'Poppins', sans-serif; }"""  # Tam CSS kodunuzu buraya ekleyin
