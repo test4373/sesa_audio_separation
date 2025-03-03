@@ -4,8 +4,25 @@ import urllib.request
 import time
 import sys
 import random
+import argparse
+import time
+import librosa
+from tqdm.auto import tqdm
+import sys
+import os
+import glob
+import torch
+import soundfile as sf
+import torch.nn as nn
+from datetime import datetime
+import numpy as np
+import librosa
+import shutil
 from gui import create_interface
 from pyngrok import ngrok
+
+import warnings
+warnings.filterwarnings("ignore")
 
 def generate_random_port():
     """Generates a random port between 1000 and 9000."""
@@ -18,7 +35,7 @@ def start_gradio(port, share=False):
         server_port=port,
         server_name='0.0.0.0',
         share=share,
-        allowed_paths=["/tmp", "/content"],
+        allowed_paths=[os.path.join(os.path.expanduser("~"), "Music-Source-Separation", "input"), "/tmp", "/content"],
         inline=False
     )
 
