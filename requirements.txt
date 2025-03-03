@@ -32,3 +32,4 @@ rotary_embedding_torch
 noisereduce
 loralib
 hyper_connections==0.1.11
+pyngrok
