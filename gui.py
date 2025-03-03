@@ -2,6 +2,7 @@ import gradio as gr
 from download import download_callback
 from processing import process_audio, ensemble_audio_fn, auto_ensemble_process
 from helpers import clear_old_output, INPUT_DIR, OUTPUT_DIR, generate_random_port, save_uploaded_file
+from models import get_model_config
 
 # Model kategorileri ve seçenekleri (örnek, tam listeyi orijinal kodunuzdan alabilirsiniz)
 model_choices = {
