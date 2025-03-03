@@ -9,20 +9,15 @@ from pathlib import Path
 import torch
 import yaml
 import gradio as gr
-import subprocess
 import threading
-import random
 import time
-import shutil
 import librosa
 import soundfile as sf
 import numpy as np
 import requests
 import json
 import locale
-import shutil
 from datetime import datetime
-import glob
 import yt_dlp
 import validators
 from pytube import YouTube
@@ -32,43 +27,33 @@ from googleapiclient.http import MediaIoBaseDownload
 import io
 import math
 import hashlib
-import re
 import gc
 import psutil
 import concurrent.futures
 from tqdm import tqdm
 from google.oauth2.credentials import Credentials
 import tempfile
-from urllib.parse import urlparse
-from urllib.parse import quote
+from urllib.parse import urlparse, quote
 import gdown
 import argparse
-import time
-import librosa
 from tqdm.auto import tqdm
-import sys
-import soundfile as sf
 import torch.nn as nn
-from datetime import datetime
-import numpy as np
-import librosa
 from model import get_model_config, MODEL_CONFIGS
 
 # Temel dizinler
-BASE_PATH = os.path.dirname(os.path.abspath(__file__))
-INPUT_DIR = os.path.join(BASE_PATH, "input")
-OUTPUT_DIR = os.path.join(BASE_PATH, "output")
-OLD_OUTPUT_DIR = os.path.join(BASE_PATH, "old_output")
-AUTO_ENSEMBLE_TEMP = os.path.join(BASE_PATH, "auto_ensemble_temp")
-AUTO_ENSEMBLE_OUTPUT = os.path.join(BASE_PATH, "ensemble_folder")
-VIDEO_TEMP = os.path.join(BASE_PATH, "video_temp")
-ENSEMBLE_DIR = os.path.join(BASE_PATH, "ensemble")
-COOKIE_PATH = os.path.join(BASE_PATH, "cookies.txt")
-INFERENCE_SCRIPT_PATH = os.path.join(BASE_PATH, "inference.py")
-BASE_DIR = os.getcwd() if 'google.colab' not in sys.modules else '/content'
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # BASE_PATH yerine BASE_DIR
+INPUT_DIR = os.path.join(BASE_DIR, "input")
+OUTPUT_DIR = os.path.join(BASE_DIR, "output")
+OLD_OUTPUT_DIR = os.path.join(BASE_DIR, "old_output")
+AUTO_ENSEMBLE_TEMP = os.path.join(BASE_DIR, "auto_ensemble_temp")
+AUTO_ENSEMBLE_OUTPUT = os.path.join(BASE_DIR, "ensemble_folder")
+VIDEO_TEMP = os.path.join(BASE_DIR, "video_temp")
+ENSEMBLE_DIR = os.path.join(BASE_DIR, "ensemble")
+COOKIE_PATH = os.path.join(BASE_DIR, "cookies.txt")
+INFERENCE_SCRIPT_PATH = os.path.join(BASE_DIR, "inference.py")
 
 # Dizinleri oluştur
-for directory in [BASE_PATH, INPUT_DIR, OUTPUT_DIR, OLD_OUTPUT_DIR, AUTO_ENSEMBLE_TEMP, AUTO_ENSEMBLE_OUTPUT, VIDEO_TEMP, ENSEMBLE_DIR]:
+for directory in [BASE_DIR, INPUT_DIR, OUTPUT_DIR, OLD_OUTPUT_DIR, AUTO_ENSEMBLE_TEMP, AUTO_ENSEMBLE_OUTPUT, VIDEO_TEMP, ENSEMBLE_DIR]:
     os.makedirs(directory, exist_ok=True)
 
 # YAML için özel sınıf ve yapılandırıcı
@@ -133,16 +118,15 @@ def clear_temp_folder(folder_path, exclude_items=None):
         return False
 
 def clear_old_output():
-                    old_output_folder = os.path.join(BASE_DIR, 'Music-Source-Separation-Training', 'old_output')
-                    try:
-                        if not os.path.exists(old_output_folder):
-                            return "❌ Old output folder does not exist"
-                        shutil.rmtree(old_output_folder)
-                        os.makedirs(old_output_folder, exist_ok=True)
-                        return "✅ Old outputs successfully cleared!"
-                    except Exception as e:
-                        return f"🔥 Error: {str(e)}"
-
+    old_output_folder = os.path.join(BASE_DIR, 'old_output')  # BASE_PATH -> BASE_DIR
+    try:
+        if not os.path.exists(old_output_folder):
+            return "❌ Old output folder does not exist"
+        shutil.rmtree(old_output_folder)
+        os.makedirs(old_output_folder, exist_ok=True)
+        return "✅ Old outputs successfully cleared!"
+    except Exception as e:
+        return f"🔥 Error: {str(e)}"
 
 def shorten_filename(filename, max_length=30):
     """Shortens a filename to a specified maximum length."""
@@ -180,14 +164,13 @@ def generate_random_port():
 def update_file_list():
     # OUTPUT_DIR ve OLD_OUTPUT_DIR'dan .wav dosyalarını al
     output_files = glob.glob(os.path.join(OUTPUT_DIR, "*.wav"))  # BASE_DIR/output
-    old_output_files = glob.glob(os.path.join(OLD_OUTPUT_DIR, "*.wav"))  # helpers.py'dan geliyor, gerekirse dinamik yaparız
+    old_output_files = glob.glob(os.path.join(OLD_OUTPUT_DIR, "*.wav"))  # BASE_DIR/old_output
     
     # Dosya listesini birleştir
     files = output_files + old_output_files
     
     # Gradio Dropdown için seçenekleri döndür
     return gr.Dropdown(choices=files)
-
 
 def save_uploaded_file(uploaded_file, is_input=False, target_dir=None):
     """Saves an uploaded file to the specified directory."""
@@ -240,8 +223,6 @@ def move_old_files(output_folder):
             new_filename = f"{os.path.splitext(filename)[0]}_old{os.path.splitext(filename)[1]}"
             new_file_path = os.path.join(OLD_OUTPUT_DIR, new_filename)
             shutil.move(file_path, new_file_path)
-
-
 
 def conf_edit(config_path, chunk_size, overlap):
     """Edits the configuration file with chunk size and overlap."""
