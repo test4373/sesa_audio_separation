@@ -577,7 +577,7 @@ def move_wav_files2(INPUT_DIR):
         file_path = os.path.join(INPUT_DIR, filename)
         if os.path.isfile(file_path):
             # Yeni dosya adını oluştur
-            new_filename = f"{os.path.splitext(filename)[0]}_old{os.path.splitext(filename)[1]}"
+            new_filename = f"{os.path.splitext(filename)[0]}_ensemble{os.path.splitext(filename)[1]}"
             new_file_path = os.path.join(ENSEMBLE_DIR, new_filename)
             shutil.move(file_path, new_file_path)             
 
@@ -2244,7 +2244,7 @@ def create_interface():
                     # 3. Çıktı dosyalarını kontrol et
                 output_files = glob.glob(os.path.join(model_output_dir, "*.wav"))
                 if not output_files:
-                    raise FileNotFoundError(f"{model} çıktı üretemedi")
+                    raise FileNotFoundError(f"{model} failed to produce output")
                     
                 model_outputs.extend(output_files)
                 
@@ -2256,7 +2256,7 @@ def create_interface():
                     missing = [f for f in files if not os.path.exists(f)]
                     if not missing: return True
                     time.sleep(5)
-                raise TimeoutError(f"Eksik dosyalar: {missing[:3]}...")
+                raise TimeoutError(f"Missing files: {missing[:3]}...")
 
             wait_for_files(model_outputs)
 
@@ -2285,10 +2285,10 @@ def create_interface():
             if not os.path.exists(output_path):
                 raise RuntimeError("Ensemble dosyası oluşturulamadı")
                 
-            return output_path, "✅ Başarılı!"
+            return output_path, "✅ Success!"
 
         except Exception as e:
-            return None, f"❌ Hata: {str(e)}"
+            return None, f"❌ Error: {str(e)}"
         
         finally:
             # Temizlik
