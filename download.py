@@ -6,7 +6,47 @@ import torch
 import gdown
 from urllib.parse import quote
 from helpers import INPUT_DIR, COOKIE_PATH, clear_directory, clear_temp_folder, BASE_DIR
+import yaml
 
+# BASE_DIR ve ilgili dizinler
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+INPUT_DIR = os.path.join(BASE_DIR, "input")
+COOKIE_PATH = os.path.join(BASE_DIR, "cookies.txt")
+
+def clear_directory(directory):
+    """Deletes all files in the given directory."""
+    files = glob.glob(os.path.join(directory, '*'))
+    for f in files:
+        try:
+            os.remove(f)
+        except Exception as e:
+            print(f"{f} could not be deleted: {e}")
+
+def clear_temp_folder(folder_path, exclude_items=None):
+    """Safely clears contents of a directory while preserving specified items."""
+    try:
+        if not os.path.exists(folder_path):
+            print(f"⚠️ Directory does not exist: {folder_path}")
+            return False
+        if not os.path.isdir(folder_path):
+            print(f"⚠️ Path is not a directory: {folder_path}")
+            return False
+        exclude_items = exclude_items or []
+        for item_name in os.listdir(folder_path):
+            item_path = os.path.join(folder_path, item_name)
+            if item_name in exclude_items:
+                continue
+            try:
+                if os.path.isfile(item_path) or os.path.islink(item_path):
+                    os.unlink(item_path)
+                elif os.path.isdir(item_path):
+                    shutil.rmtree(item_path)
+            except Exception as e:
+                print(f"⚠️ Error deleting {item_path}: {str(e)}")
+        return True
+    except Exception as e:
+        print(f"❌ Critical error: {str(e)}")
+        return False
 
 def download_callback(url, download_type='direct', cookie_file=None):
     clear_temp_folder("/tmp", exclude_items=["gradio", "config.json"])
@@ -88,7 +128,7 @@ def download_callback(url, download_type='direct', cookie_file=None):
 def download_file(url):
     """Downloads a file from a URL."""
     encoded_url = quote(url, safe=':/')
-    path = os.path.join(BASE_DIR, 'ckpts')  # BASE_PATH -> BASE_DIR
+    path = os.path.join(BASE_DIR, 'ckpts')
     os.makedirs(path, exist_ok=True)
     filename = os.path.basename(encoded_url)
     file_path = os.path.join(path, filename)
@@ -100,3 +140,24 @@ def download_file(url):
         print(f"File '{filename}' downloaded successfully")
     except Exception as e:
         print(f"Error downloading file '{filename}' from '{url}': {e}")
+
+class IndentDumper(yaml.Dumper):
+    def increase_indent(self, flow=False, indentless=False):
+        return super(IndentDumper, self).increase_indent(flow, False)
+
+def conf_edit(config_path, chunk_size, overlap):
+    """Edits the configuration file with chunk size and overlap."""
+    with open(config_path, 'r') as f:
+        data = yaml.load(f, Loader=yaml.SafeLoader)
+
+    if 'use_amp' not in data.keys():
+        data['training']['use_amp'] = True
+
+    data['audio']['chunk_size'] = chunk_size
+    data['inference']['num_overlap'] = overlap
+    if data['inference']['batch_size'] == 1:
+        data['inference']['batch_size'] = 2
+
+    print(f"Using custom overlap and chunk_size: overlap={overlap}, chunk_size={chunk_size}")
+    with open(config_path, 'w') as f:
+        yaml.dump(data, f, default_flow_style=False, sort_keys=False, Dumper=IndentDumper)
