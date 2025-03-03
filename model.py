@@ -1,4 +1,4 @@
-from helpers import download_file, conf_edit
+from download import download_file, conf_edit
 
 def get_model_config(clean_model, chunk_size=None, overlap=None):
     """Returns model type, config path, and checkpoint path for a given model name, downloading files if needed."""
