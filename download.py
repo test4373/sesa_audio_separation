@@ -8,46 +8,6 @@ from urllib.parse import quote
 from helpers import INPUT_DIR, COOKIE_PATH, clear_directory, clear_temp_folder, BASE_DIR
 import yaml
 
-# BASE_DIR ve ilgili dizinler
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-INPUT_DIR = os.path.join(BASE_DIR, "input")
-COOKIE_PATH = os.path.join(BASE_DIR, "cookies.txt")
-
-def clear_directory(directory):
-    """Deletes all files in the given directory."""
-    files = glob.glob(os.path.join(directory, '*'))
-    for f in files:
-        try:
-            os.remove(f)
-        except Exception as e:
-            print(f"{f} could not be deleted: {e}")
-
-def clear_temp_folder(folder_path, exclude_items=None):
-    """Safely clears contents of a directory while preserving specified items."""
-    try:
-        if not os.path.exists(folder_path):
-            print(f"⚠️ Directory does not exist: {folder_path}")
-            return False
-        if not os.path.isdir(folder_path):
-            print(f"⚠️ Path is not a directory: {folder_path}")
-            return False
-        exclude_items = exclude_items or []
-        for item_name in os.listdir(folder_path):
-            item_path = os.path.join(folder_path, item_name)
-            if item_name in exclude_items:
-                continue
-            try:
-                if os.path.isfile(item_path) or os.path.islink(item_path):
-                    os.unlink(item_path)
-                elif os.path.isdir(item_path):
-                    shutil.rmtree(item_path)
-            except Exception as e:
-                print(f"⚠️ Error deleting {item_path}: {str(e)}")
-        return True
-    except Exception as e:
-        print(f"❌ Critical error: {str(e)}")
-        return False
-
 def download_callback(url, download_type='direct', cookie_file=None):
     clear_temp_folder("/tmp", exclude_items=["gradio", "config.json"])
     clear_directory(INPUT_DIR)
