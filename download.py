@@ -7,10 +7,6 @@ import gdown
 from urllib.parse import quote
 from helpers import INPUT_DIR, COOKIE_PATH, clear_directory, clear_temp_folder, BASE_DIR
 
-# BASE_DIR ve ilgili dizinler (processing.py ile uyumlu)
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-INPUT_DIR = os.path.join(BASE_DIR, "input")
-COOKIE_PATH = os.path.join(BASE_DIR, "cookies.txt")
 
 def download_callback(url, download_type='direct', cookie_file=None):
     clear_temp_folder("/tmp", exclude_items=["gradio", "config.json"])
