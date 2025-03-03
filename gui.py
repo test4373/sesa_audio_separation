@@ -96,7 +96,7 @@ def create_interface():
                 with gr.Row():
                     with gr.Column(scale=1):
                         input_audio_file = gr.File(label="Upload Audio", file_types=[".wav", ".mp3"])
-                        model_dropdown = gr.Dropdown(label="Model", choices=["VOCALS-InstVocHQ"])  # Tüm modelleri ekleyin
+                        model_dropdown = gr.Dropdown(label="Model", choices=list(get_model_config.keys()))
                         chunk_size = gr.Dropdown(label="Chunk Size", choices=[352800, 485100], value=352800)
                         overlap = gr.Slider(2, 50, step=1, label="Overlap", value=2)
                         export_format = gr.Dropdown(label="Format", choices=['wav FLOAT', 'flac PCM_16', 'flac PCM_24'], value='wav FLOAT')
