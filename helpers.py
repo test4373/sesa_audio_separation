@@ -223,20 +223,3 @@ def move_old_files(output_folder):
             new_filename = f"{os.path.splitext(filename)[0]}_old{os.path.splitext(filename)[1]}"
             new_file_path = os.path.join(OLD_OUTPUT_DIR, new_filename)
             shutil.move(file_path, new_file_path)
-
-def conf_edit(config_path, chunk_size, overlap):
-    """Edits the configuration file with chunk size and overlap."""
-    with open(config_path, 'r') as f:
-        data = yaml.load(f, Loader=yaml.SafeLoader)
-
-    if 'use_amp' not in data.keys():
-        data['training']['use_amp'] = True
-
-    data['audio']['chunk_size'] = chunk_size
-    data['inference']['num_overlap'] = overlap
-    if data['inference']['batch_size'] == 1:
-        data['inference']['batch_size'] = 2
-
-    print(f"Using custom overlap and chunk_size: overlap={overlap}, chunk_size={chunk_size}")
-    with open(config_path, 'w') as f:
-        yaml.dump(data, f, default_flow_style=False, sort_keys=False, Dumper=IndentDumper)
