@@ -2,9 +2,9 @@ import os
 import yaml
 from urllib.parse import quote
 from pathlib import Path
-from helpers import BASE_DIR
 
 # Temel dizin ve checkpoint dizini sabit olarak tanımlanıyor
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CHECKPOINT_DIR = os.path.join(BASE_DIR, 'ckpts')
 
 def conf_edit(config_path, chunk_size, overlap):
