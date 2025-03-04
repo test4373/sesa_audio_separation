@@ -5,9 +5,8 @@ import re
 import subprocess
 import random
 import yaml
-from pathlib import Path
+from pathlib import Path  # Doğru kullanım: Path (küçük harfli 'path' değil)
 import torch
-import yaml
 import gradio as gr
 import threading
 import time
@@ -41,7 +40,7 @@ import torch.nn as nn
 from model import get_model_config, MODEL_CONFIGS
 
 # Temel dizinler
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # BASE_PATH yerine BASE_DIR
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INPUT_DIR = os.path.join(BASE_DIR, "input")
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 OLD_OUTPUT_DIR = os.path.join(BASE_DIR, "old_output")
@@ -73,13 +72,21 @@ def update_model_dropdown(category):
     """Kategoriye göre model dropdown'ını günceller."""
     return gr.Dropdown(choices=list(MODEL_CONFIGS[category].keys()), label="Model")
 
-# Dosya yükleme işlevi (paylaşılan)
+# Dosya yükleme işlevi (güncellenmiş)
 def handle_file_upload(uploaded_file, file_path, is_auto_ensemble=False):
+    clear_temp_folder("/tmp", exclude_items=["gradio", "config.json"])
+    clear_directory(INPUT_DIR)
+    os.makedirs(INPUT_DIR, exist_ok=True)
+    clear_directory(INPUT_DIR)
     if uploaded_file:
-        target = uploaded_file.name if hasattr(uploaded_file, 'name') else uploaded_file
-        return target, target
+        # Yüklenen dosyayı INPUT_DIR'a kaydet
+        target_path = save_uploaded_file(uploaded_file, is_input=True)
+        return target_path, target_path
     elif file_path and os.path.exists(file_path):
-        return file_path, file_path
+        # Mevcut dosyayı INPUT_DIR'a kopyala
+        target_path = os.path.join(INPUT_DIR, os.path.basename(file_path))
+        shutil.copy(file_path, target_path)
+        return target_path, target_path
     return None, None
 
 def clear_directory(directory):
@@ -118,7 +125,7 @@ def clear_temp_folder(folder_path, exclude_items=None):
         return False
 
 def clear_old_output():
-    old_output_folder = os.path.join(BASE_DIR, 'old_output')  # BASE_PATH -> BASE_DIR
+    old_output_folder = os.path.join(BASE_DIR, 'old_output')
     try:
         if not os.path.exists(old_output_folder):
             return "❌ Old output folder does not exist"
@@ -163,8 +170,8 @@ def generate_random_port():
 
 def update_file_list():
     # OUTPUT_DIR ve OLD_OUTPUT_DIR'dan .wav dosyalarını al
-    output_files = glob.glob(os.path.join(OUTPUT_DIR, "*.wav"))  # BASE_DIR/output
-    old_output_files = glob.glob(os.path.join(OLD_OUTPUT_DIR, "*.wav"))  # BASE_DIR/old_output
+    output_files = glob.glob(os.path.join(OUTPUT_DIR, "*.wav"))
+    old_output_files = glob.glob(os.path.join(OLD_OUTPUT_DIR, "*.wav"))
     
     # Dosya listesini birleştir
     files = output_files + old_output_files
