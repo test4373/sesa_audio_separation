@@ -3,7 +3,7 @@ import os
 import glob
 import subprocess
 from datetime import datetime
-from helpers import update_model_dropdown, handle_file_upload
+from helpers import update_model_dropdown, handle_file_upload, clear_old_output, download_callback
 from model import get_model_config, MODEL_CONFIGS
 from processing import process_audio, auto_ensemble_process, ensemble_audio_fn
 
@@ -696,65 +696,7 @@ def create_interface():
         </div>
         """)
 
-        # Etkileşimler
-        def clear_old_output():
-            old_output_folder = "/content/Music-Source-Separation-Training/old_output"
-            try:
-                if not os.path.exists(old_output_folder):
-                    return "❌ Old output folder does not exist"
-                shutil.rmtree(old_output_folder)
-                os.makedirs(old_output_folder, exist_ok=True)
-                return "✅ Old outputs successfully cleared!"
-            except Exception as e:
-                return f"🔥 Error: {str(e)}"
-
-        def download_callback(url, source, cookie_file=None):
-            # Bu fonksiyonun içeriği projenize bağlı olarak değişebilir.
-            # Örnek bir implementasyon:
-            try:
-                if source == 'drive':
-                    return url, "Download from Drive not implemented", None, None, None, None
-                elif source == 'direct':
-                    return url, "Download from URL not implemented", None, None, None, None
-            except Exception as e:
-                return None, f"Error: {str(e)}", None, None, None, None
-
-        def ensemble_audio_fn(files, method, weights):
-            try:
-                if len(files) < 2:
-                    return None, "⚠️ Minimum 2 files required"
-                
-                valid_files = [f for f in files if os.path.exists(f)]
-                
-                if len(valid_files) < 2:
-                    return None, "❌ Valid files not found"
-                
-                output_dir = "/content/drive/MyDrive/ensembles"
-                os.makedirs(output_dir, exist_ok=True)
-                
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                output_path = f"{output_dir}/ensemble_{timestamp}.wav"
-                
-                ensemble_args = [
-                    "--files", *valid_files,
-                    "--type", method.lower().replace(' ', '_'),
-                    "--output", output_path
-                ]
-                
-                if weights and weights.strip():
-                    weights_list = [str(w) for w in map(float, weights.split(','))]
-                    ensemble_args += ["--weights", *weights_list]
-                
-                result = subprocess.run(
-                    ["python", "ensemble.py"] + ensemble_args,
-                    capture_output=True,
-                    text=True
-                )
-                
-                log = f"✅ Success!\n{result.stdout}" if not result.stderr else f"❌ Error!\n{result.stderr}"
-                return output_path, log
-            except Exception as e:
-                return None, f"⛔ Critical Error: {str(e)}"
+       
 
         def update_models(category):
             return gr.Dropdown(choices=list(MODEL_CONFIGS[category].keys()))
