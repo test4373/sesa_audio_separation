@@ -149,6 +149,8 @@ def run_command_and_process_files(model_type, config_path, start_check_point, IN
         print(f"An error occurred: {e}")
         return (None,) * 14
 
+        clear_directory(INPUT_DIR)
+
 def process_audio(input_audio_file, model, chunk_size, overlap, export_format, use_tta, demud_phaseremix_inst, extract_instrumental, clean_model, *args, **kwargs):
     """Processes audio using the specified model and returns separated stems."""
     if input_audio_file is not None:
