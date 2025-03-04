@@ -2,8 +2,9 @@ import gradio as gr
 import os
 import glob
 import subprocess
+from pathlib import Path
 from datetime import datetime
-from helpers import update_model_dropdown, handle_file_upload, clear_old_output, save_uploaded_file
+from helpers import update_model_dropdown, handle_file_upload, clear_old_output, save_uploaded_file, update_file_list
 from download import download_callback
 from model import get_model_config, MODEL_CONFIGS
 from processing import process_audio, auto_ensemble_process, ensemble_audio_fn
@@ -635,23 +636,20 @@ def create_interface():
             # Manuel Ensemble Sekmesi
             with gr.Tab("🎚️ Manuel Ensemble"):
                 with gr.Row(equal_height=True):
-                    # Sol Panel - Giriş ve Ayarlar
                     with gr.Column(scale=1, min_width=400):
                         with gr.Accordion("📂 Input Sources", open=True):
                             with gr.Row():
                                 refresh_btn = gr.Button("🔄 Refresh", variant="secondary", size="sm")
                                 ensemble_type = gr.Dropdown(
                                     label="Ensemble Algorithm",
-                                    choices=[
-                                        'avg_wave', 'median_wave', 'min_wave', 'max_wave',
-                                        'avg_fft', 'median_fft', 'min_fft', 'max_fft'
-                                    ],
+                                    choices=['avg_wave', 'median_wave', 'min_wave', 'max_wave',
+                                            'avg_fft', 'median_fft', 'min_fft', 'max_fft'],
                                     value='avg_wave'
                                 )
 
                             # Dosya listesini belirli bir yoldan al
-                            file_path = "/content/drive/MyDrive/output"  # Sabit yol
-                            initial_files = glob.glob(f"{file_path}/*.wav") + glob.glob("/content/Music-Source-Separation-Training/old_output/*.wav")
+                            file_path = os.path.join(Path.home(), 'Music-Source-Separation', 'output')
+                            initial_files = glob.glob(f"{file_path}/*.wav") + glob.glob(os.path.join(BASE_DIR, 'Music-Source-Separation-Training', 'old_output', '*.wav'))
 
                             gr.Markdown("### Select Audio Files")
                             file_dropdown = gr.Dropdown(
@@ -774,7 +772,7 @@ def create_interface():
             outputs=[direct_download_output, direct_download_status, input_audio_file, auto_input_audio_file, original_audio, original_audio2]
         )
 
-        refresh_btn.click(fn=lambda: gr.Dropdown(choices=glob.glob(f"/content/drive/MyDrive/output/*.wav") + glob.glob("/content/Music-Source-Separation-Training/old_output/*.wav")), outputs=file_dropdown)
+        refresh_btn.click(fn=update_file_list, outputs=file_dropdown)
         ensemble_process_btn.click(fn=ensemble_audio_fn, inputs=[file_dropdown, ensemble_type, weights_input], outputs=[ensemble_output_audio, ensemble_status])
 
     return demo
