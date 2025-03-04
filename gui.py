@@ -3,22 +3,9 @@ import os
 import glob
 import subprocess
 from datetime import datetime
+from helpers import update_model_dropdown, handle_file_upload
 from model import get_model_config, MODEL_CONFIGS
 from processing import process_audio, auto_ensemble_process, ensemble_audio_fn
-
-# Model seçimini kategorize hale getirmek için fonksiyon
-def update_model_dropdown(category):
-    """Kategoriye göre model dropdown'ını günceller."""
-    return gr.Dropdown(choices=list(MODEL_CONFIGS[category].keys()), label="Model")
-
-# Dosya yükleme işlevi (paylaşılan)
-def handle_file_upload(uploaded_file, file_path, is_auto_ensemble=False):
-    if uploaded_file:
-        target = uploaded_file.name if hasattr(uploaded_file, 'name') else uploaded_file
-        return target, target
-    elif file_path and os.path.exists(file_path):
-        return file_path, file_path
-    return None, None
 
 # Arayüz oluşturma fonksiyonu
 def create_interface():
