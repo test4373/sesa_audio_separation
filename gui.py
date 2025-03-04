@@ -8,6 +8,9 @@ from download import download_callback
 from model import get_model_config, MODEL_CONFIGS
 from processing import process_audio, auto_ensemble_process, ensemble_audio_fn
 
+# BASE_DIR tanımı (BASE_PATH yerine)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Arayüz oluşturma fonksiyonu
 def create_interface():
     # CSS tanımı
@@ -696,8 +699,6 @@ def create_interface():
             Presented by Gecekondu Production
         </div>
         """)
-
-       
 
         def update_models(category):
             return gr.Dropdown(choices=list(MODEL_CONFIGS[category].keys()))
