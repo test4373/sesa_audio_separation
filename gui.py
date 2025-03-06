@@ -456,7 +456,6 @@ def create_interface():
                                     value='wav FLOAT'
                                 )
 
-                        # Model Seçim Bölümü
                         with gr.Group():
                             gr.Markdown("### 🧠 Model Selection")
                             with gr.Row():
@@ -466,7 +465,6 @@ def create_interface():
                                     value="Vocal Models"
                                 )
 
-                            # Model seçimi (tek seferde)
                             auto_model_dropdown = gr.Dropdown(
                                 label="Select Models from Category",
                                 choices=list(MODEL_CONFIGS["Vocal Models"].keys()),
@@ -475,7 +473,6 @@ def create_interface():
                                 interactive=True
                             )
 
-                            # Seçilen modellerin listesi (ayrı kutucuk)
                             selected_models = gr.Dropdown(
                                 label="Selected Models",
                                 choices=[],
@@ -487,7 +484,6 @@ def create_interface():
                                 add_btn = gr.Button("➕ Add Selected", variant="secondary")
                                 clear_btn = gr.Button("🗑️ Clear All", variant="stop")
 
-                        # Ensemble Ayarları
                         with gr.Group():
                             gr.Markdown("### ⚡ Ensemble Settings")
                             with gr.Row():
