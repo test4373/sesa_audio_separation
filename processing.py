@@ -150,6 +150,10 @@ def run_command_and_process_files(model_type, config_path, start_check_point, IN
         return (None,) * 14
 
         clear_directory(INPUT_DIR)
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
 
 def process_audio(input_audio_file, model, chunk_size, overlap, export_format, use_tta, demud_phaseremix_inst, extract_instrumental, clean_model, *args, **kwargs):
     """Processes audio using the specified model and returns separated stems."""
@@ -185,6 +189,11 @@ def process_audio(input_audio_file, model, chunk_size, overlap, export_format, u
     )
 
     return outputs
+
+    gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
 
 def ensemble_audio_fn(files, method, weights):
     try:
@@ -223,28 +232,33 @@ def ensemble_audio_fn(files, method, weights):
     except Exception as e:
         return None, f"⛔ Critical Error: {str(e)}"
 
-def auto_ensemble_process(input_audio_file, selected_models, chunk_size, overlap, export_format, use_tta, extract_instrumental, ensemble_type, _state, *args, **kwargs):
-    """Processes audio with multiple models and performs ensemble."""
+def auto_ensemble_process(input_audio_file, selected_models, chunk_size, overlap, export_format, use_tta, extract_instrumental, ensemble_type, _state, progress=gr.Progress()):
+    """Processes audio with multiple models and performs ensemble with progress tracking."""
     try:
         if not selected_models or len(selected_models) < 1:
-            return None, "❌ No models selected"
+            return None, "❌ Model seçilmedi"
 
         if input_audio_file is None:
             existing_files = os.listdir(INPUT_DIR)
             if not existing_files:
-                return None, "❌ No input audio provided"
+                return None, "❌ Giriş ses dosyası sağlanmadı"
             audio_path = os.path.join(INPUT_DIR, existing_files[0])
         else:
             audio_path = input_audio_file.name
 
-        # AUTO_ENSEMBLE_TEMP'i de BASE_DIR üzerinden tanımla
         auto_ensemble_temp = os.path.join(BASE_DIR, "auto_ensemble_temp")
         os.makedirs(auto_ensemble_temp, exist_ok=True)
         os.makedirs(AUTO_ENSEMBLE_OUTPUT, exist_ok=True)
         clear_directory(auto_ensemble_temp)
 
         all_outputs = []
+        total_steps = len(selected_models) + 1  # Her model + ensemble adımı
+        step = 0
+
+        # Her model için ses ayrımı
         for model in selected_models:
+            step += 1
+            progress(step / total_steps, desc=f"{step}/{total_steps}: {model} işleniyor")
             clean_model = extract_model_name(model)
             model_output_dir = os.path.join(auto_ensemble_temp, clean_model)
             os.makedirs(model_output_dir, exist_ok=True)
@@ -265,31 +279,26 @@ def auto_ensemble_process(input_audio_file, selected_models, chunk_size, overlap
                 cmd.append("--extract_instrumental")
 
             print(f"Running command: {' '.join(cmd)}")
-            try:
-                result = subprocess.run(cmd, capture_output=True, text=True)
-                print(result.stdout)
-                if result.returncode != 0:
-                    print(f"Error: {result.stderr}")
-                    return None, f"Model {model} failed: {result.stderr}"
-            except Exception as e:
-                return None, f"Critical error with {model}: {str(e)}"
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            print(result.stdout)
+            if result.returncode != 0:
+                print(f"Error: {result.stderr}")
+                return None, f"Model {model} başarısız: {result.stderr}"
 
             model_outputs = glob.glob(os.path.join(model_output_dir, "*.wav"))
             if not model_outputs:
-                raise FileNotFoundError(f"{model} failed to produce output")
+                raise FileNotFoundError(f"{model} çıktı üretmedi")
             all_outputs.extend(model_outputs)
 
-        def wait_for_files(files, timeout=300):
-            start = time.time()
-            while time.time() - start < timeout:
-                missing = [f for f in files if not os.path.exists(f)]
-                if not missing:
-                    return True
-                time.sleep(5)
-            raise TimeoutError(f"Missing files: {missing[:3]}...")
+        # Bellek temizleme
+        progress(step / total_steps, desc="Bellek temizleniyor...")
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
-        wait_for_files(all_outputs)
-
+        # Ensemble işlemi
+        step += 1
+        progress(step / total_steps, desc=f"{step}/{total_steps}: Ensemble yapılıyor ({ensemble_type})")
         quoted_files = [f'"{f}"' for f in all_outputs]
         timestamp = str(int(time.time()))
         output_path = os.path.join(AUTO_ENSEMBLE_OUTPUT, f"ensemble_{timestamp}.wav")
@@ -312,9 +321,12 @@ def auto_ensemble_process(input_audio_file, selected_models, chunk_size, overlap
         if not os.path.exists(output_path):
             raise RuntimeError("Ensemble dosyası oluşturulamadı")
         
-        return output_path, "✅ Success!"
+        progress(1.0, desc="Tamamlandı!")
+        return output_path, "✅ Başarıyla tamamlandı!"
     except Exception as e:
-        return None, f"❌ Error: {str(e)}"
+        return None, f"❌ Hata: {str(e)}"
     finally:
         shutil.rmtree(auto_ensemble_temp, ignore_errors=True)
         gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
