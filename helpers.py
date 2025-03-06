@@ -89,6 +89,9 @@ def handle_file_upload(uploaded_file, file_path, is_auto_ensemble=False):
         return target_path, target_path
     return None, None
 
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
 def clear_directory(directory):
     """Deletes all files in the given directory."""
     files = glob.glob(os.path.join(directory, '*'))
