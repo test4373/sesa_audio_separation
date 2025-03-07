@@ -5,9 +5,6 @@ import time
 import gc
 import shutil
 import sys
-current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(current_dir)
-
 from datetime import datetime
 from helpers import INPUT_DIR, OLD_OUTPUT_DIR, ENSEMBLE_DIR, AUTO_ENSEMBLE_TEMP, move_old_files, clear_directory, BASE_DIR
 from model import get_model_config
@@ -26,11 +23,13 @@ import re
 import psutil
 import concurrent.futures
 from tqdm import tqdm
+from tqdm.auto import tqdm
 from google.oauth2.credentials import Credentials
 import tempfile
 from urllib.parse import urlparse, quote
 import gdown
 from clean_model import clean_model_name, shorten_filename, clean_filename
+import queue
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -241,6 +240,37 @@ def ensemble_audio_fn(files, method, weights):
     except Exception as e:
         return None, f"⛔ Critical Error: {str(e)}"
 
+import subprocess
+import os
+import glob
+import time
+import shutil
+import gc
+import torch
+import re
+import gradio as gr
+import threading
+import queue
+
+# Sabit yol tanımlamaları
+BASE_DIR = "/content/Music-Source-Separation-Training"
+INPUT_DIR = os.path.join(BASE_DIR, "input")
+AUTO_ENSEMBLE_OUTPUT = os.path.join(BASE_DIR, "auto_ensemble_output")
+INFERENCE_PATH = os.path.join(BASE_DIR, "inference.py")
+
+def clear_directory(directory):
+    """Clears all files in the given directory."""
+    if os.path.exists(directory):
+        for filename in os.listdir(directory):
+            file_path = os.path.join(directory, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                print(f"Failed to delete {file_path}. Reason: {e}")
+
 def auto_ensemble_process(input_audio_file, selected_models, chunk_size, overlap, export_format, use_tta, extract_instrumental, ensemble_type, _state, progress=gr.Progress()):
     """Processes audio with multiple models and performs ensemble, showing chunk progress from demix."""
     try:
@@ -264,15 +294,19 @@ def auto_ensemble_process(input_audio_file, selected_models, chunk_size, overlap
         all_outputs = []
         total_models = len(selected_models)
 
+        # Çevre değişkeni ile tamponlamayı kaldırma
+        env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
+
         for i, model in enumerate(selected_models, 1):
-            clean_model = extract_model_name(model)
+            clean_model = extract_model_name(model)  # Senin kodunda tanımlı varsayıyorum
             model_output_dir = os.path.join(auto_ensemble_temp, clean_model)
             os.makedirs(model_output_dir, exist_ok=True)
 
-            model_type, config_path, start_check_point = get_model_config(clean_model, chunk_size, overlap)
+            model_type, config_path, start_check_point = get_model_config(clean_model, chunk_size, overlap)  # Senin kodunda tanımlı varsayıyorum
 
             cmd = [
-                "python", INFERENCE_PATH,
+                "python", "-u", INFERENCE_PATH,
                 "--model_type", model_type,
                 "--config_path", config_path,
                 "--start_check_point", start_check_point,
@@ -286,7 +320,7 @@ def auto_ensemble_process(input_audio_file, selected_models, chunk_size, overlap
             # Ensure detailed progress is enabled
             # cmd.append("--disable_detailed_pbar")  # Comment out to enable detailed pbar
 
-            progress(0, desc=f"Model {i}/{total_models}: {clean_model} - Starting")
+            progress((i - 1) / total_models, desc=f"Model {i}/{total_models}: {clean_model} - Starting")
             process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
@@ -294,13 +328,26 @@ def auto_ensemble_process(input_audio_file, selected_models, chunk_size, overlap
                 text=True,
                 bufsize=1,
                 universal_newlines=True,
-                errors='replace'
+                errors='replace',
+                env=env
             )
+
+            # Çıktıyı gerçek zamanlı okumak için thread ve queue
+            output_queue = queue.Queue()
+            def read_output():
+                while True:
+                    line = process.stdout.readline()
+                    if not line and process.poll() is not None:
+                        break
+                    if line:
+                        output_queue.put(line.strip())
+            output_thread = threading.Thread(target=read_output)
+            output_thread.start()
 
             chunk_total = None
             while process.poll() is None:
-                line = process.stdout.readline().strip()
-                if line:
+                try:
+                    line = output_queue.get(timeout=0.1)
                     print(f"STDOUT: {line}")
                     match = re.search(r"\|.*?(\d+)/(\d+)", line)
                     if "Processing audio chunks" in line and match:
@@ -317,6 +364,29 @@ def auto_ensemble_process(input_audio_file, selected_models, chunk_size, overlap
                             )
                         except (ValueError, IndexError) as e:
                             print(f"Error parsing tqdm output: {e}, Line: {line}")
+                except queue.Empty:
+                    continue  # Tahmini ilerleme yok, sadece terminali takip et
+
+            # Kalan çıktıları al
+            output_thread.join()
+            while not output_queue.empty():
+                line = output_queue.get()
+                print(f"STDOUT (remaining): {line}")
+                match = re.search(r"\|.*?(\d+)/(\d+)", line)
+                if "Processing audio chunks" in line and match:
+                    try:
+                        current = float(match.group(1))
+                        total = float(match.group(2))
+                        if not chunk_total:
+                            chunk_total = total
+                            print(f"Chunk total set to: {chunk_total}")
+                        percent = current / chunk_total if chunk_total else 0
+                        progress(
+                            (i - 1 + percent) / total_models,
+                            desc=f"Model {i}/{total_models}: {clean_model} - Chunk Progress {percent*100:.0f}%"
+                        )
+                    except (ValueError, IndexError) as e:
+                        print(f"Error parsing remaining tqdm output: {e}, Line: {line}")
 
             stdout_remaining, stderr_output = process.communicate()
             if stdout_remaining:
@@ -349,6 +419,15 @@ def auto_ensemble_process(input_audio_file, selected_models, chunk_size, overlap
             if not model_outputs:
                 raise FileNotFoundError(f"{model} failed to produce output")
             all_outputs.extend(model_outputs)
+
+            # RAM temizliği
+            progress((i - 1 + 0.9) / total_models, desc=f"Model {i}/{total_models}: {clean_model} - Clearing Memory")
+            print(f"Memory before cleanup: {torch.cuda.memory_allocated()/1024**2:.2f} MB" if torch.cuda.is_available() else "CPU mode")
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                torch.cuda.ipc_collect()
+            gc.collect()
+            print(f"Memory after cleanup: {torch.cuda.memory_allocated()/1024**2:.2f} MB" if torch.cuda.is_available() else "CPU mode")
 
         progress((total_models - 1 + 0.95) / total_models, desc="Clearing memory...")
         gc.collect()
