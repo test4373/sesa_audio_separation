@@ -31,7 +31,7 @@ setup(
     description='Professional Audio Source Separation Toolkit',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
-    url='https://github.com/test4373/SESA-Audio-Separation',
+    url='https://github.com/test4373/sesa_audio_separation',
     classifiers=[
         'Programming Language :: Python :: 3',
         'License :: OSI Approved :: MIT License',
